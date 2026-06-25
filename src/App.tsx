@@ -42,9 +42,11 @@ function App() {
   const resetGenerationState = useCallback(() => {
     setGeneratedFiles([]);
     setSelectedFile(null);
-    setModels([]);
+
     setStatus('idle');
     setStatusMessage('');
+    setDeploymentStrategy('local_zip'); // Reset deployment strategy
+    setRepositoryUrl(''); // Reset repository URL
   }, []);
 
   const handleGenerate = async (payload: GeneratorPayload) => {
@@ -63,14 +65,14 @@ function App() {
       // 3. Include current models from state into the payload
       const fullPayload: GeneratorPayload = {
         ...payload,
-        models: models.map(m => ({
-          name: m.name,
-          fields: m.fields.map(f => ({
-            name: f.name,
-            type: f.type,
-            required: f.required
+        models: models?.map(m => ({
+          name: m?.name,
+          fields: m?.fields?.map(f => ({
+            name: f?.name,
+            type: f?.type,
+            required: f?.required
           }))
-        }))
+        })) || []
       };
 
       // 4. Call API

@@ -94,7 +94,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
                 <FolderOpen className="w-3.5 h-3.5 text-yellow-500" />
                 <span className="truncate">{dir === '/' ? 'module' : dir}</span>
               </div>
-              {Array.isArray(filenames) && filenames.map((filename) => {
+              {Array.isArray(filenames) && filenames.length > 0 && filenames.map((filename) => {
                 const fullPath = dir === '/' ? filename : `${dir}/${filename}`;
                 const isSelected = selectedFile === fullPath;
                 return (

@@ -41,7 +41,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const getDeploymentBadge = () => {
     if (status !== 'generating' && status !== 'success') return null;
 
-    if (deploymentStrategy === 'github') {
+    const currentDeploymentStrategy = deploymentStrategy ?? 'local_zip';
+
+    if (currentDeploymentStrategy === 'github') {
       return (
         <span className="badge badge-github flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">
           <Github className="w-3 h-3" />
@@ -63,21 +65,21 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       <div className="flex items-center gap-3">
         {getStatusIcon()}
         <span className="text-sm text-dark-300 truncate max-w-[200px] sm:max-w-md">
-          {statusMessage || getDefaultMessage()}
+          {statusMessage ?? getDefaultMessage()}
         </span>
       </div>
 
       <div className="flex items-center gap-3">
         {getDeploymentBadge()}
 
-        {status === 'success' && deploymentStrategy === 'local_zip' && (
+        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'local_zip' && (
           <button className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 text-primary-300 rounded-lg border border-primary-500/30 hover:bg-primary-500/30 transition-colors">
             <Download className="w-4 h-4" />
             <span className="text-sm hidden sm:inline">Download</span>
           </button>
         )}
 
-        {status === 'success' && deploymentStrategy === 'github' && (
+        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'github' && (
           <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors">
             <Github className="w-4 h-4" />
             <span className="text-sm hidden sm:inline">View Repository</span>

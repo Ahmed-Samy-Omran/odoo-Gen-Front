@@ -77,7 +77,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
     onModelsChange(
       safeModels.map(m =>
         m?.name === modelName
-          ? { ...m, fields: [...(Array.isArray(m.fields) ? m.fields : []), newField] }
+          ? { ...m, fields: [...(Array.isArray(m?.fields) ? m.fields : []), newField] }
           : m
       )
     );
@@ -88,7 +88,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
     onModelsChange(
       safeModels.map(m =>
         m?.name === modelName
-          ? { ...m, fields: (Array.isArray(m.fields) ? m.fields : []).filter((_, i) => i !== fieldIndex) }
+          ? { ...m, fields: (Array.isArray(m?.fields) ? m.fields : []).filter((_, i) => i !== fieldIndex) }
           : m
       )
     );
@@ -101,7 +101,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
         m?.name === modelName
           ? {
               ...m,
-              fields: (Array.isArray(m.fields) ? m.fields : []).map((f, i) =>
+              fields: (Array.isArray(m?.fields) ? m.fields : []).map((f, i) =>
                 i === fieldIndex ? { ...f, ...updates } : f
               ),
             }
@@ -131,7 +131,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           // Safety check for each model
           if (!model?.name) return null;
 
-          const fields = Array.isArray(model.fields) ? model.fields : [];
+          const fields = Array.isArray(model?.fields) ? model.fields : [];
 
           return (
             <div key={model.name} className="glass rounded-xl overflow-hidden border border-dark-700/50">
