@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { BottomBar } from './components/BottomBar';
 import { InspectorPanel } from './components/InspectorPanel';
@@ -9,7 +9,7 @@ import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
-import type { GeneratorPayload } from './services/api';
+import { generateModule, type GeneratorPayload, type GeneratedFile } from './services/api';
 import { Github, FileArchive } from 'lucide-react';
 
 type ViewType = 'generator' | 'history' | 'settings';
@@ -26,12 +26,6 @@ interface Model {
   fields: ModelField[];
 }
 
-interface GeneratedFile {
-  name: string;
-  path: string;
-  content: string;
-}
-
 function App() {
   const [activeView, setActiveView] = useState<ViewType>('generator');
   const [status, setStatus] = useState<StatusType>('idle');
@@ -45,120 +39,58 @@ function App() {
   const [showLeftPanel, setShowLeftPanel] = useState(false);
 
   // Reset all state for a fresh generation
-  const resetGenerationState = () => {
+  const resetGenerationState = useCallback(() => {
     setGeneratedFiles([]);
     setSelectedFile(null);
     setModels([]);
-  };
+    setStatus('idle');
+    setStatusMessage('');
+  }, []);
 
   const handleGenerate = async (payload: GeneratorPayload) => {
-    // Clear old data immediately before starting new generation
+    // 1. Reset state before starting new generation
     resetGenerationState();
 
+    // 2. Set initial generating state
     setStatus('generating');
-    setStatusMessage(`Generating module "${payload.moduleName}"...`);
-    setDeploymentStrategy(payload.deploymentStrategy);
-    setRepositoryUrl(payload.repositoryUrl || '');
+    setStatusMessage(`Generating module "${payload?.moduleName || 'module'}"...`);
+    setDeploymentStrategy(payload?.deploymentStrategy || 'local_zip');
+    setRepositoryUrl(payload?.repositoryUrl || '');
     setShowWelcome(false);
     setShowLeftPanel(true);
 
-    // Simulate generation (replace with actual API call)
-    // In production, this would be: const result = await generateModule(payload);
-    setTimeout(() => {
-      // Safely access models with fallbacks
-      const firstModel = models?.[0];
-      const modelName = firstModel?.name || 'main_model';
-      const modelFields = firstModel?.fields || [];
-      const modelClassName = modelName
-        ?.split('_')
-        ?.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1))
-        ?.join('') || 'MainModel';
+    try {
+      // 3. Include current models from state into the payload
+      const fullPayload: GeneratorPayload = {
+        ...payload,
+        models: models.map(m => ({
+          name: m.name,
+          fields: m.fields.map(f => ({
+            name: f.name,
+            type: f.type,
+            required: f.required
+          }))
+        }))
+      };
 
-      const mockFiles: GeneratedFile[] = [
-        {
-          name: '__manifest__.py',
-          path: '__manifest__.py',
-          content: `# -*- coding: utf-8 -*-
-{
-    'name': '${payload.moduleName}',
-    'version': '${payload.version}',
-    'summary': '${payload.description}',
-    'author': '${payload.author}',
-    'category': '${payload.category}',
-    'depends': ${JSON.stringify(payload.depends)},
-    'data': [],
-    'demo': [],
-    'installable': True,
-    'auto_install': False,
-}`,
-        },
-        {
-          name: '__init__.py',
-          path: '__init__.py',
-          content: `# -*- coding: utf-8 -*-
+      // 4. Call API
+      const result = await generateModule(fullPayload);
 
-from . import models
-`,
-        },
-        {
-          name: 'models.py',
-          path: 'models/__init__.py',
-          content: `# -*- coding: utf-8 -*-
-
-from . import ${modelName}
-`,
-        },
-        {
-          name: `${modelName}.py`,
-          path: `models/${modelName}.py`,
-          content: `# -*- coding: utf-8 -*-
-
-from odoo import models, fields, api
-
-class ${modelClassName}(models.Model):
-    _name = '${payload.moduleName}.${modelName}'
-    _description = '${payload.description}'
-
-${modelFields.length > 0
-  ? modelFields.map((f: ModelField) => `    ${f.name} = fields.${f.type}(${f.required ? "required=True, " : ''}string='${f.name.charAt(0).toUpperCase() + f.name.slice(1)}')`).join('\n')
-  : '    name = fields.Char(required=True, string="Name")'}
-`,
-        },
-      ];
-
-      // Add README if GitHub deployment
-      if (payload.deploymentStrategy === 'github') {
-        mockFiles.push({
-          name: 'README.md',
-          path: 'README.md',
-          content: `# ${payload.moduleName}
-
-${payload.description}
-
-## Installation
-
-1. Download this module
-2. Copy to your Odoo addons directory
-3. Update app list
-4. Install the module
-
-## Author
-
-${payload.author}
-
-## License
-
-MIT
-`,
-        });
+      if (result?.success) {
+        setGeneratedFiles(result.files || []);
+        setSelectedFile(result.files?.[0]?.path || null);
+        setRepositoryUrl(result.repositoryUrl || payload.repositoryUrl || '');
+        setStatus('success');
+        setStatusMessage(result.message || 'Generation successful');
+      } else {
+        setStatus('error');
+        setStatusMessage(result.message || 'Generation failed');
       }
-
-      // Only update state with new data from API response
-      setGeneratedFiles(mockFiles);
-      setSelectedFile(mockFiles[0]?.path || null);
-      setStatus('success');
-      setStatusMessage(`Module "${payload.moduleName}" generated successfully`);
-    }, 2000);
+    } catch (error) {
+      console.error('App generation error:', error);
+      setStatus('error');
+      setStatusMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
+    }
   };
 
   const handleStartGenerating = () => {
@@ -217,7 +149,7 @@ MIT
                 <div className="flex-1 flex flex-col overflow-hidden">
                   {getDeploymentBadge()}
 
-                  {generatedFiles.length > 0 ? (
+                  {generatedFiles && generatedFiles.length > 0 ? (
                     <CanvasView
                       files={generatedFiles}
                       selectedFile={selectedFile}
@@ -228,7 +160,11 @@ MIT
                   ) : (
                     <div className="flex-1 flex items-center justify-center">
                       <div className="text-center">
-                        <p className="text-dark-400">Configure your module and click Generate</p>
+                        <p className="text-dark-400">
+                          {status === 'generating' 
+                            ? 'Processing your request...' 
+                            : 'Configure your module and click Generate'}
+                        </p>
                       </div>
                     </div>
                   )}

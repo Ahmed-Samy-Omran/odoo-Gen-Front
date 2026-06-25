@@ -17,7 +17,7 @@ interface CanvasViewProps {
 }
 
 export const CanvasView: React.FC<CanvasViewProps> = ({
-  files,
+  files = [],
   selectedFile,
   onSelectFile,
   deploymentStrategy,
@@ -25,7 +25,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   isLoading = false,
 }) => {
   const getSelectedContent = (): string | null => {
-    if (!files || files.length === 0 || !selectedFile) return null;
+    if (!Array.isArray(files) || files.length === 0 || !selectedFile) return null;
     return files.find(f => f?.path === selectedFile)?.content || null;
   };
 
@@ -33,7 +33,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     const tree: { [key: string]: string[] } = {};
 
     // Safety check: ensure files exists and is an array before iterating
-    if (!files || !Array.isArray(files) || files.length === 0) {
+    if (!Array.isArray(files) || files.length === 0) {
       return tree;
     }
 
@@ -58,7 +58,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-dark-900/50">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary-400 animate-spin mx-auto mb-4" />
           <p className="text-dark-400">Loading generated files...</p>
@@ -68,9 +68,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   }
 
   // Show empty state
-  if (!files || files.length === 0) {
+  if (!Array.isArray(files) || files.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-dark-900/50">
         <div className="text-center">
           <Folder className="w-16 h-16 text-dark-500 mx-auto mb-4" />
           <p className="text-dark-400">No files generated yet</p>
@@ -94,7 +94,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
                 <FolderOpen className="w-3.5 h-3.5 text-yellow-500" />
                 <span className="truncate">{dir === '/' ? 'module' : dir}</span>
               </div>
-              {filenames?.map?.((filename) => {
+              {Array.isArray(filenames) && filenames.map((filename) => {
                 const fullPath = dir === '/' ? filename : `${dir}/${filename}`;
                 const isSelected = selectedFile === fullPath;
                 return (
@@ -138,7 +138,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           )}
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-dark-900/20">
           {selectedContent ? (
             <pre className="p-4 text-sm font-mono text-dark-300 whitespace-pre-wrap">
               <code>{selectedContent}</code>

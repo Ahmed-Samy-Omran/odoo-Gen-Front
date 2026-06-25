@@ -43,7 +43,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
     if (deploymentStrategy === 'github') {
       return (
-        <span className="badge badge-github flex items-center gap-1.5">
+        <span className="badge badge-github flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">
           <Github className="w-3 h-3" />
           Deploying to GitHub
         </span>
@@ -51,7 +51,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     }
 
     return (
-      <span className="badge badge-zip flex items-center gap-1.5">
+      <span className="badge badge-zip flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
         <FileArchive className="w-3 h-3" />
         Preparing ZIP
       </span>
@@ -62,7 +62,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     <div className="fixed bottom-0 left-16 lg:left-64 right-0 h-12 bg-dark-800/90 border-t border-dark-700/50 flex items-center justify-between px-4 backdrop-blur-sm z-40">
       <div className="flex items-center gap-3">
         {getStatusIcon()}
-        <span className="text-sm text-dark-300">
+        <span className="text-sm text-dark-300 truncate max-w-[200px] sm:max-w-md">
           {statusMessage || getDefaultMessage()}
         </span>
       </div>
@@ -73,14 +73,14 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         {status === 'success' && deploymentStrategy === 'local_zip' && (
           <button className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 text-primary-300 rounded-lg border border-primary-500/30 hover:bg-primary-500/30 transition-colors">
             <Download className="w-4 h-4" />
-            <span className="text-sm">Download</span>
+            <span className="text-sm hidden sm:inline">Download</span>
           </button>
         )}
 
         {status === 'success' && deploymentStrategy === 'github' && (
           <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors">
             <Github className="w-4 h-4" />
-            <span className="text-sm">View Repository</span>
+            <span className="text-sm hidden sm:inline">View Repository</span>
           </button>
         )}
       </div>

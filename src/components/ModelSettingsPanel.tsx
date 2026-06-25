@@ -18,13 +18,13 @@ interface ModelSettingsPanelProps {
 }
 
 export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
-  models,
+  models = [],
   onModelsChange
 }) => {
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
 
   // Ensure models is always an array
-  const safeModels = models ?? [];
+  const safeModels = Array.isArray(models) ? models : [];
 
   const fieldTypes = [
     'Char', 'Text', 'Integer', 'Float', 'Boolean',
@@ -38,10 +38,11 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
       fields: [{ name: 'name', type: 'Char', required: true }],
     };
     onModelsChange([...safeModels, newModel]);
-    setExpandedModels(prev => new Set([...prev, newModel.name]));
+    setExpandedModels(prev => new Set([...Array.from(prev), newModel.name]));
   };
 
   const removeModel = (modelName: string) => {
+    if (!modelName) return;
     onModelsChange(safeModels.filter(m => m?.name !== modelName));
     setExpandedModels(prev => {
       const next = new Set(prev);
@@ -51,12 +52,14 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   };
 
   const updateModel = (modelName: string, updates: Partial<Model>) => {
+    if (!modelName) return;
     onModelsChange(
       safeModels.map(m => m?.name === modelName ? { ...m, ...updates } : m)
     );
   };
 
   const toggleModel = (modelName: string) => {
+    if (!modelName) return;
     setExpandedModels(prev => {
       const next = new Set(prev);
       if (next.has(modelName)) {
@@ -69,33 +72,36 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   };
 
   const addField = (modelName: string) => {
+    if (!modelName) return;
     const newField: ModelField = { name: 'new_field', type: 'Char', required: false };
     onModelsChange(
       safeModels.map(m =>
         m?.name === modelName
-          ? { ...m, fields: [...(m.fields ?? []), newField] }
+          ? { ...m, fields: [...(Array.isArray(m.fields) ? m.fields : []), newField] }
           : m
       )
     );
   };
 
   const removeField = (modelName: string, fieldIndex: number) => {
+    if (!modelName) return;
     onModelsChange(
       safeModels.map(m =>
         m?.name === modelName
-          ? { ...m, fields: (m.fields ?? []).filter((_, i) => i !== fieldIndex) }
+          ? { ...m, fields: (Array.isArray(m.fields) ? m.fields : []).filter((_, i) => i !== fieldIndex) }
           : m
       )
     );
   };
 
   const updateField = (modelName: string, fieldIndex: number, updates: Partial<ModelField>) => {
+    if (!modelName) return;
     onModelsChange(
       safeModels.map(m =>
         m?.name === modelName
           ? {
               ...m,
-              fields: (m.fields ?? []).map((f, i) =>
+              fields: (Array.isArray(m.fields) ? m.fields : []).map((f, i) =>
                 i === fieldIndex ? { ...f, ...updates } : f
               ),
             }
@@ -105,7 +111,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="flex-1 overflow-auto p-4 custom-scrollbar">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-white">Data Models</h3>
@@ -125,8 +131,10 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           // Safety check for each model
           if (!model?.name) return null;
 
+          const fields = Array.isArray(model.fields) ? model.fields : [];
+
           return (
-            <div key={model.name} className="glass rounded-xl overflow-hidden">
+            <div key={model.name} className="glass rounded-xl overflow-hidden border border-dark-700/50">
               <button
                 onClick={() => toggleModel(model.name)}
                 className="w-full flex items-center justify-between p-4 hover:bg-dark-700/30 transition-colors"
@@ -139,7 +147,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                   )}
                   <Box className="w-4 h-4 text-purple-400" />
                   <span className="text-white font-medium">{model.name}</span>
-                  <span className="text-xs text-dark-400">({(model.fields ?? []).length} fields)</span>
+                  <span className="text-xs text-dark-400">({fields.length} fields)</span>
                 </div>
                 <button
                   onClick={(e) => {
@@ -153,7 +161,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
               </button>
 
               {expandedModels.has(model.name) && (
-                <div className="border-t border-dark-700/50 p-4 space-y-3">
+                <div className="border-t border-dark-700/50 p-4 space-y-3 bg-dark-800/20">
                   <div>
                     <label className="block text-xs text-dark-400 mb-1">Model Name</label>
                     <input
@@ -176,12 +184,12 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                       </button>
                     </div>
 
-                    {(model.fields ?? []).map((field, index) => {
+                    {fields.map((field, index) => {
                       // Safety check for each field
                       if (!field) return null;
 
                       return (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-dark-700/30 rounded-lg">
+                        <div key={index} className="flex items-center gap-2 p-2 bg-dark-700/30 rounded-lg border border-dark-700/30">
                           <Database className="w-3.5 h-3.5 text-dark-500" />
                           <input
                             type="text"

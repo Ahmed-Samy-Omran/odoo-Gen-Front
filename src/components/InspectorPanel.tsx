@@ -23,13 +23,13 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({ onGenerate, isGe
 
     const payload: GeneratorPayload = {
       moduleName: moduleName.trim().toLowerCase().replace(/\s+/g, '_'),
-      description,
-      version,
-      author,
-      category,
+      description: description.trim(),
+      version: version.trim(),
+      author: author.trim(),
+      category: category.trim(),
       depends: depends.split(',').map(d => d.trim()).filter(Boolean),
       features: [],
-      models: [],
+      models: [], // Models will be added by the App component from its state
       deploymentStrategy,
       repositoryUrl: deploymentStrategy === 'github' ? repositoryUrl.trim() : undefined,
     };
@@ -46,7 +46,7 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({ onGenerate, isGe
         <p className="text-sm text-dark-400 mt-0.5">Configure your Odoo module</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-4 space-y-4">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-4 space-y-4 custom-scrollbar">
         <div>
           <label className="block text-sm font-medium text-dark-300 mb-1.5">
             Module Name <span className="text-red-400">*</span>
