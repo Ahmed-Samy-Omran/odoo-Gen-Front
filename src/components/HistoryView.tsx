@@ -47,69 +47,64 @@ export const HistoryView: React.FC = () => {
 
     for (const [unit, secondsInUnit] of Object.entries(intervals)) {
       const interval = Math.floor(seconds / secondsInUnit);
-      if (interval >= 1) {
-        return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
-      }
+      if (interval >= 1) return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
     }
     return 'Just now';
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+    <div className="w-full h-full p-6 overflow-y-auto">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">Generation History</h2>
-            <p className="text-dark-400 mt-1">View your previously generated modules</p>
+            <h1 className="text-2xl font-semibold text-white/90">Generation History</h1>
+            <p className="text-white/30 text-sm mt-1">View your previously generated modules</p>
+          </div>
+          <div className="flex items-center gap-2 text-white/25 text-sm">
+            <Clock className="w-4 h-4" />
+            <span>{mockHistory.length} modules</span>
           </div>
         </div>
 
-        <div className="space-y-3">
-          {mockHistory.map((item) => (
-            <div
-              key={item.id}
-              className="glass rounded-xl p-4 hover:bg-dark-700/50 transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
-                    <FileCode className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">{item.moduleName}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Clock className="w-3 h-3 text-dark-400" />
-                      <span className="text-xs text-dark-400">{formatTimeAgo(item.createdAt)}</span>
-                      {item.deploymentStrategy === 'github' ? (
-                        <span className="badge badge-github text-xs ml-2">
-                          <Github className="w-3 h-3 mr-1" />
-                          GitHub
-                        </span>
-                      ) : (
-                        <span className="badge badge-zip text-xs ml-2">
-                          <FileArchive className="w-3 h-3 mr-1" />
-                          ZIP
-                        </span>
-                      )}
-                    </div>
-                  </div>
+        {mockHistory.length === 0 ? (
+          <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
+            <FileCode className="w-12 h-12 text-white/15 mb-4" />
+            <p className="text-white/50">No generation history yet</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {mockHistory.map((item) => (
+              <div key={item.id} className="glass-card-hover p-5 flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/15">
+                  <FileCode className="w-5 h-5 text-white/70" />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${item.status === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                  <button className="p-2 text-dark-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-mono text-white/80 truncate">{item.moduleName}</h3>
+                    <span className={`module-badge ${item.status === 'success' ? 'module-badge-core' : 'module-badge-api'}`}>
+                      {item.status}
+                    </span>
+                    {item.deploymentStrategy === 'github' ? (
+                      <span className="command-context-badge text-[10px]">
+                        <Github className="w-3 h-3" />
+                        GitHub
+                      </span>
+                    ) : (
+                      <span className="command-context-badge text-[10px]">
+                        <FileArchive className="w-3 h-3" />
+                        ZIP
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-white/30 text-sm mt-1">{formatTimeAgo(item.createdAt)}</p>
                 </div>
+
+                <button className="p-2 text-white/20 hover:text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {mockHistory.length === 0 && (
-          <div className="text-center py-12">
-            <FileCode className="w-12 h-12 text-dark-500 mx-auto mb-4" />
-            <p className="text-dark-400">No generation history yet</p>
+            ))}
           </div>
         )}
       </div>

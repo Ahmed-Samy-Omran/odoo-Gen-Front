@@ -89,7 +89,7 @@
   }
 
   .cyber-button-accent {
-    @apply cyber-button bg-gradient-to-r from-white/15 to-white/10
+    @apply cyber-button bg-gradient-to-r from-white/15 to-white/8
            border border-white/20 text-white/90 hover:border-white/40
            hover:shadow-glow-accent active:scale-95;
   }

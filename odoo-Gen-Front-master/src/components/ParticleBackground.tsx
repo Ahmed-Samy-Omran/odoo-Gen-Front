@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 
-export const ParticleBackground: React.FC = () => {
+const ParticleBackground: React.FC = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
 
@@ -25,7 +25,10 @@ export const ParticleBackground: React.FC = () => {
 
   return (
     <>
+      {/* Dot Matrix Grid */}
       <div className="dot-matrix-grid" />
+
+      {/* Mouse Following Glow */}
       <div
         className="mouse-glow"
         style={{
@@ -37,3 +40,5 @@ export const ParticleBackground: React.FC = () => {
     </>
   );
 };
+
+export default ParticleBackground;

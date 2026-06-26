@@ -1,20 +1,22 @@
 import React from 'react';
-import { Sparkles, History, Settings, Layers } from 'lucide-react';
+import { Layout, History, Settings, Layers } from 'lucide-react';
+
+type ViewType = 'canvas' | 'history' | 'settings';
 
 interface SidebarProps {
-  activeView: 'generator' | 'history' | 'settings';
-  onViewChange: (view: 'generator' | 'history' | 'settings') => void;
+  activeView: ViewType;
+  onViewChange: (view: ViewType) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
   const navItems = [
-    { id: 'generator' as const, icon: Sparkles, label: 'Generator' },
+    { id: 'canvas' as const, icon: Layout, label: 'Canvas' },
     { id: 'history' as const, icon: History, label: 'History' },
     { id: 'settings' as const, icon: Settings, label: 'Settings' },
   ];
 
   return (
-    <nav className="w-16 h-full glass-card border-r border-glass-border flex flex-col items-center py-4 gap-2 z-50 relative flex-shrink-0">
+    <nav className="w-16 h-full glass-card border-r border-glass-border flex flex-col items-center py-4 gap-2 z-50 relative">
       <div className="mb-6">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/15">
           <Layers className="w-5 h-5 text-white" />
@@ -41,3 +43,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
     </nav>
   );
 };
+
+export default Sidebar;

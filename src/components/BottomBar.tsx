@@ -5,23 +5,29 @@ interface BottomBarProps {
   status: 'idle' | 'generating' | 'success' | 'error';
   statusMessage?: string;
   deploymentStrategy?: 'github' | 'local_zip';
+  progress?: number;
+  downloadUrl?: string;
+  repositoryUrl?: string;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   status = 'idle',
   statusMessage,
-  deploymentStrategy = 'local_zip'
+  deploymentStrategy = 'local_zip',
+  progress = 0,
+  downloadUrl,
+  repositoryUrl,
 }) => {
   const getStatusIcon = () => {
     switch (status) {
       case 'generating':
-        return <Loader2 className="w-4 h-4 animate-spin text-primary-400" />;
+        return <Loader2 className="w-4 h-4 animate-spin text-white/60" />;
       case 'success':
-        return <CheckCircle className="w-4 h-4 text-emerald-400" />;
+        return <CheckCircle className="w-4 h-4 text-white/70" />;
       case 'error':
-        return <XCircle className="w-4 h-4 text-red-400" />;
+        return <XCircle className="w-4 h-4 text-white/50" />;
       default:
-        return <GitBranch className="w-4 h-4 text-dark-400" />;
+        return <GitBranch className="w-4 h-4 text-white/40" />;
     }
   };
 
@@ -45,44 +51,72 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
     if (currentDeploymentStrategy === 'github') {
       return (
-        <span className="badge badge-github flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">
+        <span className="command-context-badge">
           <Github className="w-3 h-3" />
-          Deploying to GitHub
+          <span>GitHub</span>
         </span>
       );
     }
 
     return (
-      <span className="badge badge-zip flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+      <span className="command-context-badge">
         <FileArchive className="w-3 h-3" />
-        Preparing ZIP
+        <span>ZIP</span>
       </span>
     );
   };
 
-  return (
-    <div className="fixed bottom-0 left-16 lg:left-64 right-0 h-12 bg-dark-800/90 border-t border-dark-700/50 flex items-center justify-between px-4 backdrop-blur-sm z-40">
-      <div className="flex items-center gap-3">
-        {getStatusIcon()}
-        <span className="text-sm text-dark-300 truncate max-w-[200px] sm:max-w-md">
-          {statusMessage ?? getDefaultMessage()}
-        </span>
-      </div>
+  const handleDownload = () => {
+    if (downloadUrl) {
+      window.open(downloadUrl, '_blank');
+    }
+  };
 
-      <div className="flex items-center gap-3">
+  const handleOpenRepo = () => {
+    if (repositoryUrl) {
+      window.open(repositoryUrl, '_blank');
+    }
+  };
+
+  return (
+    <div className="command-bar-container">
+      <div className="command-bar">
+        <div className="command-action-btn pointer-events-none">
+          {getStatusIcon()}
+        </div>
+
+        <div className="command-divider" />
+
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <span className="command-input truncate">
+            {statusMessage ?? getDefaultMessage()}
+          </span>
+          {status === 'generating' && (
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-white/40 transition-all duration-500"
+                  style={{ width: `${Math.min(100, progress)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-white/30 tabular-nums w-8 text-right">
+                {progress}%
+              </span>
+            </div>
+          )}
+        </div>
+
         {getDeploymentBadge()}
 
-        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'local_zip' && (
-          <button className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/20 text-primary-300 rounded-lg border border-primary-500/30 hover:bg-primary-500/30 transition-colors">
+        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'local_zip' && downloadUrl && (
+          <button type="button" className="command-execute-btn" title="Download" onClick={handleDownload}>
             <Download className="w-4 h-4" />
-            <span className="text-sm hidden sm:inline">Download</span>
           </button>
         )}
 
-        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'github' && (
-          <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors">
+        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'github' && repositoryUrl && (
+          <button type="button" className="command-execute-btn" title="View Repository" onClick={handleOpenRepo}>
             <Github className="w-4 h-4" />
-            <span className="text-sm hidden sm:inline">View Repository</span>
           </button>
         )}
       </div>

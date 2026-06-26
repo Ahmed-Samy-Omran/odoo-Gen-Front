@@ -9,7 +9,12 @@ import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
-import { generateModule, type GeneratorPayload, type GeneratedFile } from './services/api';
+import {
+  generateModule,
+  type GeneratorPayload,
+  type GeneratedFile,
+  type JobStatus,
+} from './services/api';
 import { Github, FileArchive } from 'lucide-react';
 
 type ViewType = 'generator' | 'history' | 'settings';
@@ -30,39 +35,47 @@ function App() {
   const [activeView, setActiveView] = useState<ViewType>('generator');
   const [status, setStatus] = useState<StatusType>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
+  const [progress, setProgress] = useState(0);
+  const [estimatedRemaining, setEstimatedRemaining] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [models, setModels] = useState<Model[]>([]);
   const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>('local_zip');
   const [repositoryUrl, setRepositoryUrl] = useState<string>('');
+  const [downloadUrl, setDownloadUrl] = useState<string>('');
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
 
-  // Reset all state for a fresh generation
   const resetGenerationState = useCallback(() => {
     setGeneratedFiles([]);
     setSelectedFile(null);
-
     setStatus('idle');
     setStatusMessage('');
-    setDeploymentStrategy('local_zip'); // Reset deployment strategy
-    setRepositoryUrl(''); // Reset repository URL
+    setProgress(0);
+    setEstimatedRemaining(null);
+    setDownloadUrl('');
+    setDeploymentStrategy('local_zip');
+    setRepositoryUrl('');
+  }, []);
+
+  const handleProgress = useCallback((job: JobStatus) => {
+    setProgress(job.progress ?? 0);
+    setStatusMessage(job.message || 'Generating...');
+    setEstimatedRemaining(job.estimated_remaining_sec ?? null);
   }, []);
 
   const handleGenerate = async (payload: GeneratorPayload) => {
-    // 1. Reset state before starting new generation
     resetGenerationState();
 
-    // 2. Set initial generating state
     setStatus('generating');
-    setStatusMessage(`Generating module "${payload?.moduleName || 'module'}"...`);
+    setStatusMessage(`Analyzing "${payload?.moduleName || 'module'}"...`);
+    setProgress(0);
     setDeploymentStrategy(payload?.deploymentStrategy || 'local_zip');
     setRepositoryUrl(payload?.repositoryUrl || '');
     setShowWelcome(false);
     setShowLeftPanel(true);
 
     try {
-      // 3. Include current models from state into the payload
       const fullPayload: GeneratorPayload = {
         ...payload,
         models: models?.map(m => ({
@@ -70,18 +83,20 @@ function App() {
           fields: m?.fields?.map(f => ({
             name: f?.name,
             type: f?.type,
-            required: f?.required
-          }))
-        })) || []
+            required: f?.required,
+          })),
+        })) || [],
       };
 
-      // 4. Call API
-      const result = await generateModule(fullPayload);
+      const result = await generateModule(fullPayload, handleProgress);
 
       if (result?.success) {
         setGeneratedFiles(result.files || []);
         setSelectedFile(result.files?.[0]?.path || null);
         setRepositoryUrl(result.repositoryUrl || payload.repositoryUrl || '');
+        setDownloadUrl(result.downloadUrl || '');
+        setProgress(100);
+        setEstimatedRemaining(null);
         setStatus('success');
         setStatusMessage(result.message || 'Generation successful');
       } else {
@@ -106,10 +121,10 @@ function App() {
     if (deploymentStrategy === 'github') {
       return (
         <div className="fixed top-4 right-4 z-50">
-          <span className="badge badge-github flex items-center gap-2 px-4 py-2">
-            <Github className="w-4 h-4" />
+          <span className="command-context-badge">
+            <Github className="w-3 h-3" />
             <span>Deploying to GitHub</span>
-            <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
           </span>
         </div>
       );
@@ -117,79 +132,85 @@ function App() {
 
     return (
       <div className="fixed top-4 right-4 z-50">
-        <span className="badge badge-zip flex items-center gap-2 px-4 py-2">
-          <FileArchive className="w-4 h-4" />
+        <span className="command-context-badge">
+          <FileArchive className="w-3 h-3" />
           <span>Preparing ZIP</span>
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
         </span>
       </div>
     );
   };
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-dark-950">
+    <div className="h-screen w-screen flex flex-col bg-black overflow-hidden relative">
       <ParticleBackground />
 
-      <Sidebar activeView={activeView} onViewChange={setActiveView} />
+      <LoadingOverlay
+        isVisible={status === 'generating'}
+        message={statusMessage}
+        progress={progress}
+        estimatedRemainingSec={estimatedRemaining}
+      />
 
-      <div className="flex-1 flex flex-col ml-16 lg:ml-64">
-        {activeView === 'history' && <HistoryView />}
-        {activeView === 'settings' && <SettingsView />}
+      <div className="flex flex-1 relative z-10 overflow-hidden">
+        <Sidebar activeView={activeView} onViewChange={setActiveView} />
 
-        {activeView === 'generator' && (
-          <div className="flex-1 flex overflow-hidden">
-            {showWelcome ? (
-              <WelcomeDashboard onStartGenerating={handleStartGenerating} />
-            ) : (
-              <>
-                {showLeftPanel && (
-                  <div className="w-80 border-r border-dark-700/50 flex flex-col">
-                    <ModelSettingsPanel models={models} onModelsChange={setModels} />
-                  </div>
-                )}
+        <main className="flex-1 overflow-hidden relative">
+          {activeView === 'history' && <HistoryView />}
+          {activeView === 'settings' && <SettingsView />}
 
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {getDeploymentBadge()}
+          {activeView === 'generator' && (
+            <>
+              {showWelcome ? (
+                <WelcomeDashboard onStartGenerating={handleStartGenerating} />
+              ) : (
+                <div className="flex h-full overflow-hidden">
+                  {showLeftPanel && (
+                    <div className="w-80 glass-card border-r border-glass-border flex flex-col flex-shrink-0">
+                      <ModelSettingsPanel models={models} onModelsChange={setModels} />
+                    </div>
+                  )}
 
-                  {generatedFiles && generatedFiles.length > 0 ? (
-                    <CanvasView
-                      files={generatedFiles}
-                      selectedFile={selectedFile}
-                      onSelectFile={setSelectedFile}
-                      deploymentStrategy={deploymentStrategy}
-                      repositoryUrl={repositoryUrl}
-                    />
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-dark-400">
-                          {status === 'generating' 
-                            ? 'Processing your request...' 
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {getDeploymentBadge()}
+
+                    {status === 'success' && generatedFiles.length > 0 ? (
+                      <CanvasView
+                        files={generatedFiles}
+                        selectedFile={selectedFile}
+                        onSelectFile={setSelectedFile}
+                        deploymentStrategy={deploymentStrategy}
+                        repositoryUrl={repositoryUrl}
+                      />
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center">
+                        <p className="text-white/30">
+                          {status === 'generating'
+                            ? 'Processing your request...'
                             : 'Configure your module and click Generate'}
                         </p>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
 
-                <InspectorPanel onGenerate={handleGenerate} isGenerating={status === 'generating'} />
-              </>
-            )}
-          </div>
-        )}
+                  <InspectorPanel onGenerate={handleGenerate} isGenerating={status === 'generating'} />
+                </div>
+              )}
+            </>
+          )}
+        </main>
       </div>
 
       {activeView === 'generator' && !showWelcome && (
-        <div className="ml-16 lg:ml-64">
-          <BottomBar
-            status={status}
-            statusMessage={statusMessage}
-            deploymentStrategy={deploymentStrategy}
-          />
-        </div>
+        <BottomBar
+          status={status}
+          statusMessage={statusMessage}
+          deploymentStrategy={deploymentStrategy}
+          progress={progress}
+          downloadUrl={downloadUrl}
+          repositoryUrl={repositoryUrl}
+        />
       )}
-
-      {status === 'generating' && <LoadingOverlay message={statusMessage} />}
     </div>
   );
 }

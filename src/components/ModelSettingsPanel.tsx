@@ -19,17 +19,15 @@ interface ModelSettingsPanelProps {
 
 export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   models = [],
-  onModelsChange
+  onModelsChange,
 }) => {
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
-
-  // Ensure models is always an array
   const safeModels = Array.isArray(models) ? models : [];
 
   const fieldTypes = [
     'Char', 'Text', 'Integer', 'Float', 'Boolean',
     'Date', 'Datetime', 'Selection', 'Many2one',
-    'One2many', 'Many2many', 'Binary', 'Html'
+    'One2many', 'Many2many', 'Binary', 'Html',
   ];
 
   const addModel = () => {
@@ -53,20 +51,15 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
   const updateModel = (modelName: string, updates: Partial<Model>) => {
     if (!modelName) return;
-    onModelsChange(
-      safeModels.map(m => m?.name === modelName ? { ...m, ...updates } : m)
-    );
+    onModelsChange(safeModels.map(m => m?.name === modelName ? { ...m, ...updates } : m));
   };
 
   const toggleModel = (modelName: string) => {
     if (!modelName) return;
     setExpandedModels(prev => {
       const next = new Set(prev);
-      if (next.has(modelName)) {
-        next.delete(modelName);
-      } else {
-        next.add(modelName);
-      }
+      if (next.has(modelName)) next.delete(modelName);
+      else next.add(modelName);
       return next;
     });
   };
@@ -111,16 +104,13 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4 custom-scrollbar">
+    <div className="flex-1 overflow-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">Data Models</h3>
-          <p className="text-sm text-dark-400">Define your Odoo models and fields</p>
+          <h3 className="text-lg font-semibold text-white/90">Data Models</h3>
+          <p className="text-sm text-white/30">Define your Odoo models and fields</p>
         </div>
-        <button
-          onClick={addModel}
-          className="flex items-center gap-2 px-3 py-2 bg-primary-500/20 text-primary-300 rounded-lg border border-primary-500/30 hover:bg-primary-500/30 transition-colors"
-        >
+        <button onClick={addModel} className="cyber-button-primary text-sm">
           <Plus className="w-4 h-4" />
           Add Model
         </button>
@@ -128,97 +118,94 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
       <div className="space-y-3">
         {safeModels.map(model => {
-          // Safety check for each model
           if (!model?.name) return null;
-
           const fields = Array.isArray(model?.fields) ? model.fields : [];
 
           return (
-            <div key={model.name} className="glass rounded-xl overflow-hidden border border-dark-700/50">
+            <div key={model.name} className="glass-card overflow-hidden">
               <button
                 onClick={() => toggleModel(model.name)}
-                className="w-full flex items-center justify-between p-4 hover:bg-dark-700/30 transition-colors"
+                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {expandedModels.has(model.name) ? (
-                    <ChevronDown className="w-4 h-4 text-dark-400" />
+                    <ChevronDown className="w-4 h-4 text-white/40" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 text-dark-400" />
+                    <ChevronRight className="w-4 h-4 text-white/40" />
                   )}
-                  <Box className="w-4 h-4 text-purple-400" />
-                  <span className="text-white font-medium">{model.name}</span>
-                  <span className="text-xs text-dark-400">({fields.length} fields)</span>
+                  <Box className="w-4 h-4 text-white/60" />
+                  <span className="text-white/90 font-medium">{model.name}</span>
+                  <span className="text-xs text-white/30">({fields.length} fields)</span>
                 </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     removeModel(model.name);
                   }}
-                  className="p-1.5 text-dark-400 hover:text-red-400 transition-colors"
+                  className="p-1.5 text-white/30 hover:text-white/70 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </button>
 
               {expandedModels.has(model.name) && (
-                <div className="border-t border-dark-700/50 p-4 space-y-3 bg-dark-800/20">
+                <div className="border-t border-glass-border p-4 space-y-3">
                   <div>
-                    <label className="block text-xs text-dark-400 mb-1">Model Name</label>
+                    <label className="block text-xs text-white/40 mb-1">Model Name</label>
                     <input
                       type="text"
                       value={model.name}
                       onChange={(e) => updateModel(model.name, { name: e.target.value })}
-                      className="w-full bg-dark-700/50 border border-dark-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary-500"
+                      className="w-full cyber-input text-sm"
                       placeholder="my_model"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs text-dark-400">Fields</label>
+                      <label className="text-xs text-white/40">Fields</label>
                       <button
                         onClick={() => addField(model.name)}
-                        className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                        className="text-xs text-white/50 hover:text-white/80 transition-colors"
                       >
                         + Add Field
                       </button>
                     </div>
 
                     {fields.map((field, index) => {
-                      // Safety check for each field
                       if (!field) return null;
 
                       return (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-dark-700/30 rounded-lg border border-dark-700/30">
-                          <Database className="w-3.5 h-3.5 text-dark-500" />
+                        <div key={index} className="flex items-center gap-2 p-2 bg-white/[0.03] rounded-lg border border-white/[0.06]">
+                          <Database className="w-3.5 h-3.5 text-white/25" />
                           <input
                             type="text"
                             value={field.name ?? ''}
                             onChange={(e) => updateField(model.name, index, { name: e.target.value })}
-                            className="flex-1 bg-dark-700/50 border border-dark-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-primary-500"
+                            className="flex-1 cyber-input text-sm py-1"
                             placeholder="field_name"
                           />
                           <select
                             value={field.type ?? 'Char'}
                             onChange={(e) => updateField(model.name, index, { type: e.target.value })}
-                            className="bg-dark-700/50 border border-dark-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-primary-500"
+                            className="cyber-input text-sm py-1"
                           >
                             {fieldTypes.map(type => (
-                              <option key={type} value={type}>{type}</option>
+                              <option key={type} value={type} className="bg-black">{type}</option>
                             ))}
                           </select>
-                          <label className="flex items-center gap-1 text-xs text-dark-400">
+                          <label className="flex items-center gap-1 text-xs text-white/40">
                             <input
                               type="checkbox"
                               checked={field.required ?? false}
                               onChange={(e) => updateField(model.name, index, { required: e.target.checked })}
-                              className="rounded border-dark-600 bg-dark-700"
+                              className="rounded border-white/20 bg-black"
                             />
                             Req
                           </label>
                           <button
                             onClick={() => removeField(model.name, index)}
-                            className="p-1 text-dark-400 hover:text-red-400 transition-colors"
+                            className="p-1 text-white/30 hover:text-white/70 transition-colors"
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -233,10 +220,10 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
         })}
 
         {safeModels.length === 0 && (
-          <div className="text-center py-12 text-dark-400">
+          <div className="text-center py-12 text-white/30">
             <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No models defined yet</p>
-            <p className="text-sm mt-1">Click "Add Model" to get started</p>
+            <p className="text-sm mt-1">Click &quot;Add Model&quot; to get started</p>
           </div>
         )}
       </div>
