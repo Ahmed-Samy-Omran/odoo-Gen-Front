@@ -9,7 +9,7 @@ import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
-import { generateModule, type GeneratorPayload, type GeneratedFile } from './services/api';
+import { createGenerationJob, getJobStatus, type GeneratorPayload, type GeneratedFile } from './services/api';
 import { Github, FileArchive } from 'lucide-react';
 
 type ViewType = 'generator' | 'history' | 'settings';
@@ -75,19 +75,38 @@ function App() {
         })) || []
       };
 
-      // 4. Call API
-      const result = await generateModule(fullPayload);
+      // 4. Call API to create job
+      const jobResult = await createGenerationJob(fullPayload);
 
-      if (result?.success) {
-        setGeneratedFiles(result.files || []);
-        setSelectedFile(result.files?.[0]?.path || null);
-        setRepositoryUrl(result.repositoryUrl || payload.repositoryUrl || '');
-        setStatus('success');
-        setStatusMessage(result.message || 'Generation successful');
-      } else {
+      if (jobResult.status === 'error') {
         setStatus('error');
-        setStatusMessage(result.message || 'Generation failed');
+        setStatusMessage(jobResult.message || 'Failed to start generation job');
+        return;
       }
+
+      const jobId = jobResult.job_id;
+      
+      // 5. Poll for job status
+      const pollInterval = setInterval(async () => {
+        const statusResult = await getJobStatus(jobId);
+        
+        if (statusResult.status === 'error') {
+          clearInterval(pollInterval);
+          setStatus('error');
+          setStatusMessage(statusResult.error || statusResult.message || 'Generation failed');
+        } else if (statusResult.status === 'done') {
+          clearInterval(pollInterval);
+          setGeneratedFiles(statusResult.generated_files || []);
+          setSelectedFile(statusResult.generated_files?.[0]?.path || null);
+          setRepositoryUrl(statusResult.githubUrl || payload.repositoryUrl || '');
+          setStatus('success');
+          setStatusMessage(statusResult.message || 'Generation successful');
+        } else {
+          // Still running or pending
+          setStatusMessage(`${statusResult.message} (${statusResult.progress}%)`);
+        }
+      }, 3000); // Poll every 3 seconds
+
     } catch (error) {
       console.error('App generation error:', error);
       setStatus('error');
@@ -185,6 +204,7 @@ function App() {
             status={status}
             statusMessage={statusMessage}
             deploymentStrategy={deploymentStrategy}
+            githubUrl={repositoryUrl}
           />
         </div>
       )}

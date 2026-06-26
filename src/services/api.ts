@@ -22,6 +22,19 @@ export interface FieldDefinition {
   required: boolean;
 }
 
+export interface JobStatus {
+  job_id: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  progress: number;
+  message: string;
+  elapsed_sec: number;
+  estimated_remaining_sec?: number;
+  downloadUrl?: string;
+  githubUrl?: string;
+  error?: string;
+  generated_files?: GeneratedFile[];
+}
+
 export interface GenerationResult {
   success: boolean;
   message: string;
@@ -39,14 +52,14 @@ export interface GeneratedFile {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export async function generateModule(payload: GeneratorPayload): Promise<GenerationResult> {
+export async function createGenerationJob(payload: GeneratorPayload): Promise<JobStatus> {
   try {
     // Basic validation before sending
     if (!payload?.moduleName) {
       throw new Error('Module name is required');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/generate`, {
+    const response = await fetch(`${API_BASE_URL}/generate-module/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,20 +75,35 @@ export async function generateModule(payload: GeneratorPayload): Promise<Generat
     const data = await response.json();
     
     // Ensure the response matches the expected structure
-    return {
-      success: data?.success ?? true,
-      message: data?.message ?? 'Success',
-      files: Array.isArray(data?.files) ? data.files : [],
-      downloadUrl: data?.downloadUrl ?? data?.download_url ?? null,
-      repositoryUrl: data?.repositoryUrl ?? data?.repository_url ?? payload.repositoryUrl,
-      deploymentMethod: data?.deploymentMethod ?? payload.deploymentStrategy
-    };
+    return data as JobStatus;
   } catch (error) {
     console.error('Generation error:', error);
     return {
-      success: false,
+      job_id: 'error',
+      status: 'error',
+      progress: 0,
       message: error instanceof Error ? error.message : 'An unexpected error occurred',
-      deploymentMethod: payload.deploymentStrategy
+      elapsed_sec: 0,
+    };
+  }
+}
+
+export async function getJobStatus(jobId: string): Promise<JobStatus> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/job/${jobId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch job status: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data as JobStatus;
+  } catch (error) {
+    console.error(`Error fetching job status for ${jobId}:`, error);
+    return {
+      job_id: jobId,
+      status: 'error',
+      progress: 0,
+      message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      elapsed_sec: 0,
     };
   }
 }

@@ -5,12 +5,14 @@ interface BottomBarProps {
   status: 'idle' | 'generating' | 'success' | 'error';
   statusMessage?: string;
   deploymentStrategy?: 'github' | 'local_zip';
+  githubUrl?: string;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   status = 'idle',
   statusMessage,
-  deploymentStrategy = 'local_zip'
+  deploymentStrategy = 'local_zip',
+  githubUrl
 }) => {
   const getStatusIcon = () => {
     switch (status) {
@@ -79,11 +81,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           </button>
         )}
 
-        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'github' && (
-          <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors">
+        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'github' && githubUrl && (
+          <a
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 hover:bg-purple-500/30 transition-colors"
+          >
             <Github className="w-4 h-4" />
             <span className="text-sm hidden sm:inline">View Repository</span>
-          </button>
+          </a>
         )}
       </div>
     </div>
