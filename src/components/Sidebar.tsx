@@ -1,4 +1,5 @@
 import React from 'react';
+import AiIcon from './AiIcon';
 import { Sparkles, History, Settings, Layers } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,7 +31,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
             title={label}
             aria-label={label}
           >
-            <Icon className="w-5 h-5" />
+            {id === 'generator' ? (
+              <AiIcon className="w-5 h-5 text-white" />
+            ) : (
+              <Icon className="w-5 h-5" />
+            )}
           </button>
         ))}
       </div>

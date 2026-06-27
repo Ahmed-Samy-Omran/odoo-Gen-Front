@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, Zap, Github, FileArchive, ArrowRight } from 'lucide-react';
+import AiIcon from './AiIcon';
+import { Zap, Github, FileArchive, ArrowRight } from 'lucide-react';
 
 interface WelcomeDashboardProps {
   onStartGenerating: () => void;
@@ -30,7 +31,7 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onStartGener
         <div className="flex justify-center">
           <div className="relative">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/15">
-              <Sparkles className="w-10 h-10 text-white/80" />
+              <AiIcon className="w-10 h-10 text-white/80" />
             </div>
             <div className="absolute inset-0 rounded-2xl bg-white/10 blur-xl animate-pulse" />
             <div className="absolute inset-2 rounded-xl bg-white/5 blur-md" />
