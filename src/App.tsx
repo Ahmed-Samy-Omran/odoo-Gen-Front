@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { BottomBar } from './components/BottomBar';
-import { InspectorPanel } from './components/InspectorPanel';
 import { CanvasView } from './components/CanvasView';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
@@ -192,8 +191,6 @@ function App() {
                       </div>
                     )}
                   </div>
-
-                  <InspectorPanel onGenerate={handleGenerate} isGenerating={status === 'generating'} />
                 </div>
               )}
             </>
@@ -209,6 +206,8 @@ function App() {
           progress={progress}
           downloadUrl={downloadUrl}
           repositoryUrl={repositoryUrl}
+          onGenerate={handleGenerate}
+          isGenerating={status === 'generating'}
         />
       )}
     </div>

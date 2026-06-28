@@ -1,5 +1,7 @@
-import React from 'react';
-import { GitBranch, Download, Loader2, CheckCircle, XCircle, Github, FileArchive } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Download, Upload } from 'lucide-react';
+import AiIcon from './AiIcon';
+import type { GeneratorPayload } from '../services/api';
 
 interface BottomBarProps {
   status: 'idle' | 'generating' | 'success' | 'error';
@@ -8,117 +10,124 @@ interface BottomBarProps {
   progress?: number;
   downloadUrl?: string;
   repositoryUrl?: string;
+  onGenerate?: (payload: GeneratorPayload) => void;
+  isGenerating?: boolean;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
-  status = 'idle',
-  statusMessage,
-  deploymentStrategy = 'local_zip',
-  progress = 0,
+  onGenerate,
   downloadUrl,
-  repositoryUrl,
+  repositoryUrl = '',
+  isGenerating = false,
 }) => {
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'generating':
-        return <Loader2 className="w-4 h-4 animate-spin text-white/60" />;
-      case 'success':
-        return <CheckCircle className="w-4 h-4 text-white/70" />;
-      case 'error':
-        return <XCircle className="w-4 h-4 text-white/50" />;
-      default:
-        return <GitBranch className="w-4 h-4 text-white/40" />;
-    }
+  const [prompt, setPrompt] = useState('');
+  const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>('local_zip');
+  const [repoInput, setRepoInput] = useState(repositoryUrl);
+
+  useEffect(() => {
+    setRepoInput(repositoryUrl || '');
+  }, [repositoryUrl]);
+
+  const handleSubmit = () => {
+    if (!prompt.trim() || !onGenerate) return;
+
+    const payload: GeneratorPayload = {
+      moduleName: prompt
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_\s]/g, '')
+        .split(/\s+/)
+        .slice(0, 3)
+        .join('_') || 'odoo_module',
+      description: prompt.trim(),
+      version: '17.0',
+      author: 'Coregen',
+      category: 'Tools',
+      depends: ['base'],
+      features: [],
+      models: [],
+      deploymentStrategy,
+      repositoryUrl: deploymentStrategy === 'github' ? repoInput.trim() : undefined,
+    };
+
+    onGenerate(payload);
+    setPrompt('');
   };
 
-  const getDefaultMessage = () => {
-    switch (status) {
-      case 'generating':
-        return 'Generating module...';
-      case 'success':
-        return 'Module generated successfully';
-      case 'error':
-        return 'Generation failed';
-      default:
-        return 'Ready to generate';
-    }
-  };
-
-  const getDeploymentBadge = () => {
-    if (status !== 'generating' && status !== 'success') return null;
-
-    const currentDeploymentStrategy = deploymentStrategy ?? 'local_zip';
-
-    if (currentDeploymentStrategy === 'github') {
-      return (
-        <span className="command-context-badge">
-          <Github className="w-3 h-3" />
-          <span>GitHub</span>
-        </span>
-      );
-    }
-
-    return (
-      <span className="command-context-badge">
-        <FileArchive className="w-3 h-3" />
-        <span>ZIP</span>
-      </span>
-    );
-  };
-
-  const handleDownload = () => {
-    if (downloadUrl) {
-      window.open(downloadUrl, '_blank');
-    }
-  };
-
-  const handleOpenRepo = () => {
-    if (repositoryUrl) {
-      window.open(repositoryUrl, '_blank');
-    }
-  };
+  const isSubmitDisabled =
+    isGenerating || !prompt.trim() || (deploymentStrategy === 'github' && !repoInput.trim());
 
   return (
-    <div className="command-bar-container">
-      <div className="command-bar">
-        <div className="command-action-btn pointer-events-none">
-          {getStatusIcon()}
+    <div className="bottom-input-bar-container">
+      <div className="bottom-input-bar">
+        <div className="bottom-input-left">
+          <div className="bottom-logo">
+            <AiIcon className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm text-white font-semibold tracking-wide">Coregen</span>
+            <span className="text-[11px] text-white/50">AI module architect</span>
+          </div>
         </div>
 
-        <div className="command-divider" />
+        <div className="bottom-input-center">
+          <div className="input-action-shell">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe your model architecture..."
+              className="bottom-input-field"
+            />
 
-        <div className="flex-1 min-w-0 flex flex-col gap-1">
-          <span className="command-input truncate">
-            {statusMessage ?? getDefaultMessage()}
-          </span>
-          {status === 'generating' && (
-            <div className="flex items-center gap-2 px-1">
-              <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-white/40 transition-all duration-500"
-                  style={{ width: `${Math.min(100, progress)}%` }}
-                />
-              </div>
-              <span className="text-[10px] text-white/30 tabular-nums w-8 text-right">
-                {progress}%
-              </span>
+            <div className="strategy-btns">
+              <button
+                type="button"
+                className={`strategy-btn ${deploymentStrategy === 'github' ? 'active' : ''}`}
+                onClick={() => setDeploymentStrategy('github')}
+              >
+                GitHub
+              </button>
+              <button
+                type="button"
+                className={`strategy-btn ${deploymentStrategy === 'local_zip' ? 'active' : ''}`}
+                onClick={() => setDeploymentStrategy('local_zip')}
+              >
+                ZIP file
+              </button>
             </div>
-          )}
+
+            {deploymentStrategy === 'github' && (
+              <input
+                type="text"
+                value={repoInput}
+                onChange={(e) => setRepoInput(e.target.value)}
+                placeholder="GitHub repo URL"
+                className="repo-input-field"
+              />
+            )}
+
+            {deploymentStrategy === 'local_zip' && downloadUrl && (
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="download-btn"
+              >
+                <Download className="w-4 h-4" />
+              </a>
+            )}
+          </div>
         </div>
 
-        {getDeploymentBadge()}
-
-        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'local_zip' && downloadUrl && (
-          <button type="button" className="command-execute-btn" title="Download" onClick={handleDownload}>
-            <Download className="w-4 h-4" />
-          </button>
-        )}
-
-        {status === 'success' && (deploymentStrategy ?? 'local_zip') === 'github' && repositoryUrl && (
-          <button type="button" className="command-execute-btn" title="View Repository" onClick={handleOpenRepo}>
-            <Github className="w-4 h-4" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="bottom-submit-btn"
+          onClick={handleSubmit}
+          disabled={isSubmitDisabled}
+        >
+          <Upload className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
