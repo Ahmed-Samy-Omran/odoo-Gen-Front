@@ -301,6 +301,33 @@
     @apply flex items-center gap-2;
   }
 
+  .mode-status-shell-left {
+    @apply flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+
+  .mode-status-shell {
+    @apply hidden;
+  }
+
+  .mode-dot {
+    @apply w-2.5 h-2.5 rounded-full;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+  }
+
+  .mode-dot.green {
+    background: #16a34a;
+  }
+
+  .mode-dot.red {
+    background: #ef4444;
+  }
+
+  .mode-label {
+    @apply text-[11px] uppercase tracking-[0.12em] text-white/70 font-semibold;
+  }
+
   .strategy-btn {
     @apply rounded-full border border-white/10 px-3 py-2 text-xs text-white/60 transition-all duration-200;
     background: rgba(255, 255, 255, 0.03);
@@ -323,6 +350,41 @@
 
   .bottom-submit-btn:disabled {
     @apply opacity-40 cursor-not-allowed;
+  }
+
+  /* Dual-mode badges & help */
+  .mode-badge {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/70 border border-white/10;
+  }
+
+  .mode-badge.json {
+    @apply bg-emerald-600/20 text-emerald-300 border border-emerald-500/20;
+  }
+
+  .mode-badge.invalid {
+    @apply bg-rose-600/20 text-rose-300 border border-rose-500/20;
+  }
+
+  .help-icon {
+    @apply absolute left-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 p-1 rounded;
+  }
+
+  .bottom-input-field.json-valid {
+    border-color: rgba(16,185,129,0.6);
+    box-shadow: 0 0 8px rgba(16,185,129,0.12);
+  }
+
+  .bottom-input-field.json-invalid {
+    border-color: rgba(244,63,94,0.6);
+    box-shadow: 0 0 8px rgba(244,63,94,0.12);
+  }
+
+  .help-modal {
+    @apply absolute left-0 -top-44 w-[28rem] bg-black/90 border border-white/10 rounded-lg p-4 shadow-lg z-50;
+  }
+
+  .help-modal-content {
+    @apply flex flex-col gap-2;
   }
 
   .command-context-badge {
@@ -370,5 +432,14 @@
   .border-glow {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.1),
                 inset 0 0 10px rgba(255, 255, 255, 0.02);
+  }
+
+  @keyframes bounceShort {
+    0%, 100% { transform: translateY(0) translateX(-50%); }
+    50% { transform: translateY(-4px) translateX(-50%); }
+  }
+
+  .animate-bounce-short {
+    animation: bounceShort 2s ease-in-out infinite;
   }
 }

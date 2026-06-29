@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { BottomBar } from './components/BottomBar';
+import { GenBar } from './components/GenBar';
 import { CanvasView } from './components/CanvasView';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
@@ -40,7 +40,6 @@ function App() {
   const [models, setModels] = useState<Model[]>([]);
   const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>('local_zip');
   const [repositoryUrl, setRepositoryUrl] = useState<string>('');
-  const [downloadUrl, setDownloadUrl] = useState<string>('');
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
@@ -52,7 +51,6 @@ function App() {
     setStatusMessage('');
     setProgress(0);
     setEstimatedRemaining(null);
-    setDownloadUrl('');
     setDeploymentStrategy('local_zip');
     setRepositoryUrl('');
   }, []);
@@ -93,7 +91,6 @@ function App() {
         setGeneratedFiles(result.files || []);
         setSelectedFile(result.files?.[0]?.path || null);
         setRepositoryUrl(result.repositoryUrl || payload.repositoryUrl || '');
-        setDownloadUrl(result.downloadUrl || '');
         setProgress(100);
         setEstimatedRemaining(null);
         setStatus('success');
@@ -199,16 +196,7 @@ function App() {
       </div>
 
       {activeView === 'generator' && !showWelcome && (
-        <BottomBar
-          status={status}
-          statusMessage={statusMessage}
-          deploymentStrategy={deploymentStrategy}
-          progress={progress}
-          downloadUrl={downloadUrl}
-          repositoryUrl={repositoryUrl}
-          onGenerate={handleGenerate}
-          isGenerating={status === 'generating'}
-        />
+        <GenBar onGenerate={handleGenerate} />
       )}
     </div>
   );
