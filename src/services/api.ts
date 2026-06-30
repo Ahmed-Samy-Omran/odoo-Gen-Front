@@ -49,6 +49,17 @@ export interface JobStatus {
   error?: string | null;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  ready_to_generate: boolean;
+  requirements_summary: string;
+}
+
 export type ProgressCallback = (status: JobStatus) => void;
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -144,6 +155,24 @@ function toBackendPayload(payload: GeneratorPayload) {
       },
     ],
   };
+}
+
+export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResponse> {
+  const response = await fetch(`${API_BASE_URL}/chat/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<{ detail?: string }>(response).catch(() => ({}));
+    throw new Error(errorData?.detail || `Chat failed: ${response.statusText}`);
+  }
+
+  return safeJsonResponse<ChatResponse>(response);
 }
 
 async function startPromptJob(prompt: string): Promise<JobStatus> {
