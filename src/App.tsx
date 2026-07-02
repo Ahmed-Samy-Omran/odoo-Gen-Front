@@ -1,19 +1,21 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { GenBar } from './components/GenBar';
-import { CanvasView } from './components/CanvasView';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
-import { LoadingOverlay } from './components/LoadingOverlay';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
+import { SystemBuildView } from './components/SystemBuildView';
 import {
   generateModule,
   type GeneratorPayload,
   type GeneratedFile,
   type JobStatus,
+  type SchemaPreview,
 } from './services/api';
+import { buildSchemaFromPayload } from './utils/diagramBuilder';
+import { buildDemoPayload, schemaFromRawConfig, type RawModuleConfig } from './utils/demoGenerate';
 import { Github, FileArchive } from 'lucide-react';
 
 type ViewType = 'generator' | 'history' | 'settings';
@@ -43,6 +45,8 @@ function App() {
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
+  const [schemaPreview, setSchemaPreview] = useState<SchemaPreview | null>(null);
+  const schemaSetRef = useRef(false);
 
   const resetGenerationState = useCallback(() => {
     setGeneratedFiles([]);
@@ -53,37 +57,62 @@ function App() {
     setEstimatedRemaining(null);
     setDeploymentStrategy('local_zip');
     setRepositoryUrl('');
+    setSchemaPreview(null);
+    schemaSetRef.current = false;
   }, []);
 
   const handleProgress = useCallback((job: JobStatus) => {
     setProgress(job.progress ?? 0);
-    setStatusMessage(job.message || 'Generating...');
+    setStatusMessage(job.error || job.message || 'Generating...');
     setEstimatedRemaining(job.estimated_remaining_sec ?? null);
+    if (job.schema_preview && !schemaSetRef.current) {
+      setSchemaPreview(job.schema_preview);
+      schemaSetRef.current = true;
+    }
   }, []);
 
   const handleGenerate = async (payload: GeneratorPayload) => {
     resetGenerationState();
 
     setStatus('generating');
-    setStatusMessage(`Analyzing "${payload?.moduleName || 'module'}"...`);
+    setStatusMessage(
+      payload.rawConfig
+        ? `Building "${payload?.moduleName || 'module'}" (no AI)...`
+        : payload.aiPrompt
+          ? `Analyzing prompt (AI)...`
+          : `Analyzing "${payload?.moduleName || 'module'}"...`,
+    );
     setProgress(0);
     setDeploymentStrategy(payload?.deploymentStrategy || 'local_zip');
     setRepositoryUrl(payload?.repositoryUrl || '');
     setShowWelcome(false);
     setShowLeftPanel(true);
 
+    if (payload.rawConfig) {
+      setSchemaPreview(schemaFromRawConfig(payload.rawConfig as RawModuleConfig));
+      schemaSetRef.current = true;
+    } else {
+      const hasStructuredModels = payload.models?.some((m) => m.fields?.length > 0);
+      if (hasStructuredModels) {
+        setSchemaPreview(buildSchemaFromPayload(payload.moduleName, payload.models));
+        schemaSetRef.current = true;
+      }
+    }
+
     try {
-      const fullPayload: GeneratorPayload = {
-        ...payload,
-        models: models?.map(m => ({
-          name: m?.name,
-          fields: m?.fields?.map(f => ({
-            name: f?.name,
-            type: f?.type,
-            required: f?.required,
-          })),
-        })) || [],
-      };
+      const fullPayload: GeneratorPayload = payload.rawConfig
+        ? payload
+        : {
+            ...payload,
+            models: models?.map(m => ({
+              name: m?.name,
+              fields: m?.fields?.map(f => ({
+                name: f?.name,
+                type: f?.type,
+                required: f?.required,
+              })),
+            })) || [],
+          };
 
       const result = await generateModule(fullPayload, handleProgress);
 
@@ -104,6 +133,10 @@ function App() {
       setStatus('error');
       setStatusMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
     }
+  };
+
+  const handleTryDemo = () => {
+    void handleGenerate(buildDemoPayload());
   };
 
   const handleStartGenerating = () => {
@@ -141,13 +174,6 @@ function App() {
     <div className="h-screen w-screen flex flex-col bg-black overflow-hidden relative">
       <ParticleBackground />
 
-      <LoadingOverlay
-        isVisible={status === 'generating'}
-        message={statusMessage}
-        progress={progress}
-        estimatedRemainingSec={estimatedRemaining}
-      />
-
       <div className="flex flex-1 relative z-10 overflow-hidden">
         <Sidebar activeView={activeView} onViewChange={setActiveView} />
 
@@ -158,7 +184,10 @@ function App() {
           {activeView === 'generator' && (
             <>
               {showWelcome ? (
-                <WelcomeDashboard onStartGenerating={handleStartGenerating} />
+                <WelcomeDashboard
+                  onStartGenerating={handleStartGenerating}
+                  onTryDemo={handleTryDemo}
+                />
               ) : (
                 <div className="flex h-full overflow-hidden">
                   {showLeftPanel && (
@@ -170,8 +199,16 @@ function App() {
                   <div className="flex-1 flex flex-col overflow-hidden">
                     {getDeploymentBadge()}
 
-                    {status === 'success' && generatedFiles.length > 0 ? (
-                      <CanvasView
+                    {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
+                      <SystemBuildView
+                        schema={schemaPreview}
+                        isGenerating={status === 'generating'}
+                        isComplete={status === 'success'}
+                        hasError={status === 'error'}
+                        onTryDemo={handleTryDemo}
+                        progress={progress}
+                        statusMessage={statusMessage}
+                        estimatedRemainingSec={estimatedRemaining}
                         files={generatedFiles}
                         selectedFile={selectedFile}
                         onSelectFile={setSelectedFile}
@@ -181,9 +218,7 @@ function App() {
                     ) : (
                       <div className="flex-1 flex items-center justify-center">
                         <p className="text-white/30">
-                          {status === 'generating'
-                            ? 'Processing your request...'
-                            : 'Configure your module and click Generate'}
+                          Configure your module and click Generate
                         </p>
                       </div>
                     )}
@@ -196,7 +231,7 @@ function App() {
       </div>
 
       {activeView === 'generator' && !showWelcome && (
-        <GenBar onGenerate={handleGenerate} />
+        <GenBar onGenerate={handleGenerate} onTryDemo={handleTryDemo} />
       )}
     </div>
   );

@@ -209,6 +209,211 @@
     animation: fadeIn 0.5s ease-out forwards;
   }
 
+  @keyframes diagramNodeIn {
+    from { opacity: 0; transform: scale(0.85) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes diagramSoftIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-diagram-node-in {
+    animation: diagramNodeIn 0.45s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-diagram-soft-in {
+    animation: diagramSoftIn 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  /* Diagram canvas shared background */
+  .diagram-canvas {
+    @apply w-full h-full;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(80, 120, 200, 0.04) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(100, 200, 160, 0.03) 0%, transparent 60%),
+      #000;
+  }
+
+  /* ERD nodes */
+  .diagram-erd-node {
+    @apply rounded-xl overflow-hidden min-w-[220px] max-w-[260px];
+    background: rgba(12, 12, 14, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+  }
+
+  .diagram-erd-node-selected {
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 32px rgba(80, 120, 200, 0.08);
+  }
+
+  .diagram-erd-node-header {
+    @apply flex items-center gap-2 px-3.5 py-2.5;
+    background: rgba(255, 255, 255, 0.025);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .diagram-erd-node-body {
+    @apply py-1;
+  }
+
+  .diagram-erd-field {
+    @apply flex items-center gap-2 px-3.5 py-1.5 relative;
+  }
+
+  .diagram-erd-field:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .diagram-handle {
+    @apply !w-1.5 !h-1.5 !border !bg-black/80;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .diagram-handle-left {
+    @apply !absolute !left-0 !top-1/2 !-translate-y-1/2;
+  }
+
+  .diagram-handle-right {
+    @apply !absolute !right-0 !top-1/2 !-translate-y-1/2;
+  }
+
+  .diagram-controls {
+    @apply !rounded-xl !shadow-glass;
+    background: rgba(10, 10, 12, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .diagram-controls button {
+    @apply !text-white/40 hover:!text-white/70;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .diagram-minimap {
+    @apply !rounded-xl;
+    background: rgba(8, 8, 10, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    width: 120px !important;
+    height: 80px !important;
+  }
+
+  /* Use case diagram */
+  .diagram-actor-card {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .diagram-actor-icon {
+    @apply w-8 h-8 rounded-lg flex items-center justify-center text-white/40;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .diagram-boundary {
+    @apply rounded-2xl p-6 transition-all duration-700;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px dashed rgba(255, 255, 255, 0.06);
+    opacity: 0.5;
+  }
+
+  .diagram-boundary-visible {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 0 40px rgba(80, 120, 200, 0.03);
+  }
+
+  .diagram-boundary-header {
+    @apply flex items-center gap-2 pb-4;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .diagram-usecase-card {
+    @apply rounded-xl p-4 transition-colors duration-300;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .diagram-usecase-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.09);
+  }
+
+  .diagram-action-pill {
+    @apply px-2 py-0.5 rounded-md text-[10px] font-medium border;
+  }
+
+  .diagram-phase-badge {
+    @apply flex items-center gap-3 px-5 py-2.5 rounded-full text-xs text-white/40;
+    background: rgba(10, 10, 12, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+  }
+
+  .diagram-phase-dot {
+    @apply w-1.5 h-1.5 rounded-full bg-white/15 transition-colors duration-500;
+  }
+
+  .diagram-phase-dot.active {
+    @apply bg-sky-400/60;
+    box-shadow: 0 0 6px rgba(100, 180, 255, 0.3);
+  }
+
+  .diagram-zoom-toolbar {
+    @apply flex items-center gap-1 px-1.5 py-1.5 rounded-xl;
+    background: rgba(10, 10, 12, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .diagram-zoom-toolbar button {
+    @apply w-8 h-8 flex items-center justify-center rounded-lg text-white/50
+           hover:text-white/90 hover:bg-white/10 transition-colors;
+  }
+
+  .diagram-zoom-level {
+    @apply text-[11px] font-mono text-white/35 min-w-[40px] text-center select-none;
+  }
+
+  .diagram-pan-zoom-inner {
+    @apply flex items-start justify-center min-h-full py-8 px-6;
+  }
+
+  .diagram-pan-zoom-content {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  .diagram-usecase-svg {
+    display: block;
+    overflow: visible;
+  }
+
+  @keyframes drawLine {
+    from { stroke-dashoffset: 100; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  .animate-draw-line {
+    stroke-dasharray: 100;
+    animation: drawLine 0.6s ease-out forwards;
+  }
+
+  @keyframes drawBorder {
+    from { stroke-dashoffset: 800; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  .animate-draw-border {
+    stroke-dasharray: 800;
+    animation: drawBorder 1.2s ease-out forwards;
+  }
+
   .toggle-switch {
     @apply relative w-11 h-6 rounded-full bg-black transition-colors duration-200 cursor-pointer border border-white/10;
   }

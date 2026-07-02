@@ -9,6 +9,10 @@ export interface GeneratorPayload {
   models: ModelDefinition[];
   deploymentStrategy: 'github' | 'local_zip';
   repositoryUrl?: string;
+  /** When set, skips AI and posts directly to /generate-module/ */
+  rawConfig?: { modules: unknown[] };
+  /** When set, sends this text directly to /analyze-requirements/ (old JSON format) */
+  aiPrompt?: string;
 }
 
 export interface ModelDefinition {
@@ -47,6 +51,34 @@ export interface JobStatus {
   download_url?: string | null;
   github_url?: string | null;
   error?: string | null;
+  schema_preview?: SchemaPreview | null;
+}
+
+export interface SchemaField {
+  name: string;
+  type: string;
+  required: boolean;
+  relation?: string | null;
+}
+
+export interface SchemaModel {
+  name: string;
+  module_name: string;
+  description?: string;
+  fields: SchemaField[];
+}
+
+export interface SchemaUseCase {
+  name: string;
+  actor: string;
+  model?: string;
+}
+
+export interface SchemaPreview {
+  module_name: string;
+  models: SchemaModel[];
+  actors: string[];
+  use_cases: SchemaUseCase[];
 }
 
 export interface ChatMessage {
@@ -67,6 +99,12 @@ const POLL_INTERVAL_MS = 2500;
 
 const ZIP_RESPONSE_ERROR =
   'Backend returned a ZIP file instead of a job ID. Restart the backend (main.py) so it uses the async job API.';
+
+type ApiErrorBody = { detail?: string; message?: string };
+
+function getApiErrorMessage(errorData: ApiErrorBody, fallback: string): string {
+  return errorData.detail || errorData.message || fallback;
+}
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -168,8 +206,8 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResp
   });
 
   if (!response.ok) {
-    const errorData = await safeJsonResponse<{ detail?: string }>(response).catch(() => ({}));
-    throw new Error(errorData?.detail || `Chat failed: ${response.statusText}`);
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Chat failed: ${response.statusText}`));
   }
 
   return safeJsonResponse<ChatResponse>(response);
@@ -186,26 +224,27 @@ async function startPromptJob(prompt: string): Promise<JobStatus> {
   });
 
   if (!response.ok) {
-    const errorData = await safeJsonResponse<Record<string, string>>(response).catch(() => ({}));
-    throw new Error(errorData?.detail || errorData?.message || `Request failed: ${response.statusText}`);
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Request failed: ${response.statusText}`));
   }
 
   return safeJsonResponse<JobStatus>(response);
 }
 
 async function startConfigJob(payload: GeneratorPayload): Promise<JobStatus> {
+  const body = payload.rawConfig ?? toBackendPayload(payload);
   const response = await fetch(`${API_BASE_URL}/generate-module/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify(toBackendPayload(payload)),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    const errorData = await safeJsonResponse<Record<string, string>>(response).catch(() => ({}));
-    throw new Error(errorData?.detail || errorData?.message || `Request failed: ${response.statusText}`);
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Request failed: ${response.statusText}`));
   }
 
   return safeJsonResponse<JobStatus>(response);
@@ -216,8 +255,8 @@ export async function pollJob(jobId: string): Promise<JobStatus> {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
-    const errorData = await safeJsonResponse<Record<string, string>>(response).catch(() => ({}));
-    throw new Error(errorData?.detail || `Polling failed: ${response.statusText}`);
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Polling failed: ${response.statusText}`));
   }
   return safeJsonResponse<JobStatus>(response);
 }
@@ -227,8 +266,8 @@ export async function fetchJobFiles(jobId: string): Promise<GeneratedFile[]> {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
-    const errorData = await safeJsonResponse<Record<string, string>>(response).catch(() => ({}));
-    throw new Error(errorData?.detail || `Failed to fetch files: ${response.statusText}`);
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Failed to fetch files: ${response.statusText}`));
   }
   const data = await safeJsonResponse<{ files?: GeneratedFile[] }>(response);
   return Array.isArray(data?.files) ? data.files : [];
@@ -244,7 +283,7 @@ async function waitForJob(jobId: string, onProgress?: ProgressCallback): Promise
     }
 
     if (status.status === 'error') {
-      throw new Error(status.error || 'Generation failed');
+      throw new Error(status.error || status.message || 'Generation failed');
     }
 
     await sleep(POLL_INTERVAL_MS);
@@ -260,10 +299,11 @@ export async function generateModule(
       throw new Error('Module name is required');
     }
 
+    const hasRawConfig = Boolean(payload.rawConfig?.modules?.length);
     const hasStructuredModels = payload.models?.some((m) => m.fields?.length > 0);
-    const initialJob = hasStructuredModels
+    const initialJob = hasRawConfig || hasStructuredModels
       ? await startConfigJob(payload)
-      : await startPromptJob(buildPrompt(payload));
+      : await startPromptJob(payload.aiPrompt?.trim() || buildPrompt(payload));
 
     onProgress?.(initialJob);
 

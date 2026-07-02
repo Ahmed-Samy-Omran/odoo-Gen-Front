@@ -4,9 +4,11 @@ import AiIcon from './AiIcon';
 import type { ChatMessage, GeneratorPayload } from '../services/api';
 import { sendChatMessage } from '../services/api';
 import { deriveModuleName } from '../utils/promptValidation';
+import { buildPayloadFromJson } from '../utils/demoGenerate';
 
 interface GenBarProps {
   onGenerate?: (payload: GeneratorPayload) => void;
+  onTryDemo?: () => void;
 }
 
 const isNonEmptyJson = (value: string): boolean => {
@@ -28,7 +30,7 @@ const isNonEmptyJson = (value: string): boolean => {
 
 const ARABIC_JSON_ERROR = 'الرجاء إدخال نص JSON غير فارغ وصالح.';
 
-export const GenBar: React.FC<GenBarProps> = ({ onGenerate }) => {
+export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo }) => {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [readyToGenerate, setReadyToGenerate] = useState(false);
@@ -149,21 +151,29 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate }) => {
 
     setError('');
 
-    const description = mode === 'json' ? prompt.trim() : requirementsSummary;
-    const payload: GeneratorPayload = {
-      moduleName: deriveModuleName(description),
-      description,
-      version: '17.0',
-      author: 'Coregen',
-      category: 'Tools',
-      depends: ['base'],
-      features: [],
-      models: [],
-      deploymentStrategy,
-      repositoryUrl: deploymentStrategy === 'github' ? repoInput.trim() : undefined,
-    };
+    if (mode === 'json') {
+      const jsonPayload = buildPayloadFromJson(prompt.trim());
+      if (!jsonPayload) {
+        setError('JSON: use { "prompt": "..." } for AI, or { "modules": [...] } without AI.');
+        return;
+      }
+      onGenerate(jsonPayload);
+    } else {
+      const payload: GeneratorPayload = {
+        moduleName: deriveModuleName(requirementsSummary),
+        description: requirementsSummary,
+        version: '17.0',
+        author: 'Coregen',
+        category: 'Tools',
+        depends: ['base'],
+        features: [],
+        models: [],
+        deploymentStrategy,
+        repositoryUrl: deploymentStrategy === 'github' ? repoInput.trim() : undefined,
+      };
+      onGenerate(payload);
+    }
 
-    onGenerate(payload);
     setPrompt('');
     setMessages([]);
     setReadyToGenerate(false);
@@ -243,7 +253,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate }) => {
               onKeyDown={handleKeyDown}
               placeholder={
                 mode === 'json'
-                  ? 'Paste your module JSON configuration...'
+                  ? '{ "prompt": "..." } or { "modules": [...] }'
                   : 'صف الموديول اللي عايزه... Enter للإرسال'
               }
               className={`flex-1 resize-none bg-transparent outline-none placeholder-white/40 text-white text-sm transition-all duration-300 disabled:opacity-50 ${
@@ -294,6 +304,16 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate }) => {
               >
                 JSON
               </button>
+              {onTryDemo && (
+                <button
+                  type="button"
+                  onClick={onTryDemo}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-400/90 hover:bg-emerald-500/10"
+                  title="Try demo without AI"
+                >
+                  DEMO
+                </button>
+              )}
             </div>
 
             <div className="inline-flex rounded-full bg-white/5 p-1">

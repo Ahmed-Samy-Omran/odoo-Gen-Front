@@ -4,9 +4,13 @@ import { Zap, Github, FileArchive, ArrowRight } from 'lucide-react';
 
 interface WelcomeDashboardProps {
   onStartGenerating: () => void;
+  onTryDemo?: () => void;
 }
 
-export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onStartGenerating }) => {
+export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
+  onStartGenerating,
+  onTryDemo,
+}) => {
   const features = [
     {
       icon: Zap,
@@ -74,13 +78,24 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onStartGener
           </div>
         </div>
 
-        <button
-          onClick={onStartGenerating}
-          className="cyber-button-accent gap-2 px-8 py-3"
-        >
-          Start Generating
-          <ArrowRight className="w-5 h-5" />
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          <button
+            onClick={onStartGenerating}
+            className="cyber-button-accent gap-2 px-8 py-3"
+          >
+            Start Generating
+            <ArrowRight className="w-5 h-5" />
+          </button>
+          {onTryDemo && (
+            <button
+              type="button"
+              onClick={onTryDemo}
+              className="px-8 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300/90 text-sm font-semibold hover:bg-emerald-500/20 transition-colors"
+            >
+              Try Demo (no AI)
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center justify-center gap-6 text-sm text-white/25">
           <div className="flex items-center gap-2">
