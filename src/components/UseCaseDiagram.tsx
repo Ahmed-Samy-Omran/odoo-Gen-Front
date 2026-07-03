@@ -28,6 +28,8 @@ function truncateLabel(text: string, maxLen: number): string {
   return `${text.slice(0, maxLen - 1)}…`;
 }
 
+const USE_CASE_LABEL_MAX_LENGTH = 30;
+
 function computeLayout(
   schema: SchemaPreview,
   visibleCount: number,
@@ -41,9 +43,9 @@ function computeLayout(
   const actors = schema.actors.length > 0 ? schema.actors : ['User'];
   const useCases = schema.use_cases.slice(0, visibleCount);
 
-  const actorAreaWidth = 130;
+  const actorAreaWidth = 150;
   const boundaryX = actorAreaWidth + 30;
-  const boundaryW = 640;
+  const boundaryW = 800;
   const boundaryPadY = 50;
 
   const ucSpacing = 54;
@@ -71,7 +73,7 @@ function computeLayout(
 
   const startY = boundaryY + boundaryPadY + 24;
   const useCasePositions: UseCasePosition[] = useCases.map((uc, i) => {
-    const rx = Math.max(78, Math.min(130, uc.name.length * 3.4));
+    const rx = Math.max(90, Math.min(210, uc.name.length * 4));
     return {
       name: uc.name,
       actor: uc.actor,
@@ -238,7 +240,7 @@ export const UseCaseDiagram: React.FC<UseCaseDiagramProps> = ({
               fontSize={11}
               fontFamily="JetBrains Mono, monospace"
             >
-              {truncateLabel(uc.name, 22)}
+              {truncateLabel(uc.name, USE_CASE_LABEL_MAX_LENGTH)}
             </text>
           </g>
         ))}

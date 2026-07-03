@@ -42,6 +42,7 @@ function App() {
   const [models, setModels] = useState<Model[]>([]);
   const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>('local_zip');
   const [repositoryUrl, setRepositoryUrl] = useState<string>('');
+  const [downloadUrl, setDownloadUrl] = useState<string>('');
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
@@ -57,6 +58,7 @@ function App() {
     setEstimatedRemaining(null);
     setDeploymentStrategy('local_zip');
     setRepositoryUrl('');
+    setDownloadUrl('');
     setSchemaPreview(null);
     schemaSetRef.current = false;
   }, []);
@@ -120,11 +122,13 @@ function App() {
         setGeneratedFiles(result.files || []);
         setSelectedFile(result.files?.[0]?.path || null);
         setRepositoryUrl(result.repositoryUrl || payload.repositoryUrl || '');
+        setDownloadUrl(result.downloadUrl || '');
         setProgress(100);
         setEstimatedRemaining(null);
         setStatus('success');
         setStatusMessage(result.message || 'Generation successful');
       } else {
+        setDownloadUrl('');
         setStatus('error');
         setStatusMessage(result.message || 'Generation failed');
       }
@@ -142,32 +146,6 @@ function App() {
   const handleStartGenerating = () => {
     setShowWelcome(false);
     setActiveView('generator');
-  };
-
-  const getDeploymentBadge = () => {
-    if (status !== 'generating' && status !== 'success') return null;
-
-    if (deploymentStrategy === 'github') {
-      return (
-        <div className="fixed top-4 right-4 z-50">
-          <span className="command-context-badge">
-            <Github className="w-3 h-3" />
-            <span>Deploying to GitHub</span>
-            <div className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-          </span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="fixed top-4 right-4 z-50">
-        <span className="command-context-badge">
-          <FileArchive className="w-3 h-3" />
-          <span>Preparing ZIP</span>
-          <div className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-        </span>
-      </div>
-    );
   };
 
   return (
@@ -197,8 +175,6 @@ function App() {
                   )}
 
                   <div className="flex-1 flex flex-col overflow-hidden">
-                    {getDeploymentBadge()}
-
                     {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
                       <SystemBuildView
                         schema={schemaPreview}
@@ -214,6 +190,7 @@ function App() {
                         onSelectFile={setSelectedFile}
                         deploymentStrategy={deploymentStrategy}
                         repositoryUrl={repositoryUrl}
+                        downloadUrl={downloadUrl}
                       />
                     ) : (
                       <div className="flex-1 flex items-center justify-center">

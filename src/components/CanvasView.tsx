@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileCode, Folder, FolderOpen, File, Loader2 } from 'lucide-react';
+import { FileCode, Folder, FolderOpen, File, Loader2, Download } from 'lucide-react';
 
 interface GeneratedFile {
   name: string;
@@ -13,6 +13,8 @@ interface CanvasViewProps {
   onSelectFile: (path: string) => void;
   deploymentStrategy: 'github' | 'local_zip';
   repositoryUrl?: string;
+  downloadUrl?: string;
+  downloadFileName?: string;
   isLoading?: boolean;
 }
 
@@ -22,6 +24,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   onSelectFile,
   deploymentStrategy,
   repositoryUrl,
+  downloadUrl,
+  downloadFileName,
   isLoading = false,
 }) => {
   const getSelectedContent = (): string | null => {
@@ -117,16 +121,31 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             </span>
           </div>
 
-          {deploymentStrategy === 'github' && repositoryUrl && (
-            <a
-              href={repositoryUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-white/50 hover:text-white/80 transition-colors"
-            >
-              View on GitHub
-            </a>
-          )}
+          <div className="flex items-center gap-3">
+            {deploymentStrategy === 'local_zip' && downloadUrl && (
+              <a
+                href={downloadUrl}
+                download={downloadFileName}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 transition-all duration-200 hover:bg-white/10 hover:text-white"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download ZIP
+              </a>
+            )}
+
+            {deploymentStrategy === 'github' && repositoryUrl && (
+              <a
+                href={repositoryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-white/50 hover:text-white/80 transition-colors"
+              >
+                View on GitHub
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto">

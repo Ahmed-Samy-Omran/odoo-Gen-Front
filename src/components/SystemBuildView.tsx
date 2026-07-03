@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 
 import { ReactFlowProvider } from '@xyflow/react';
 
-import { Database, Users, FileCode, Loader2, AlertCircle } from 'lucide-react';
+import { Database, Users, FileCode, Loader2, AlertCircle, Download } from 'lucide-react';
 
 import { ErdDiagram } from './ErdDiagram';
 
@@ -48,6 +48,8 @@ interface SystemBuildViewProps {
 
   repositoryUrl?: string;
 
+  downloadUrl?: string;
+
 }
 
 
@@ -90,6 +92,8 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
   repositoryUrl,
 
+  downloadUrl,
+
 }) => {
 
   const [diagramTab, setDiagramTab] = useState<DiagramTab>('erd');
@@ -109,6 +113,11 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   const timersRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
 
+
+  const downloadFileName = useMemo(() => {
+    if (!schema?.module_name) return 'module.zip';
+    return `${schema.module_name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_')}.zip`;
+  }, [schema?.module_name]);
 
   const { nodes, edges } = useMemo(() => {
 
@@ -334,6 +343,10 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             repositoryUrl={repositoryUrl}
 
+            downloadUrl={downloadUrl}
+
+            downloadFileName={downloadFileName}
+
           />
 
         </div>
@@ -384,6 +397,41 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
                 <span className="text-xs text-white/30">~{Math.ceil(estimatedRemainingSec)}s</span>
 
+              )}
+
+              {deploymentStrategy === 'local_zip' && (
+                <div className="relative">
+                  {isGenerating && !hasError ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/75 transition-all duration-200"
+                      disabled
+                    >
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Preparing ZIP
+                    </button>
+                  ) : isComplete && downloadUrl ? (
+                    <a
+                      href={downloadUrl}
+                      download={downloadFileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 transition-all duration-200 hover:bg-white/10 hover:text-white"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download module ZIP
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/50 cursor-not-allowed"
+                      disabled
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Preparing ZIP
+                    </button>
+                  )}
+                </div>
               )}
 
               <span className="text-xs text-white/40 font-mono">{clampedProgress}%</span>

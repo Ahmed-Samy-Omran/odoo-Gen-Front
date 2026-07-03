@@ -32,8 +32,8 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
   const edges: Edge[] = [];
 
   const cols = Math.max(2, Math.ceil(Math.sqrt(schema.models.length)));
-  const xGap = 300;
-  const yGap = 240;
+  const xGap = 380;
+  const yGap = 320;
 
   schema.models.forEach((model, index) => {
     const col = index % cols;

@@ -1,10 +1,14 @@
 import React from 'react';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Minimize2, MousePointer2, Move } from 'lucide-react';
 
 interface DiagramZoomToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onReset: () => void;
+  onFullscreenToggle?: () => void;
+  onToggleInteractionMode?: () => void;
+  interactionMode?: 'pan' | 'select';
+  isFullscreen?: boolean;
   zoomLevel?: number;
 }
 
@@ -12,6 +16,10 @@ export const DiagramZoomToolbar: React.FC<DiagramZoomToolbarProps> = ({
   onZoomIn,
   onZoomOut,
   onReset,
+  onFullscreenToggle,
+  onToggleInteractionMode,
+  interactionMode = 'pan',
+  isFullscreen = false,
   zoomLevel,
 }) => {
   return (
@@ -19,13 +27,41 @@ export const DiagramZoomToolbar: React.FC<DiagramZoomToolbarProps> = ({
       <button type="button" onClick={onZoomOut} title="Zoom out" aria-label="Zoom out">
         <ZoomOut className="w-4 h-4" />
       </button>
+      <button
+        type="button"
+        onClick={onToggleInteractionMode}
+        title={interactionMode === 'pan' ? 'Switch to select mode' : 'Switch to pan mode'}
+        aria-label={interactionMode === 'pan' ? 'Switch to select mode' : 'Switch to pan mode'}
+        className="rounded-full"
+      >
+        {interactionMode === 'select' ? (
+          <MousePointer2 className="w-4 h-4" />
+        ) : (
+          <Move className="w-4 h-4" />
+        )}
+      </button>
       {zoomLevel != null && (
         <span className="diagram-zoom-level">{Math.round(zoomLevel * 100)}%</span>
       )}
       <button type="button" onClick={onZoomIn} title="Zoom in" aria-label="Zoom in">
         <ZoomIn className="w-4 h-4" />
       </button>
-      <button type="button" onClick={onReset} title="Reset zoom" aria-label="Reset zoom">
+      {onFullscreenToggle && (
+        <button
+          type="button"
+          onClick={onFullscreenToggle}
+          title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+          className="rounded-full"
+        >
+          {isFullscreen ? (
+            <Minimize2 className="w-4 h-4" />
+          ) : (
+            <Maximize2 className="w-4 h-4" />
+          )}
+        </button>
+      )}
+      <button type="button" onClick={onReset} title="Fit to screen" aria-label="Fit to screen">
         <Maximize2 className="w-3.5 h-3.5" />
       </button>
     </div>

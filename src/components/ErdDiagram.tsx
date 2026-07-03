@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -38,8 +38,9 @@ const getFieldIcon = (type: string, relation?: string | null) => {
 const TableNode: React.FC<NodeProps> = ({ data, selected }) => {
   const nodeData = data as TableNodeData;
   const { modelName, fields, isRevealing } = nodeData;
-  const visibleFields = fields.slice(0, MAX_VISIBLE_FIELDS);
-  const hiddenCount = fields.length - visibleFields.length;
+  const [expanded, setExpanded] = useState(false);
+  const visibleFields = expanded ? fields : fields.slice(0, MAX_VISIBLE_FIELDS);
+  const hiddenCount = Math.max(0, fields.length - visibleFields.length);
 
   return (
     <div
@@ -90,9 +91,13 @@ const TableNode: React.FC<NodeProps> = ({ data, selected }) => {
         ))}
 
         {hiddenCount > 0 && (
-          <div className="px-3 py-1.5 text-[10px] text-white/20 font-mono text-center border-t border-white/[0.04]">
-            +{hiddenCount} more
-          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            className="w-full text-left px-3.5 py-2 text-[11px] font-medium text-cyan-300/85 hover:text-cyan-200 transition-colors"
+          >
+            {expanded ? 'Show less' : `+${hiddenCount} more`}
+          </button>
         )}
       </div>
     </div>
@@ -142,52 +147,6 @@ const ErdViewportManager: React.FC<{
   return null;
 };
 
-const ErdZoomControls: React.FC = () => {
-  const { zoomIn, zoomOut, fitView, getZoom } = useReactFlow();
-  const [zoomLevel, setZoomLevel] = React.useState(DEFAULT_MAX_ZOOM);
-
-  const syncZoom = useCallback(() => {
-    setZoomLevel(getZoom());
-  }, [getZoom]);
-
-  const handleZoomIn = useCallback(() => {
-    zoomIn({ duration: 200 });
-    setTimeout(syncZoom, 220);
-  }, [zoomIn, syncZoom]);
-
-  const handleZoomOut = useCallback(() => {
-    zoomOut({ duration: 200 });
-    setTimeout(syncZoom, 220);
-  }, [zoomOut, syncZoom]);
-
-  const handleReset = useCallback(() => {
-    fitView({ padding: FIT_PADDING, maxZoom: DEFAULT_MAX_ZOOM, duration: 300 });
-    setTimeout(syncZoom, 320);
-  }, [fitView, syncZoom]);
-
-  React.useEffect(() => {
-    const timer = setTimeout(syncZoom, 200);
-    return () => clearTimeout(timer);
-  }, [syncZoom]);
-
-  return (
-    <DiagramZoomToolbar
-      onZoomIn={handleZoomIn}
-      onZoomOut={handleZoomOut}
-      onReset={handleReset}
-      zoomLevel={zoomLevel}
-    />
-  );
-};
-
-function ErdZoomPanel() {
-  return (
-    <Panel position="top-right" className="!m-3 !p-0">
-      <ErdZoomControls />
-    </Panel>
-  );
-}
-
 interface ErdDiagramProps {
   nodes: Node[];
   edges: Edge[];
@@ -205,15 +164,70 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   layoutKey = '',
   isDrawing = false,
 }) => {
+  const [interactionMode, setInteractionMode] = useState<'pan' | 'select'>('pan');
+  const [zoomLevel, setZoomLevel] = useState(DEFAULT_MAX_ZOOM);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [flowNodes, setFlowNodes] = useState<Node[]>([]);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const reactFlow = useReactFlow();
+
+  const handleZoomIn = useCallback(() => {
+    reactFlow.zoomIn?.({ duration: 200 });
+    const viewport = reactFlow.getViewport?.();
+    if (viewport) setZoomLevel(viewport.zoom);
+  }, [reactFlow]);
+
+  const handleZoomOut = useCallback(() => {
+    reactFlow.zoomOut?.({ duration: 200 });
+    const viewport = reactFlow.getViewport?.();
+    if (viewport) setZoomLevel(viewport.zoom);
+  }, [reactFlow]);
+
+  const handleReset = useCallback(() => {
+    reactFlow.fitView?.({
+      padding: FIT_PADDING,
+      duration: 200,
+      maxZoom: DEFAULT_MAX_ZOOM,
+      minZoom: 0.25,
+    });
+    const viewport = reactFlow.getViewport?.();
+    if (viewport) setZoomLevel(viewport.zoom);
+  }, [reactFlow]);
+
+  const handleToggleFullscreen = useCallback(async () => {
+    const element = wrapperRef.current;
+    if (!element) return;
+    if (!document.fullscreenElement) {
+      await element.requestFullscreen?.();
+    } else {
+      await document.exitFullscreen?.();
+    }
+  }, []);
+
+  useEffect(() => {
+    const updateFullscreen = () => {
+      setIsFullscreen(document.fullscreenElement === wrapperRef.current);
+    };
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    updateFullscreen();
+    return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+  }, []);
+
   const visibleNodes = useMemo(() => {
     const count = visibleNodeCount ?? nodes.length;
     return nodes.slice(0, count).map((node, i) => ({
       ...node,
+      // ensure nodes become draggable when in 'select' (arrow) interaction mode
+      draggable: interactionMode === 'select',
       data: { ...node.data, isRevealing: i === count - 1 },
     }));
-  }, [nodes, visibleNodeCount]);
+  }, [nodes, visibleNodeCount, interactionMode]);
 
-  const visibleNodeIds = new Set(visibleNodes.map((n) => n.id));
+  useEffect(() => {
+    setFlowNodes(visibleNodes);
+  }, [visibleNodes]);
+
+  const visibleNodeIds = new Set(flowNodes.map((n) => n.id));
 
   const visibleEdges = useMemo(() => {
     const count = visibleEdgeCount ?? edges.length;
@@ -247,20 +261,28 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   }
 
   return (
-    <div className="diagram-canvas relative">
+    <div className="diagram-canvas relative" ref={wrapperRef}>
       <ReactFlow
-        nodes={visibleNodes}
+        nodes={flowNodes}
         edges={visibleEdges}
         nodeTypes={nodeTypes}
         defaultViewport={{ x: 0, y: 0, zoom: DEFAULT_MAX_ZOOM }}
         minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        nodesDraggable={false}
+        nodesDraggable={interactionMode === 'select'}
         nodesConnectable={false}
-        elementsSelectable={false}
-        panOnDrag
+        elementsSelectable={interactionMode === 'select'}
+        panOnDrag={interactionMode === 'pan'}
         zoomOnScroll
+        onNodeDragStop={(event, node) => {
+          if (interactionMode !== 'select') return;
+          setFlowNodes((current) =>
+            current.map((currentNode) =>
+              currentNode.id === node.id ? { ...currentNode, position: node.position } : currentNode,
+            ),
+          );
+        }}
         defaultEdgeOptions={{
           type: 'smoothstep',
           style: { stroke: 'rgba(120, 180, 255, 0.25)', strokeWidth: 1.5 },
@@ -279,7 +301,20 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           size={1}
           color="rgba(255, 255, 255, 0.03)"
         />
-        <ErdZoomPanel />
+        <Panel position="top-right" className="!m-3 !p-0">
+          <DiagramZoomToolbar
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onReset={handleReset}
+            onFullscreenToggle={handleToggleFullscreen}
+            onToggleInteractionMode={() =>
+              setInteractionMode((mode) => (mode === 'pan' ? 'select' : 'pan'))
+            }
+            interactionMode={interactionMode}
+            isFullscreen={isFullscreen}
+            zoomLevel={zoomLevel}
+          />
+        </Panel>
         <MiniMap
           className="diagram-minimap"
           nodeColor="rgba(255, 255, 255, 0.08)"
