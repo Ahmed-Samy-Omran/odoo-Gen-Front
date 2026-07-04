@@ -23,47 +23,69 @@ export const DiagramZoomToolbar: React.FC<DiagramZoomToolbarProps> = ({
   zoomLevel,
 }) => {
   return (
-    <div className="diagram-zoom-toolbar">
-      <button type="button" onClick={onZoomOut} title="Zoom out" aria-label="Zoom out">
-        <ZoomOut className="w-4 h-4" />
-      </button>
-      <button
-        type="button"
-        onClick={onToggleInteractionMode}
-        title={interactionMode === 'pan' ? 'Switch to select mode' : 'Switch to pan mode'}
-        aria-label={interactionMode === 'pan' ? 'Switch to select mode' : 'Switch to pan mode'}
-        className="rounded-full"
-      >
-        {interactionMode === 'select' ? (
-          <MousePointer2 className="w-4 h-4" />
-        ) : (
-          <Move className="w-4 h-4" />
-        )}
-      </button>
-      {zoomLevel != null && (
-        <span className="diagram-zoom-level">{Math.round(zoomLevel * 100)}%</span>
-      )}
-      <button type="button" onClick={onZoomIn} title="Zoom in" aria-label="Zoom in">
-        <ZoomIn className="w-4 h-4" />
-      </button>
-      {onFullscreenToggle && (
+    <div className="rounded-2xl border border-white/10 bg-black/45 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
-          onClick={onFullscreenToggle}
-          title={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          className="rounded-full"
+          onClick={onZoomOut}
+          title="Zoom out"
+          aria-label="Zoom out"
+          className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
         >
-          {isFullscreen ? (
-            <Minimize2 className="w-4 h-4" />
+          <ZoomOut className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleInteractionMode}
+          title={interactionMode === 'pan' ? 'Switch to select mode' : 'Switch to pan mode'}
+          aria-label={interactionMode === 'pan' ? 'Switch to select mode' : 'Switch to pan mode'}
+          className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+        >
+          {interactionMode === 'select' ? (
+            <MousePointer2 className="w-4 h-4" />
           ) : (
-            <Maximize2 className="w-4 h-4" />
+            <Move className="w-4 h-4" />
           )}
         </button>
-      )}
-      <button type="button" onClick={onReset} title="Fit to screen" aria-label="Fit to screen">
-        <Maximize2 className="w-3.5 h-3.5" />
-      </button>
+        {zoomLevel != null && (
+          <span className="min-w-[46px] rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-center text-[11px] font-medium text-white/70">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onZoomIn}
+          title="Zoom in"
+          aria-label="Zoom in"
+          className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+        >
+          <ZoomIn className="w-4 h-4" />
+        </button>
+        {onFullscreenToggle && (
+          <button
+            type="button"
+            onClick={onFullscreenToggle}
+            title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            className="rounded-lg border border-cyan-400/20 bg-cyan-500/10 p-2 text-cyan-200 transition hover:bg-cyan-500/20"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onReset}
+          title="Fit to screen"
+          aria-label="Fit to screen"
+          className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 };

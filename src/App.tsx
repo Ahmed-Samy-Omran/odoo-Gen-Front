@@ -16,7 +16,6 @@ import {
 } from './services/api';
 import { buildSchemaFromPayload } from './utils/diagramBuilder';
 import { buildDemoPayload, schemaFromRawConfig, type RawModuleConfig } from './utils/demoGenerate';
-import { Github, FileArchive } from 'lucide-react';
 
 type ViewType = 'generator' | 'history' | 'settings';
 type StatusType = 'idle' | 'generating' | 'success' | 'error';
@@ -106,14 +105,25 @@ function App() {
         ? payload
         : {
             ...payload,
-            models: models?.map(m => ({
-              name: m?.name,
-              fields: m?.fields?.map(f => ({
-                name: f?.name,
-                type: f?.type,
-                required: f?.required,
-              })),
-            })) || [],
+            models: (
+              schemaPreview?.models?.length
+                ? schemaPreview.models.map((m) => ({
+                    name: m?.name,
+                    fields: m?.fields?.map((f) => ({
+                      name: f?.name,
+                      type: f?.type,
+                      required: f?.required,
+                    })) || [],
+                  }))
+                : models?.map((m) => ({
+                    name: m?.name,
+                    fields: m?.fields?.map((f) => ({
+                      name: f?.name,
+                      type: f?.type,
+                      required: f?.required,
+                    })) || [],
+                  })) || []
+            ),
           };
 
       const result = await generateModule(fullPayload, handleProgress);
@@ -178,6 +188,7 @@ function App() {
                     {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
                       <SystemBuildView
                         schema={schemaPreview}
+                        onSchemaChange={setSchemaPreview}
                         isGenerating={status === 'generating'}
                         isComplete={status === 'success'}
                         hasError={status === 'error'}

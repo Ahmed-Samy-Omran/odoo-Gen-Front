@@ -10,9 +10,9 @@ import { UseCaseDiagram } from './UseCaseDiagram';
 
 import { CanvasView } from './CanvasView';
 
-import { generateErdFromSchema, type SchemaPreview } from '../utils/diagramBuilder';
+import { generateErdFromSchema } from '../utils/diagramBuilder';
 
-import type { GeneratedFile } from '../services/api';
+import type { GeneratedFile, SchemaPreview } from '../services/api';
 
 
 
@@ -49,6 +49,7 @@ interface SystemBuildViewProps {
   repositoryUrl?: string;
 
   downloadUrl?: string;
+  onSchemaChange?: (schema: SchemaPreview) => void;
 
 }
 
@@ -93,6 +94,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   repositoryUrl,
 
   downloadUrl,
+  onSchemaChange,
 
 }) => {
 
@@ -109,6 +111,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   const [showBoundary, setShowBoundary] = useState(false);
 
   const [animationDone, setAnimationDone] = useState(false);
+  const [editableSchema, setEditableSchema] = useState<SchemaPreview | null>(null);
 
   const timersRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
@@ -119,13 +122,17 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
     return `${schema.module_name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_')}.zip`;
   }, [schema?.module_name]);
 
+  useEffect(() => {
+    setEditableSchema(schema);
+  }, [schema]);
+
   const { nodes, edges } = useMemo(() => {
 
-    if (!schema) return { nodes: [], edges: [] };
+    if (!editableSchema) return { nodes: [], edges: [] };
 
-    return generateErdFromSchema(schema);
+    return generateErdFromSchema(editableSchema);
 
-  }, [schema]);
+  }, [editableSchema]);
 
 
 
@@ -598,6 +605,13 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
                 layoutKey={schemaKey ?? ''}
 
                 isDrawing={isGenerating && !animationDone}
+
+                schema={editableSchema}
+
+                onSchemaChange={(nextSchema) => {
+                  setEditableSchema(nextSchema);
+                  onSchemaChange?.(nextSchema);
+                }}
 
               />
 

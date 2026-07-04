@@ -79,6 +79,7 @@ export interface SchemaPreview {
   models: SchemaModel[];
   actors: string[];
   use_cases: SchemaUseCase[];
+  positions?: Record<string, { x: number; y: number }>;
 }
 
 export interface ChatMessage {

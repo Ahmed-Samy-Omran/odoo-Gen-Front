@@ -25,6 +25,7 @@ export interface SchemaPreview {
   models: SchemaModel[];
   actors: string[];
   use_cases: SchemaUseCase[];
+  positions?: Record<string, { x: number; y: number }>;
 }
 
 export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; edges: Edge[] } {
@@ -38,11 +39,12 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
   schema.models.forEach((model, index) => {
     const col = index % cols;
     const row = Math.floor(index / cols);
+    const savedPosition = schema.positions?.[model.name];
 
     nodes.push({
       id: model.name,
       type: 'tableNode',
-      position: { x: 80 + col * xGap, y: 60 + row * yGap },
+      position: savedPosition ?? { x: 80 + col * xGap, y: 60 + row * yGap },
       data: {
         label: model.name,
         modelName: model.name,
@@ -68,7 +70,8 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
         targetHandle: 'id-target',
         type: 'smoothstep',
         animated: true,
-        style: { stroke: 'rgba(255, 255, 255, 0.3)', strokeWidth: 2 },
+        label: field.type === 'one2many' ? '1..N' : field.type === 'many2one' ? 'N..1' : 'relation',
+        style: { stroke: 'rgba(120, 180, 255, 0.25)', strokeWidth: 2 },
       });
     });
   });
