@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight, Database, Box } from 'lucide-react';
 
 interface ModelField {
+  id: string;
   name: string;
   type: string;
   required: boolean;
 }
 
 interface Model {
+  id: string;
   name: string;
   fields: ModelField[];
 }
@@ -27,71 +29,74 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   const fieldTypes = [
     'Char', 'Text', 'Integer', 'Float', 'Boolean',
     'Date', 'Datetime', 'Selection', 'Many2one',
-    'One2many', 'Many2many', 'Binary', 'Html',
+    'One2one', 'One2many', 'Many2many', 'Binary', 'Html',
   ];
 
   const addModel = () => {
+    const modelId = globalThis.crypto?.randomUUID?.() || `model_${Date.now()}_${safeModels.length + 1}`;
     const newModel: Model = {
+      id: modelId,
       name: `model_${safeModels.length + 1}`,
-      fields: [{ name: 'name', type: 'Char', required: true }],
+      fields: [{ id: `${modelId}_field_1`, name: 'name', type: 'Char', required: true }],
     };
     onModelsChange([...safeModels, newModel]);
-    setExpandedModels(prev => new Set([...Array.from(prev), newModel.name]));
+    setExpandedModels(prev => new Set([...Array.from(prev), newModel.id]));
   };
 
-  const removeModel = (modelName: string) => {
-    if (!modelName) return;
-    onModelsChange(safeModels.filter(m => m?.name !== modelName));
+  const removeModel = (modelId: string) => {
+    if (!modelId) return;
+    onModelsChange(safeModels.filter(m => m?.id !== modelId));
     setExpandedModels(prev => {
       const next = new Set(prev);
-      next.delete(modelName);
+      next.delete(modelId);
       return next;
     });
   };
 
-  const updateModel = (modelName: string, updates: Partial<Model>) => {
-    if (!modelName) return;
-    onModelsChange(safeModels.map(m => m?.name === modelName ? { ...m, ...updates } : m));
+  const updateModel = (modelId: string, updates: Partial<Model>) => {
+    if (!modelId) return;
+    onModelsChange(safeModels.map(m => m?.id === modelId ? { ...m, ...updates } : m));
   };
 
-  const toggleModel = (modelName: string) => {
-    if (!modelName) return;
+  const toggleModel = (modelId: string) => {
+    if (!modelId) return;
     setExpandedModels(prev => {
       const next = new Set(prev);
-      if (next.has(modelName)) next.delete(modelName);
-      else next.add(modelName);
+      if (next.has(modelId)) next.delete(modelId);
+      else next.add(modelId);
       return next;
     });
   };
 
-  const addField = (modelName: string) => {
-    if (!modelName) return;
-    const newField: ModelField = { name: 'new_field', type: 'Char', required: false };
+  const addField = (modelId: string) => {
+    if (!modelId) return;
+    const newFieldId = globalThis.crypto?.randomUUID?.() || `field_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const newField: ModelField = { id: newFieldId, name: 'new_field', type: 'Char', required: false };
     onModelsChange(
       safeModels.map(m =>
-        m?.name === modelName
+        m?.id === modelId
           ? { ...m, fields: [...(Array.isArray(m?.fields) ? m.fields : []), newField] }
           : m
       )
     );
   };
 
-  const removeField = (modelName: string, fieldIndex: number) => {
-    if (!modelName) return;
+  const removeField = (modelId: string, fieldIndex: number) => {
+    if (!modelId) return;
     onModelsChange(
       safeModels.map(m =>
-        m?.name === modelName
+        m?.id === modelId
           ? { ...m, fields: (Array.isArray(m?.fields) ? m.fields : []).filter((_, i) => i !== fieldIndex) }
           : m
       )
     );
   };
 
-  const updateField = (modelName: string, fieldIndex: number, updates: Partial<ModelField>) => {
-    if (!modelName) return;
+  const updateField = (modelId: string, fieldIndex: number, updates: Partial<ModelField>) => {
+    if (!modelId) return;
     onModelsChange(
       safeModels.map(m =>
-        m?.name === modelName
+        m?.id === modelId
           ? {
               ...m,
               fields: (Array.isArray(m?.fields) ? m.fields : []).map((f, i) =>
@@ -110,7 +115,11 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           <h3 className="text-lg font-semibold text-white/90">Data Models</h3>
           <p className="text-sm text-white/30">Define your Odoo models and fields</p>
         </div>
-        <button onClick={addModel} className="cyber-button-primary text-sm">
+        <button
+          type="button"
+          onClick={addModel}
+          className="cyber-button-primary text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_12px_30px_rgba(0,0,0,0.35)]"
+        >
           <Plus className="w-4 h-4" />
           Add Model
         </button>
@@ -118,44 +127,46 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
       <div className="space-y-3">
         {safeModels.map(model => {
-          if (!model?.name) return null;
+          if (!model?.id) return null;
           const fields = Array.isArray(model?.fields) ? model.fields : [];
 
           return (
-            <div key={model.name} className="glass-card overflow-hidden">
-              <button
-                onClick={() => toggleModel(model.name)}
-                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {expandedModels.has(model.name) ? (
+            <div key={model.id} className="glass-card overflow-hidden">
+              <div className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => toggleModel(model.id)}
+                  className="flex items-center gap-3 text-left min-w-0"
+                >
+                  {expandedModels.has(model.id) ? (
                     <ChevronDown className="w-4 h-4 text-white/40" />
                   ) : (
                     <ChevronRight className="w-4 h-4 text-white/40" />
                   )}
                   <Box className="w-4 h-4 text-white/60" />
-                  <span className="text-white/90 font-medium">{model.name}</span>
+                  <span className="text-white/90 font-medium truncate">{model.name}</span>
                   <span className="text-xs text-white/30">({fields.length} fields)</span>
-                </div>
+                </button>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeModel(model.name);
+                    removeModel(model.id);
                   }}
                   className="p-1.5 text-white/30 hover:text-white/70 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              </button>
+              </div>
 
-              {expandedModels.has(model.name) && (
+              {expandedModels.has(model.id) && (
                 <div className="border-t border-glass-border p-4 space-y-3">
                   <div>
                     <label className="block text-xs text-white/40 mb-1">Model Name</label>
                     <input
                       type="text"
                       value={model.name}
-                      onChange={(e) => updateModel(model.name, { name: e.target.value })}
+                      onChange={(e) => updateModel(model.id, { name: e.target.value })}
                       className="w-full cyber-input text-sm"
                       placeholder="my_model"
                     />
@@ -165,7 +176,8 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                     <div className="flex items-center justify-between">
                       <label className="text-xs text-white/40">Fields</label>
                       <button
-                        onClick={() => addField(model.name)}
+                        type="button"
+                        onClick={() => addField(model.id)}
                         className="text-xs text-white/50 hover:text-white/80 transition-colors"
                       >
                         + Add Field
@@ -176,39 +188,42 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                       if (!field) return null;
 
                       return (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-white/[0.03] rounded-lg border border-white/[0.06]">
+                        <div key={index} className="flex flex-col gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] p-2 sm:flex-row sm:items-center">
                           <Database className="w-3.5 h-3.5 text-white/25" />
                           <input
                             type="text"
                             value={field.name ?? ''}
-                            onChange={(e) => updateField(model.name, index, { name: e.target.value })}
-                            className="flex-1 cyber-input text-sm py-1"
+                            onChange={(e) => updateField(model.id, index, { name: e.target.value })}
+                            className="w-full min-w-0 flex-1 cyber-input text-sm py-1"
                             placeholder="field_name"
                           />
-                          <select
-                            value={field.type ?? 'Char'}
-                            onChange={(e) => updateField(model.name, index, { type: e.target.value })}
-                            className="cyber-input text-sm py-1"
-                          >
-                            {fieldTypes.map(type => (
-                              <option key={type} value={type} className="bg-black">{type}</option>
-                            ))}
-                          </select>
-                          <label className="flex items-center gap-1 text-xs text-white/40">
-                            <input
-                              type="checkbox"
-                              checked={field.required ?? false}
-                              onChange={(e) => updateField(model.name, index, { required: e.target.checked })}
-                              className="rounded border-white/20 bg-black"
-                            />
-                            Req
-                          </label>
-                          <button
-                            onClick={() => removeField(model.name, index)}
-                            className="p-1 text-white/30 hover:text-white/70 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <div className="flex items-center gap-2 sm:ml-auto">
+                            <select
+                              value={field.type ?? 'Char'}
+                              onChange={(e) => updateField(model.id, index, { type: e.target.value })}
+                              className="cyber-input min-w-[138px] flex-none px-3 py-1.5 text-xs font-medium text-white/90"
+                            >
+                              {fieldTypes.map(type => (
+                                <option key={type} value={type} className="bg-black">{type}</option>
+                              ))}
+                            </select>
+                            <label className="flex items-center gap-1.5 text-xs text-white/40">
+                              <input
+                                type="checkbox"
+                                checked={field.required ?? false}
+                                onChange={(e) => updateField(model.id, index, { required: e.target.checked })}
+                                className="rounded border-white/20 bg-black"
+                              />
+                              Req
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => removeField(model.id, index)}
+                              className="p-1 text-white/30 transition-colors hover:text-white/70"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -220,10 +235,20 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
         })}
 
         {safeModels.length === 0 && (
-          <div className="text-center py-12 text-white/30">
-            <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No models defined yet</p>
-            <p className="text-sm mt-1">Click &quot;Add Model&quot; to get started</p>
+          <div className="text-center py-12 text-white/30 space-y-4">
+            <Database className="w-12 h-12 mx-auto opacity-50" />
+            <div>
+              <p>No models defined yet</p>
+              <p className="text-sm mt-1">Click the Add Model button at the top of this panel</p>
+            </div>
+            <button
+              type="button"
+              onClick={addModel}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add your first model
+            </button>
           </div>
         )}
       </div>

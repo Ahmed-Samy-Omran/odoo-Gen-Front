@@ -68,10 +68,14 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
         sourceHandle: `${field.name}-source`,
         target: field.relation,
         targetHandle: 'id-target',
-        type: 'smoothstep',
+        type: 'customEdge',
         animated: true,
-        label: field.type === 'one2many' ? '1..N' : field.type === 'many2one' ? 'N..1' : 'relation',
+        label: field.type === 'one2one' ? '1:1' : field.type === 'one2many' ? '1..N' : field.type === 'many2one' ? 'N..1' : 'relation',
         style: { stroke: 'rgba(120, 180, 255, 0.25)', strokeWidth: 2 },
+        data: {
+          relationType: field.type,
+          sourceFieldName: field.name,
+        },
       });
     });
   });

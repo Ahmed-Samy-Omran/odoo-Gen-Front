@@ -3,107 +3,24 @@ import {
   ReactFlow,
   Background,
   MiniMap,
-  Handle,
-  Position,
   useReactFlow,
+  useOnViewportChange,
   type Node,
   type Edge,
-  type NodeProps,
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Table, Key, Link, Hash, Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save } from 'lucide-react';
-import type { SchemaField, SchemaPreview } from '../utils/diagramBuilder';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X } from 'lucide-react';
+import type { SchemaPreview } from '../utils/diagramBuilder';
 import { DiagramZoomToolbar } from './DiagramZoomToolbar';
+import { CustomNode } from './CustomNode';
+import { CustomEdge } from './CustomEdge';
 
-const MAX_VISIBLE_FIELDS = 6;
 const DEFAULT_MAX_ZOOM = 0.72;
 const FIT_PADDING = 0.4;
-
-interface TableNodeData extends Record<string, unknown> {
-  label: string;
-  modelName: string;
-  moduleName?: string;
-  fields: SchemaField[];
-  isRevealing?: boolean;
-}
-
-const getFieldIcon = (type: string, relation?: string | null) => {
-  if (relation) return <Link className="w-3 h-3 text-sky-400/60" />;
-  if (type === 'id' || type.includes('id')) return <Key className="w-3 h-3 text-white/35" />;
-  return <Hash className="w-3 h-3 text-white/20" />;
-};
-
-const TableNode: React.FC<NodeProps> = ({ data, selected }) => {
-  const nodeData = data as TableNodeData;
-  const { modelName, fields, isRevealing } = nodeData;
-  const [expanded, setExpanded] = useState(false);
-  const visibleFields = expanded ? fields : fields.slice(0, MAX_VISIBLE_FIELDS);
-  const hiddenCount = Math.max(0, fields.length - visibleFields.length);
-
-  return (
-    <div
-      className={`diagram-erd-node ${selected ? 'diagram-erd-node-selected' : ''} ${
-        isRevealing ? 'animate-diagram-soft-in' : ''
-      }`}
-    >
-      <div className="diagram-erd-node-header">
-        <Table className="w-3.5 h-3.5 text-white/40" />
-        <span className="font-mono text-[13px] font-medium text-white/80">{modelName}</span>
-        <span className="ml-auto text-[10px] text-white/25 font-mono">{fields.length} fields</span>
-      </div>
-
-      <div className="diagram-erd-node-body">
-        {visibleFields.map((field) => (
-          <div key={field.name} className="diagram-erd-field">
-            <Handle
-              type="target"
-              position={Position.Left}
-              id={`${field.name}-target`}
-              className="diagram-handle diagram-handle-left"
-            />
-            <Handle
-              type="target"
-              position={Position.Left}
-              id="id-target"
-              className="!opacity-0 !w-px !h-px !min-w-0 !min-h-0 !border-0"
-            />
-
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              {getFieldIcon(field.type, field.relation)}
-              <span className="font-mono text-[11px] text-white/50 truncate">{field.name}</span>
-            </div>
-
-            <span className="text-[10px] text-white/20 font-mono shrink-0">{field.type}</span>
-
-            {field.required && (
-              <span className="text-[9px] text-amber-400/50 font-medium shrink-0">*</span>
-            )}
-
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={`${field.name}-source`}
-              className="diagram-handle diagram-handle-right"
-            />
-          </div>
-        ))}
-
-        {hiddenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded((value) => !value)}
-            className="w-full text-left px-3.5 py-2 text-[11px] font-medium text-cyan-300/85 hover:text-cyan-200 transition-colors"
-          >
-            {expanded ? 'Show less' : `+${hiddenCount} more`}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const nodeTypes = { tableNode: TableNode };
+const nodeTypes = { tableNode: CustomNode };
+const edgeTypes = { customEdge: CustomEdge };
 
 /** Fit viewport once based on full diagram — stable zoom while nodes animate in */
 const ErdViewportManager: React.FC<{
@@ -171,11 +88,13 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_MAX_ZOOM);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [flowNodes, setFlowNodes] = useState<Node[]>([]);
-  const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
   const [history, setHistory] = useState<SchemaPreview[]>([]);
   const [future, setFuture] = useState<SchemaPreview[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<{ id: string; source: string; target: string } | null>(null);
+  const [selectedField, setSelectedField] = useState<{ nodeId: string; fieldName: string } | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [relationDraft, setRelationDraft] = useState<{ sourceNodeId: string; sourceFieldName?: string } | null>(null);
+  const [viewportTick, setViewportTick] = useState(0);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const reactFlow = useReactFlow();
 
@@ -221,56 +140,9 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
 
-  const visibleNodes = useMemo(() => {
-    const count = visibleNodeCount ?? nodes.length;
-    return nodes.slice(0, count).map((node, i) => ({
-      ...node,
-      // ensure nodes become draggable when in 'select' (arrow) interaction mode
-      draggable: interactionMode === 'select',
-      data: { ...node.data, isRevealing: i === count - 1 },
-    }));
-  }, [nodes, visibleNodeCount, interactionMode]);
-
-  useEffect(() => {
-    setFlowNodes(visibleNodes);
-  }, [visibleNodes]);
-
-  useEffect(() => {
-    const count = visibleEdgeCount ?? edges.length;
-    const nextEdges = edges
-      .slice(0, count)
-      .filter((e) => flowNodes.some((n) => n.id === e.source) && flowNodes.some((n) => n.id === e.target))
-      .map((e) => ({
-        ...e,
-        style: {
-          stroke: selectedEdge?.id === e.id ? 'rgba(34, 211, 238, 0.95)' : 'rgba(120, 180, 255, 0.25)',
-          strokeWidth: selectedEdge?.id === e.id ? 3 : 1.8,
-        },
-        animated: true,
-      }));
-    setFlowEdges(nextEdges);
-  }, [edges, visibleEdgeCount, flowNodes, selectedEdge]);
-
-  const visibleEdges = useMemo(() => flowEdges, [flowEdges]);
-
-  if (nodes.length === 0) {
-    return (
-      <div className="diagram-canvas flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="flex gap-5 justify-center">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-28 h-20 rounded-xl border border-white/[0.06] bg-white/[0.02] skeleton-loader"
-                style={{ animationDelay: `${i * 200}ms` }}
-              />
-            ))}
-          </div>
-          <p className="text-white/25 text-sm tracking-wide">Analyzing entities...</p>
-        </div>
-      </div>
-    );
-  }
+  useOnViewportChange({
+    onChange: () => setViewportTick((value) => value + 1),
+  });
 
   const pushSnapshot = useCallback((nextSchema: SchemaPreview) => {
     if (!schema) return;
@@ -278,6 +150,170 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     setFuture([]);
     onSchemaChange?.(nextSchema);
   }, [schema, onSchemaChange]);
+
+  const handleChangeRelationType = useCallback((edge: Edge, nextType?: string) => {
+    if (!schema) return;
+    const sourceNodeId = edge.source;
+    const sourceFieldName = edge.sourceHandle?.replace(/-source$/, '');
+    if (!sourceFieldName) return;
+
+    const cycle = ['many2one', 'one2one', 'one2many', 'many2many'];
+    const currentType = ((edge.data as Record<string, unknown> | undefined)?.relationType as string | undefined) || 'many2one';
+    const resolvedType = nextType || cycle[(cycle.indexOf(currentType) + 1) % cycle.length];
+
+    const nextSchema: SchemaPreview = {
+      ...schema,
+      models: schema.models.map((item) => {
+        if (item.name !== sourceNodeId) return item;
+        return {
+          ...item,
+          fields: item.fields.map((field) =>
+            field.name === sourceFieldName
+              ? { ...field, type: resolvedType }
+              : field,
+          ),
+        };
+      }),
+    };
+
+    pushSnapshot(nextSchema);
+  }, [pushSnapshot, schema]);
+
+  const visibleNodes = useMemo(() => {
+    const count = visibleNodeCount ?? nodes.length;
+    return nodes.slice(0, count).map((node, i) => ({
+      ...node,
+      draggable: interactionMode === 'select',
+      selected: selectedNodeId === node.id,
+      data: {
+        ...node.data,
+        isRevealing: i === count - 1,
+        selectedFieldName: selectedField?.nodeId === node.id ? selectedField.fieldName : null,
+        onFieldSelect: (nodeId: string, fieldName: string | null) => {
+          setSelectedNodeId(nodeId);
+          setSelectedField(fieldName ? { nodeId, fieldName } : null);
+          setSelectedEdge(null);
+        },
+      },
+    }));
+  }, [nodes, visibleNodeCount, interactionMode, selectedField, selectedNodeId]);
+
+  useEffect(() => {
+    setFlowNodes(visibleNodes);
+  }, [visibleNodes]);
+
+  const visibleEdges = useMemo(() => {
+    const count = visibleEdgeCount ?? edges.length;
+    return edges
+      .slice(0, count)
+      .filter((edge) => flowNodes.some((node) => node.id === edge.source) && flowNodes.some((node) => node.id === edge.target))
+      .map((edge) => ({
+        ...edge,
+        selected: selectedEdge?.id === edge.id,
+        style: {
+          stroke: selectedEdge?.id === edge.id ? 'rgba(34, 211, 238, 0.98)' : 'rgba(120, 180, 255, 0.25)',
+          strokeWidth: selectedEdge?.id === edge.id ? 3 : 1.8,
+        },
+        animated: true,
+        data: {
+          ...(edge.data || {}),
+          relationType: (edge.data as Record<string, unknown> | undefined)?.relationType || edge.label,
+          sourceFieldName: (edge.data as Record<string, unknown> | undefined)?.sourceFieldName || edge.sourceHandle?.replace(/-source$/, ''),
+          onChangeRelationType: (nextType: string) => handleChangeRelationType(edge, nextType),
+        },
+      }));
+  }, [edges, visibleEdgeCount, flowNodes, selectedEdge, handleChangeRelationType]);
+
+  const selectedNode = useMemo(
+    () => flowNodes.find((node) => node.id === (selectedField?.nodeId || selectedNodeId)) ?? null,
+    [flowNodes, selectedField?.nodeId, selectedNodeId],
+  );
+
+  const floatingMenu = useMemo(() => {
+    if (!wrapperRef.current) return null;
+
+    const container = wrapperRef.current.getBoundingClientRect();
+    const menuWidth = selectedEdge ? 180 : 220;
+    const menuHeight = selectedEdge ? 70 : 82;
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+    const toScreen = (flowPosition: { x: number; y: number }) => reactFlow.flowToScreenPosition(flowPosition);
+
+    let baseFlowPosition: { x: number; y: number } | null = null;
+
+    if (selectedEdge) {
+      const sourceNode = flowNodes.find((node) => node.id === selectedEdge.source);
+      const targetNode = flowNodes.find((node) => node.id === selectedEdge.target);
+      if (!sourceNode || !targetNode) return null;
+
+      baseFlowPosition = {
+        x: ((sourceNode.position?.x ?? 0) + (targetNode.position?.x ?? 0)) / 2 + 120,
+        y: ((sourceNode.position?.y ?? 0) + (targetNode.position?.y ?? 0)) / 2 - 8,
+      };
+    } else if (selectedNode) {
+      baseFlowPosition = {
+        x: (selectedNode.position?.x ?? 0) + (selectedField ? 230 : 180),
+        y: (selectedNode.position?.y ?? 0) + 22,
+      };
+    }
+
+    if (!baseFlowPosition) return null;
+
+    const screenPosition = toScreen(baseFlowPosition);
+    return {
+      left: clamp(screenPosition.x - container.left, 12, Math.max(12, container.width - menuWidth - 12)),
+      top: clamp(screenPosition.y - container.top, 12, Math.max(12, container.height - menuHeight - 12)),
+    };
+  }, [flowNodes, reactFlow, selectedEdge, selectedField, selectedNode, viewportTick]);
+
+  const handleBeginRelation = useCallback(() => {
+    const sourceNodeId = selectedField?.nodeId || selectedNodeId;
+    if (!sourceNodeId) return;
+    setRelationDraft({ sourceNodeId, sourceFieldName: selectedField?.fieldName });
+    setSelectedEdge(null);
+  }, [selectedField?.fieldName, selectedField?.nodeId, selectedNodeId]);
+
+  const handleCancelRelation = useCallback(() => {
+    setRelationDraft(null);
+  }, []);
+
+  const handleCreateRelation = useCallback((sourceNodeId: string, targetNodeId: string, sourceFieldName?: string) => {
+    if (!schema || sourceNodeId === targetNodeId) return;
+
+    if (!schema.models.some((item) => item.name === targetNodeId)) return;
+
+    const fieldName = sourceFieldName || `${targetNodeId.replace(/[^a-zA-Z0-9_]+/g, '_').toLowerCase()}_id`;
+
+    const nextSchema: SchemaPreview = {
+      ...schema,
+      models: schema.models.map((item) => {
+        if (item.name !== sourceNodeId) return item;
+        const fields = Array.isArray(item.fields) ? [...item.fields] : [];
+        const fieldIndex = fields.findIndex((field) => field.name === fieldName);
+        const existingField = fieldIndex >= 0 ? fields[fieldIndex] : null;
+        const nextField = {
+          name: fieldName,
+          type: existingField?.type || 'many2one',
+          required: existingField?.required || false,
+          relation: targetNodeId,
+        };
+
+        if (fieldIndex >= 0) {
+          fields[fieldIndex] = nextField;
+        } else {
+          fields.push(nextField);
+        }
+
+        return { ...item, fields };
+      }),
+    };
+
+    pushSnapshot(nextSchema);
+    setRelationDraft(null);
+    setSelectedNodeId(sourceNodeId);
+    setSelectedField(sourceFieldName ? { nodeId: sourceNodeId, fieldName: sourceFieldName } : null);
+    setSelectedEdge(null);
+  }, [pushSnapshot, schema]);
 
   const handleUndo = useCallback(() => {
     if (!schema || history.length === 0) return;
@@ -296,52 +332,55 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   }, [future, schema, onSchemaChange]);
 
   const handleAddField = useCallback(() => {
-    if (!schema || !selectedNodeId) return;
-    const model = schema.models.find((item) => item.name === selectedNodeId);
+    const nodeId = selectedField?.nodeId || selectedNodeId;
+    if (!schema || !nodeId) return;
+    const model = schema.models.find((item) => item.name === nodeId);
     if (!model) return;
     const fieldName = window.prompt('Field name', `field_${model.fields.length + 1}`);
     if (!fieldName) return;
     const nextSchema: SchemaPreview = {
       ...schema,
-      models: schema.models.map((item) => item.name === selectedNodeId ? {
+      models: schema.models.map((item) => item.name === nodeId ? {
         ...item,
         fields: [...item.fields, { name: fieldName, type: 'char', required: false }],
       } : item),
     };
     pushSnapshot(nextSchema);
-  }, [pushSnapshot, schema, selectedNodeId]);
-
-  const handleCreateRelation = useCallback(() => {
-    if (!schema || !selectedNodeId) return;
-    const targetModel = window.prompt('Target model name', '');
-    if (!targetModel) return;
-    const relationType = window.prompt('Relation type (many2one or one2many)', 'many2one');
-    if (!relationType) return;
-    const fieldName = window.prompt('Field name', `${targetModel.toLowerCase()}_id`);
-    if (!fieldName) return;
-    const nextSchema: SchemaPreview = {
-      ...schema,
-      models: schema.models.map((item) => item.name === selectedNodeId ? {
-        ...item,
-        fields: [
-          ...item.fields,
-          { name: fieldName, type: relationType, required: false, relation: targetModel },
-        ],
-      } : item),
-    };
-    pushSnapshot(nextSchema);
-  }, [pushSnapshot, schema, selectedNodeId]);
+  }, [pushSnapshot, schema, selectedField?.nodeId, selectedNodeId]);
 
   const handleDeleteSelection = useCallback(() => {
     if (!schema) return;
 
-    if (selectedEdge) {
+    if (selectedField) {
       const nextSchema: SchemaPreview = {
         ...schema,
-        models: schema.models.map((item) => ({
-          ...item,
-          fields: item.fields.filter((field) => field.relation !== selectedEdge.target),
-        })),
+        models: schema.models.map((item) => item.name === selectedField.nodeId
+          ? {
+              ...item,
+              fields: item.fields.filter((field) => field.name !== selectedField.fieldName),
+            }
+          : item),
+      };
+      pushSnapshot(nextSchema);
+      setSelectedField(null);
+      return;
+    }
+
+    if (selectedEdge) {
+      const sourceHandleField = selectedEdge.sourceHandle?.replace(/-source$/, '') || null;
+      const nextSchema: SchemaPreview = {
+        ...schema,
+        models: schema.models.map((item) => item.name === selectedEdge.source
+          ? {
+              ...item,
+              fields: item.fields.filter((field) => {
+                if (sourceHandleField) {
+                  return !(field.name === sourceHandleField && field.relation === selectedEdge.target);
+                }
+                return field.relation !== selectedEdge.target;
+              }),
+            }
+          : item),
       };
       pushSnapshot(nextSchema);
       setSelectedEdge(null);
@@ -356,7 +395,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       pushSnapshot(nextSchema);
       setSelectedNodeId(null);
     }
-  }, [pushSnapshot, schema, selectedEdge, selectedNodeId]);
+  }, [pushSnapshot, schema, selectedEdge, selectedField, selectedNodeId]);
 
   const handleSaveLocal = useCallback(() => {
     if (!schema) return;
@@ -378,34 +417,86 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     }
   }, [schema, onSchemaChange]);
 
+  if (nodes.length === 0) {
+    return (
+      <div className="diagram-canvas flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="flex gap-5 justify-center">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-28 h-20 rounded-xl border border-white/[0.06] bg-white/[0.02] skeleton-loader"
+                style={{ animationDelay: `${i * 200}ms` }}
+              />
+            ))}
+          </div>
+          <p className="text-white/25 text-sm tracking-wide">Analyzing entities...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const ActionButton: React.FC<{
+    title: string;
+    onClick: () => void;
+    disabled?: boolean;
+    className?: string;
+    children: React.ReactNode;
+  }> = ({ title, onClick, disabled, className = '', children }) => {
+    const [hovered, setHovered] = useState(false);
+
+    return (
+      <div
+        className="relative inline-flex"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          title={title}
+          aria-label={title}
+          className={`rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+        >
+          {children}
+        </button>
+
+        <AnimatePresence>
+          {hovered && !disabled && (
+            <motion.div
+              initial={{ opacity: 0, y: -2, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -2, scale: 0.98 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/95 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide text-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur"
+            >
+              {title}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   return (
     <div className="diagram-canvas relative" ref={wrapperRef}>
-      <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-3">
+      <div className="absolute left-3 right-3 top-3 z-20 flex items-start justify-between gap-3">
         <div className="rounded-2xl border border-white/10 bg-black/45 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={history.length === 0}
-              className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <ActionButton title="تراجع" onClick={handleUndo} disabled={history.length === 0}>
               <Undo2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleRedo}
-              disabled={future.length === 0}
-              className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            </ActionButton>
+            <ActionButton title="إعادة" onClick={handleRedo} disabled={future.length === 0}>
               <Redo2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
+            </ActionButton>
+            <ActionButton
+              title="حفظ محلي"
               onClick={handleSaveLocal}
-              className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-2 text-amber-200 transition hover:bg-amber-500/20"
+              className="border-amber-400/20 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
             >
               <Save className="h-4 w-4" />
-            </button>
+            </ActionButton>
           </div>
         </div>
         <DiagramZoomToolbar
@@ -421,37 +512,75 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           zoomLevel={zoomLevel}
         />
       </div>
-      {selectedNodeId && (
-        <div className="absolute left-3 top-20 z-20 rounded-2xl border border-white/10 bg-black/55 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl transition-all duration-200">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={handleAddField}
-              className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-2 text-emerald-200 transition hover:bg-emerald-500/20"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleCreateRelation}
-              className="rounded-lg border border-sky-400/20 bg-sky-500/10 p-2 text-sky-200 transition hover:bg-sky-500/20"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteSelection}
-              className="rounded-lg border border-rose-400/20 bg-rose-500/10 p-2 text-rose-200 transition hover:bg-rose-500/20"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
+
+      {relationDraft && (
+        <div className="absolute left-3 top-20 z-30 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
+          Click the target model to create the relation.
+          <button
+            type="button"
+            onClick={handleCancelRelation}
+            className="ml-3 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-white/70 hover:text-white"
+          >
+            Cancel
+          </button>
         </div>
       )}
+
+      <AnimatePresence>
+        {floatingMenu && (
+          <motion.div
+            key={`${selectedEdge?.id ?? selectedField?.fieldName ?? selectedNodeId ?? 'menu'}`}
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="absolute z-30 rounded-2xl border border-white/10 bg-black/60 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl"
+            style={{ left: floatingMenu.left, top: floatingMenu.top }}
+          >
+            <div className="flex items-center gap-1.5">
+              {!selectedEdge && !relationDraft && (
+                <>
+                  <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
+                    <Plus className="h-4 w-4" />
+                  </ActionButton>
+                  <ActionButton title="إضافة علاقة" onClick={handleBeginRelation} className="border-sky-400/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </ActionButton>
+                </>
+              )}
+              {relationDraft && !selectedEdge && (
+                <ActionButton title="إلغاء وضع العلاقة" onClick={handleCancelRelation} className="border-sky-400/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
+                  <X className="h-4 w-4" />
+                </ActionButton>
+              )}
+              <ActionButton
+                title={selectedField ? 'حذف الحقل' : selectedEdge ? 'حذف العلاقة' : 'حذف الجدول'}
+                onClick={handleDeleteSelection}
+                className="border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+              >
+                <Trash2 className="h-4 w-4" />
+              </ActionButton>
+              <ActionButton
+                title="إلغاء التحديد"
+                onClick={() => {
+                  setSelectedNodeId(null);
+                  setSelectedField(null);
+                  setSelectedEdge(null);
+                }}
+                className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </ActionButton>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ReactFlow
         nodes={flowNodes}
         edges={visibleEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultViewport={{ x: 0, y: 0, zoom: DEFAULT_MAX_ZOOM }}
         minZoom={0.2}
         maxZoom={2}
@@ -462,16 +591,28 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         panOnDrag={interactionMode === 'pan'}
         zoomOnScroll
         onNodeClick={(_, node) => {
+          if (relationDraft && relationDraft.sourceNodeId !== node.id) {
+            handleCreateRelation(relationDraft.sourceNodeId, node.id, relationDraft.sourceFieldName);
+            return;
+          }
+          if (relationDraft && relationDraft.sourceNodeId === node.id) {
+            handleCancelRelation();
+            return;
+          }
           setSelectedNodeId(node.id);
+          setSelectedField(null);
           setSelectedEdge(null);
         }}
         onPaneClick={() => {
           setSelectedNodeId(null);
+          setSelectedField(null);
           setSelectedEdge(null);
         }}
         onEdgeClick={(_, edge) => {
-          setSelectedEdge({ id: edge.id, source: edge.source, target: edge.target });
+          setSelectedEdge(edge);
           setSelectedNodeId(null);
+          setSelectedField(null);
+          setRelationDraft(null);
         }}
         onNodeDragStop={(_, node) => {
           if (interactionMode !== 'select' || !schema) return;
@@ -484,8 +625,9 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           nextPositions[node.id] = node.position;
           pushSnapshot({ ...schema, positions: nextPositions });
         }}
+        onMoveEnd={() => setViewportTick((value) => value + 1)}
         defaultEdgeOptions={{
-          type: 'smoothstep',
+          type: 'customEdge',
           style: { stroke: 'rgba(120, 180, 255, 0.25)', strokeWidth: 1.5 },
           animated: true,
         }}
@@ -509,6 +651,11 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           pannable
           zoomable
         />
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="rgba(120, 180, 255, 0.65)" />
+          </marker>
+        </defs>
       </ReactFlow>
     </div>
   );

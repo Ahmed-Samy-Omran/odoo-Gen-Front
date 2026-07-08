@@ -347,6 +347,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo }) => {
             >
               <HelpCircle className="w-5 h-5 text-white" />
             </button>
+            {/* sidebar toggle moved to top-left icon in App */}
           </div>
         </div>
 
