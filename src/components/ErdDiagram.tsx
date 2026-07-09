@@ -16,6 +16,7 @@ import type { SchemaPreview } from '../utils/diagramBuilder';
 import { DiagramZoomToolbar } from './DiagramZoomToolbar';
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
+import AddFieldModal from './AddFieldModal';
 
 const DEFAULT_MAX_ZOOM = 0.72;
 const FIT_PADDING = 0.4;
@@ -331,22 +332,13 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     onSchemaChange?.(next);
   }, [future, schema, onSchemaChange]);
 
+  const [addFieldModal, setAddFieldModal] = useState<{ open: boolean; nodeId?: string }>(() => ({ open: false }));
+
   const handleAddField = useCallback(() => {
     const nodeId = selectedField?.nodeId || selectedNodeId;
     if (!schema || !nodeId) return;
-    const model = schema.models.find((item) => item.name === nodeId);
-    if (!model) return;
-    const fieldName = window.prompt('Field name', `field_${model.fields.length + 1}`);
-    if (!fieldName) return;
-    const nextSchema: SchemaPreview = {
-      ...schema,
-      models: schema.models.map((item) => item.name === nodeId ? {
-        ...item,
-        fields: [...item.fields, { name: fieldName, type: 'char', required: false }],
-      } : item),
-    };
-    pushSnapshot(nextSchema);
-  }, [pushSnapshot, schema, selectedField?.nodeId, selectedNodeId]);
+    setAddFieldModal({ open: true, nodeId });
+  }, [schema, selectedField?.nodeId, selectedNodeId]);
 
   const handleDeleteSelection = useCallback(() => {
     if (!schema) return;
@@ -416,6 +408,26 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       }
     }
   }, [schema, onSchemaChange]);
+
+  // handle modal add
+  const handleModalAdd = useCallback((name: string, type: string, required: boolean, defaultValue?: string | null, unique?: boolean) => {
+    const nodeId = addFieldModal.nodeId;
+    if (!schema || !nodeId) {
+      setAddFieldModal({ open: false });
+      return;
+    }
+
+    const nextSchema: SchemaPreview = {
+      ...schema,
+      models: schema.models.map((item) => item.name === nodeId ? {
+        ...item,
+        fields: [...item.fields, { name, type: type, required: !!required, default: defaultValue ?? null, unique: !!unique }],
+      } : item),
+    };
+
+    pushSnapshot(nextSchema);
+    setAddFieldModal({ open: false });
+  }, [addFieldModal.nodeId, pushSnapshot, schema]);
 
   if (nodes.length === 0) {
     return (
@@ -538,7 +550,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
             style={{ left: floatingMenu.left, top: floatingMenu.top }}
           >
             <div className="flex items-center gap-1.5">
-              {!selectedEdge && !relationDraft && (
+                  {!selectedEdge && !relationDraft && (
                 <>
                   <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
                     <Plus className="h-4 w-4" />
@@ -657,6 +669,13 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           </marker>
         </defs>
       </ReactFlow>
+      <AddFieldModal
+        open={Boolean(addFieldModal.open)}
+        defaultName={`field_${(schema?.models.find((m) => m.name === addFieldModal.nodeId)?.fields.length ?? 0) + 1}`}
+        defaultType="Char"
+        onClose={() => setAddFieldModal({ open: false })}
+        onAdd={handleModalAdd}
+      />
     </div>
   );
 };

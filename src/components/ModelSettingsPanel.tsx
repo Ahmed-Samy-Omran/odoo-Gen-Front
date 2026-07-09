@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronRight, Database, Box } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Database, Box, Edit, Star, Hash } from 'lucide-react';
+import type { SchemaPreview } from '../services/api';
+import AddFieldModal from './AddFieldModal';
 
 interface ModelField {
   id: string;
   name: string;
   type: string;
   required: boolean;
+  default?: string | null;
+  unique?: boolean;
 }
 
 interface Model {
@@ -17,20 +21,54 @@ interface Model {
 interface ModelSettingsPanelProps {
   models: Model[];
   onModelsChange: (models: Model[]) => void;
+  schema?: SchemaPreview | null;
 }
 
 export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   models = [],
   onModelsChange,
+  schema = null,
 }) => {
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
   const safeModels = Array.isArray(models) ? models : [];
+  // editingNames was used for inline edits previously; modal handles edits now
+  const [fieldModal, setFieldModal] = useState<{
+    open: boolean;
+    modelId?: string;
+    index?: number | undefined;
+    defaultName?: string;
+    defaultType?: string;
+    required?: boolean;
+    defaultValue?: string | null;
+    unique?: boolean;
+  }>({ open: false });
 
-  const fieldTypes = [
-    'Char', 'Text', 'Integer', 'Float', 'Boolean',
-    'Date', 'Datetime', 'Selection', 'Many2one',
-    'One2one', 'One2many', 'Many2many', 'Binary', 'Html',
-  ];
+  const handleFieldModalAdd = (name: string, type: string, required: boolean, defaultValue?: string | null, unique?: boolean) => {
+    const modelId = fieldModal.modelId;
+    const idx = fieldModal.index;
+    if (!modelId) {
+      setFieldModal({ open: false });
+      return;
+    }
+
+    if (typeof idx === 'number') {
+      updateField(modelId, idx, { name, type, required, default: defaultValue ?? null, unique: !!unique });
+    } else {
+      const newFieldId = globalThis.crypto?.randomUUID?.() || `field_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const newField: ModelField = { id: newFieldId, name, type, required, default: defaultValue ?? null, unique: !!unique };
+      onModelsChange(
+        safeModels.map(m =>
+          m?.id === modelId
+            ? { ...m, fields: [...(Array.isArray(m?.fields) ? m.fields : []), newField] }
+            : m
+        )
+      );
+    }
+
+    setFieldModal({ open: false });
+  };
+
+  // fieldTypes list kept in AddFieldModal; no inline select in compact sidebar
 
   const addModel = () => {
     const modelId = globalThis.crypto?.randomUUID?.() || `model_${Date.now()}_${safeModels.length + 1}`;
@@ -70,15 +108,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
   const addField = (modelId: string) => {
     if (!modelId) return;
-    const newFieldId = globalThis.crypto?.randomUUID?.() || `field_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const newField: ModelField = { id: newFieldId, name: 'new_field', type: 'Char', required: false };
-    onModelsChange(
-      safeModels.map(m =>
-        m?.id === modelId
-          ? { ...m, fields: [...(Array.isArray(m?.fields) ? m.fields : []), newField] }
-          : m
-      )
-    );
+    setFieldModal({ open: true, modelId, index: undefined, defaultName: 'new_field', defaultType: 'Char', required: false, defaultValue: null, unique: false });
   };
 
   const removeField = (modelId: string, fieldIndex: number) => {
@@ -187,40 +217,32 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                     {fields.map((field, index) => {
                       if (!field) return null;
 
+                      const schemaModel = schema ? schema.models.find((m) => m.name === model.name) : null;
+                      const schemaField = schemaModel ? schemaModel.fields.find((f) => f.name === field.name) : null;
+
                       return (
-                        <div key={index} className="flex flex-col gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] p-2 sm:flex-row sm:items-center">
-                          <Database className="w-3.5 h-3.5 text-white/25" />
-                          <input
-                            type="text"
-                            value={field.name ?? ''}
-                            onChange={(e) => updateField(model.id, index, { name: e.target.value })}
-                            className="w-full min-w-0 flex-1 cyber-input text-sm py-1"
-                            placeholder="field_name"
-                          />
-                          <div className="flex items-center gap-2 sm:ml-auto">
-                            <select
-                              value={field.type ?? 'Char'}
-                              onChange={(e) => updateField(model.id, index, { type: e.target.value })}
-                              className="cyber-input min-w-[138px] flex-none px-3 py-1.5 text-xs font-medium text-white/90"
-                            >
-                              {fieldTypes.map(type => (
-                                <option key={type} value={type} className="bg-black">{type}</option>
-                              ))}
-                            </select>
-                            <label className="flex items-center gap-1.5 text-xs text-white/40">
-                              <input
-                                type="checkbox"
-                                checked={field.required ?? false}
-                                onChange={(e) => updateField(model.id, index, { required: e.target.checked })}
-                                className="rounded border-white/20 bg-black"
-                              />
-                              Req
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => removeField(model.id, index)}
-                              className="p-1 text-white/30 transition-colors hover:text-white/70"
-                            >
+                        <div key={index} className="flex items-center gap-3 rounded-md border border-white/[0.04] bg-white/[0.02] px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-3">
+                              <Database className="w-4 h-4 text-white/30" />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium text-white/90 truncate">{field.name}</span>
+                                <div className="text-xs text-white/40 truncate">
+                                  <span className="px-2 py-0.5 bg-white/2 rounded-md mr-2">{field.type}</span>
+                                  {schemaField?.relation && <span className="text-sky-300">→ {schemaField.relation}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {field.required && <Star className="w-4 h-4 text-amber-400" />}
+                            {field.unique && <Hash className="w-4 h-4 text-sky-300" />}
+                            {field.default != null && <span className="text-xs text-white/50 px-2 py-0.5 rounded bg-white/2">{field.default}</span>}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFieldModal({ open: true, modelId: model.id, index, defaultName: field.name, defaultType: field.type, required: field.required, defaultValue: field.default ?? null, unique: field.unique ?? false }); }} className="p-1 text-white/40 hover:text-white">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button type="button" onClick={() => removeField(model.id, index)} className="p-1 text-white/30 transition-colors hover:text-white/70">
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
@@ -252,6 +274,13 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           </div>
         )}
       </div>
+        <AddFieldModal
+          open={fieldModal.open}
+          defaultName={fieldModal.defaultName}
+          defaultType={fieldModal.defaultType}
+          onClose={() => setFieldModal({ open: false })}
+          onAdd={handleFieldModalAdd}
+        />
     </div>
   );
 };

@@ -59,6 +59,8 @@ export interface SchemaField {
   type: string;
   required: boolean;
   relation?: string | null;
+  default?: string | null;
+  unique?: boolean;
 }
 
 export interface SchemaModel {

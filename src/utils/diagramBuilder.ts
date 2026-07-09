@@ -62,6 +62,7 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
       if (!field.relation || !nodeIds.has(field.relation) || field.relation === node.id) {
         return;
       }
+      const lowerType = (field.type || '').toLowerCase();
       edges.push({
         id: `e-${node.id}-${field.name}-${field.relation}`,
         source: node.id,
@@ -70,10 +71,10 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
         targetHandle: 'id-target',
         type: 'customEdge',
         animated: true,
-        label: field.type === 'one2one' ? '1:1' : field.type === 'one2many' ? '1..N' : field.type === 'many2one' ? 'N..1' : 'relation',
+        label: lowerType === 'one2one' ? '1:1' : lowerType === 'one2many' ? '1..N' : lowerType === 'many2one' ? 'N..1' : 'relation',
         style: { stroke: 'rgba(120, 180, 255, 0.25)', strokeWidth: 2 },
         data: {
-          relationType: field.type,
+          relationType: lowerType,
           sourceFieldName: field.name,
         },
       });

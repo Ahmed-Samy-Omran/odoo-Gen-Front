@@ -25,6 +25,8 @@ interface ModelField {
   name: string;
   type: string;
   required: boolean;
+  default?: string | null;
+  unique?: boolean;
 }
 
 interface Model {
@@ -48,7 +50,7 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(false);
   const [sidebarMounted, setSidebarMounted] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState<number>(360);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(300);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -234,11 +236,15 @@ function App() {
             module_name: current.module_name,
             description: existingModel?.description,
             fields: model.fields.map((field) => {
-              return {
-                name: field.name,
-                type: field.type,
-                required: field.required,
-              };
+                const existingField = existingModel?.fields?.find((f) => f.name === field.name);
+                return {
+                  name: field.name,
+                  type: field.type,
+                  required: field.required,
+                  relation: existingField?.relation,
+                  default: existingField?.default ?? null,
+                  unique: existingField?.unique ?? false,
+                };
             }),
           };
         }),
@@ -382,6 +388,8 @@ function App() {
           name: field.name,
           type: field.type,
           required: field.required,
+          default: field.default ?? null,
+          unique: field.unique ?? false,
         })),
       })),
     );
@@ -459,7 +467,7 @@ function App() {
                           style={{ width: sidebarWidth, minWidth: 220 }}
                         >
                           <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
-                            <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} />
+                            <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} />
 
                             {/* Drag handle (hidden on small screens) */}
                             <div className="absolute -right-6 top-1/2 z-40 hidden sm:flex -translate-y-1/2 items-center">
