@@ -11,6 +11,8 @@ export interface CustomNodeData extends Record<string, unknown> {
   isRevealing?: boolean;
   selectedFieldName?: string | null;
   onFieldSelect?: (nodeId: string, fieldName: string | null) => void;
+  onEditModel?: (nodeId: string) => void;
+  onEditField?: (nodeId: string, fieldName: string) => void;
 }
 
 const getFieldIcon = (type: string, relation?: string | null) => {
@@ -34,7 +36,7 @@ export const CustomNode: React.FC<any> = ({ id, data, selected }) => {
     >
       <div className="diagram-erd-node-header">
         <Table className="w-3.5 h-3.5 text-white/40" />
-        <span className="font-mono text-[13px] font-medium text-white/80">{modelName}</span>
+        <span className="font-mono text-[13px] font-medium text-white/80" onDoubleClick={() => data.onEditModel?.(id)}>{modelName}</span>
         <span className="ml-auto text-[10px] text-white/25 font-mono">{fields.length} fields</span>
       </div>
 
@@ -69,13 +71,13 @@ export const CustomNode: React.FC<any> = ({ id, data, selected }) => {
 
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 {getFieldIcon(field.type, field.relation)}
-                <span className={`font-mono text-[11px] truncate ${isSelectedField ? 'text-cyan-100' : 'text-white/50'}`}>
+                <span className={`font-mono text-[11px] truncate ${isSelectedField ? 'text-cyan-100' : 'text-white/50'}`} onDoubleClick={() => data.onEditField?.(id, field.name)}>
                   {field.name}
                 </span>
               </div>
 
               <span className={`text-[10px] font-mono shrink-0 ${isSelectedField ? 'text-cyan-100/70' : 'text-white/20'}`}>
-                {field.type}
+                <span onDoubleClick={() => data.onEditField?.(id, field.name)}>{field.type}</span>
               </span>
 
               {field.required && (

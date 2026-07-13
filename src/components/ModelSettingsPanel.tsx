@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight, Database, Box, Edit, Star, Hash } from 'lucide-react';
+import EditTextModal from './EditTextModal';
 import type { SchemaPreview } from '../services/api';
 import AddFieldModal from './AddFieldModal';
 
@@ -22,12 +23,14 @@ interface ModelSettingsPanelProps {
   models: Model[];
   onModelsChange: (models: Model[]) => void;
   schema?: SchemaPreview | null;
+  onSchemaReplace?: (schema: SchemaPreview) => void;
 }
 
 export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   models = [],
   onModelsChange,
   schema = null,
+  onSchemaReplace,
 }) => {
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
   const safeModels = Array.isArray(models) ? models : [];
@@ -42,6 +45,8 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
     defaultValue?: string | null;
     unique?: boolean;
   }>({ open: false });
+  const [modelModal, setModelModal] = useState<{ open: boolean; modelId?: string; defaultName?: string }>({ open: false });
+  const [pendingRename, setPendingRename] = useState<{ modelId: string; oldName: string; newName: string } | null>(null);
 
   const handleFieldModalAdd = (name: string, type: string, required: boolean, defaultValue?: string | null, unique?: boolean) => {
     const modelId = fieldModal.modelId;
@@ -66,6 +71,52 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
     }
 
     setFieldModal({ open: false });
+  };
+
+  const applyPendingRename = (apply: boolean) => {
+    if (!pendingRename) return;
+    const { modelId, oldName, newName } = pendingRename;
+    if (apply) {
+      // update models
+      updateModel(modelId, { name: newName });
+
+      // update schema if provided via prop
+      try {
+        if (schema && typeof onSchemaReplace === 'function') {
+          const nextSchema: SchemaPreview = {
+            ...schema,
+            models: schema.models.map((m) => {
+              if (m.name === oldName) {
+                return { ...m, name: newName };
+              }
+              return {
+                ...m,
+                fields: m.fields.map((f) => ({ ...f, relation: f.relation === oldName ? newName : f.relation })),
+              };
+            }),
+          };
+          onSchemaReplace(nextSchema);
+          // also persist locally
+          try { localStorage.setItem('odoo_erd_schema', JSON.stringify(nextSchema)); } catch {}
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    setPendingRename(null);
+  };
+
+  const handleModelRename = (newName: string) => {
+    const modelId = modelModal.modelId;
+    if (!modelId || !newName) {
+      setModelModal({ open: false });
+      return;
+    }
+    // set pending rename for protected refactor
+    const mdl = safeModels.find((m) => m.id === modelId);
+    const oldName = mdl?.name || '';
+    setPendingRename({ modelId, oldName, newName });
+    setModelModal({ open: false });
   };
 
   // fieldTypes list kept in AddFieldModal; no inline select in compact sidebar
@@ -140,6 +191,15 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
   return (
     <div className="flex-1 overflow-auto p-4">
+      {pendingRename && (
+        <div className="mb-3 rounded-md border border-amber-400/20 bg-amber-500/6 p-3 flex items-center justify-between">
+          <div className="text-sm text-amber-100">هل تريد تغيير اسم الموديل وتحديث جميع العلاقات (FKs) المرتبطة به؟</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => applyPendingRename(false)} className="px-3 py-1 rounded bg-white/5 text-white/80">Cancel</button>
+            <button onClick={() => applyPendingRename(true)} className="px-3 py-1 rounded bg-amber-500 text-amber-100">Yes, apply</button>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-white/90">Data Models</h3>
@@ -163,20 +223,20 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           return (
             <div key={model.id} className="glass-card overflow-hidden">
               <div className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
-                <button
-                  type="button"
-                  onClick={() => toggleModel(model.id)}
-                  className="flex items-center gap-3 text-left min-w-0"
-                >
-                  {expandedModels.has(model.id) ? (
-                    <ChevronDown className="w-4 h-4 text-white/40" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-white/40" />
-                  )}
-                  <Box className="w-4 h-4 text-white/60" />
-                  <span className="text-white/90 font-medium truncate">{model.name}</span>
-                  <span className="text-xs text-white/30">({fields.length} fields)</span>
-                </button>
+                    <div className="flex items-center gap-3 text-left min-w-0">
+                      <button type="button" onClick={() => toggleModel(model.id)} className="p-1">
+                        {expandedModels.has(model.id) ? (
+                          <ChevronDown className="w-4 h-4 text-white/40" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-white/40" />
+                        )}
+                      </button>
+                      <Box className="w-4 h-4 text-white/60" />
+                      <button type="button" onClick={() => setModelModal({ open: true, modelId: model.id, defaultName: model.name })} className="text-white/90 font-medium truncate text-left">
+                        {model.name}
+                      </button>
+                      <span className="text-xs text-white/30">({fields.length} fields)</span>
+                    </div>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -226,9 +286,11 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                             <div className="flex items-center gap-3">
                               <Database className="w-4 h-4 text-white/30" />
                               <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-medium text-white/90 truncate">{field.name}</span>
+                                <button type="button" onClick={() => setFieldModal({ open: true, modelId: model.id, index, defaultName: field.name, defaultType: field.type, required: field.required, defaultValue: field.default ?? null, unique: field.unique ?? false })} className="text-sm font-medium text-white/90 truncate text-left">
+                                  {field.name}
+                                </button>
                                 <div className="text-xs text-white/40 truncate">
-                                  <span className="px-2 py-0.5 bg-white/2 rounded-md mr-2">{field.type}</span>
+                                  <button type="button" onClick={() => setFieldModal({ open: true, modelId: model.id, index, defaultName: field.name, defaultType: field.type, required: field.required, defaultValue: field.default ?? null, unique: field.unique ?? false })} className="px-2 py-0.5 bg-white/2 rounded-md mr-2">{field.type}</button>
                                   {schemaField?.relation && <span className="text-sky-300">→ {schemaField.relation}</span>}
                                 </div>
                               </div>
@@ -280,6 +342,14 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           defaultType={fieldModal.defaultType}
           onClose={() => setFieldModal({ open: false })}
           onAdd={handleFieldModalAdd}
+        />
+        <EditTextModal
+          open={modelModal.open}
+          title="Rename Model"
+          label="Model name"
+          defaultValue={modelModal.defaultName}
+          onClose={() => setModelModal({ open: false })}
+          onSave={handleModelRename}
         />
     </div>
   );

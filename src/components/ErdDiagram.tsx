@@ -17,6 +17,7 @@ import { DiagramZoomToolbar } from './DiagramZoomToolbar';
 import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
 import AddFieldModal from './AddFieldModal';
+import EditTextModal from './EditTextModal';
 
 const DEFAULT_MAX_ZOOM = 0.72;
 const FIT_PADDING = 0.4;
@@ -147,9 +148,24 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
 
   const pushSnapshot = useCallback((nextSchema: SchemaPreview) => {
     if (!schema) return;
+    // preserve current viewport to avoid automatic fit/zoom when schema updates
+    const currentViewport = reactFlow.getViewport?.();
+
     setHistory((current) => [...current, schema]);
     setFuture([]);
     onSchemaChange?.(nextSchema);
+
+    // restore viewport shortly after schema change to prevent sudden zooms
+    if (currentViewport && typeof reactFlow.setViewport === 'function') {
+      // delay slightly to let ReactFlow update internal state
+      setTimeout(() => {
+        try {
+          reactFlow.setViewport?.(currentViewport);
+        } catch (err) {
+          // ignore restore errors
+        }
+      }, 20);
+    }
   }, [schema, onSchemaChange]);
 
   const handleChangeRelationType = useCallback((edge: Edge, nextType?: string) => {
@@ -194,6 +210,18 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           setSelectedNodeId(nodeId);
           setSelectedField(fieldName ? { nodeId, fieldName } : null);
           setSelectedEdge(null);
+        },
+        onEditModel: (nodeId: string) => {
+          const model = schema?.models.find((m) => m.name === nodeId);
+          setEditModelModal({ open: true, nodeId, defaultName: model?.name });
+        },
+        onEditField: (nodeId: string, fieldName: string) => {
+          const model = schema?.models.find((m) => m.name === nodeId);
+          const idx = model?.fields.findIndex((f) => f.name === fieldName) ?? -1;
+          if (idx >= 0) {
+            const f = model!.fields[idx];
+            setAddFieldModal({ open: true, nodeId, index: idx, defaultName: f.name, defaultType: f.type, required: f.required, defaultValue: f.default ?? null, unique: f.unique ?? false });
+          }
         },
       },
     }));
@@ -332,7 +360,9 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     onSchemaChange?.(next);
   }, [future, schema, onSchemaChange]);
 
-  const [addFieldModal, setAddFieldModal] = useState<{ open: boolean; nodeId?: string }>(() => ({ open: false }));
+  const [addFieldModal, setAddFieldModal] = useState<{ open: boolean; nodeId?: string; index?: number; defaultName?: string; defaultType?: string; required?: boolean; defaultValue?: string | null; unique?: boolean }>(() => ({ open: false }));
+  const [editModelModal, setEditModelModal] = useState<{ open: boolean; nodeId?: string; defaultName?: string }>({ open: false });
+  const [pendingRename, setPendingRename] = useState<{ nodeId: string; oldName: string; newName: string } | null>(null);
 
   const handleAddField = useCallback(() => {
     const nodeId = selectedField?.nodeId || selectedNodeId;
@@ -395,6 +425,32 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     window.alert('ERD schema saved locally in this browser.');
   }, [schema]);
 
+  const handleSaveModelEdit = useCallback((newName: string) => {
+    const nodeId = editModelModal.nodeId;
+    if (!schema || !nodeId) return;
+    const model = schema.models.find((m) => m.name === nodeId);
+    const oldName = model?.name || nodeId;
+    // set pending rename and ask confirm
+    setPendingRename({ nodeId, oldName, newName });
+    setEditModelModal({ open: false });
+  }, [editModelModal.nodeId, schema]);
+
+  const applyPendingRename = useCallback((apply: boolean) => {
+    if (!pendingRename) return;
+    const { oldName, newName } = pendingRename;
+    if (apply && schema) {
+      const nextSchema: SchemaPreview = {
+        ...schema,
+        models: schema.models.map((m) => {
+          if (m.name === oldName) return { ...m, name: newName };
+          return { ...m, fields: m.fields.map((f) => ({ ...f, relation: f.relation === oldName ? newName : f.relation })) };
+        }),
+      };
+      pushSnapshot(nextSchema);
+    }
+    setPendingRename(null);
+  }, [pendingRename, schema, pushSnapshot]);
+
   useEffect(() => {
     if (!schema) {
       const saved = localStorage.getItem('odoo_erd_schema');
@@ -417,17 +473,25 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       return;
     }
 
+    const isEdit = typeof addFieldModal.index === 'number';
+
     const nextSchema: SchemaPreview = {
       ...schema,
-      models: schema.models.map((item) => item.name === nodeId ? {
-        ...item,
-        fields: [...item.fields, { name, type: type, required: !!required, default: defaultValue ?? null, unique: !!unique }],
-      } : item),
+      models: schema.models.map((item) => {
+        if (item.name !== nodeId) return item;
+        const fields = Array.isArray(item.fields) ? [...item.fields] : [];
+        if (isEdit && typeof addFieldModal.index === 'number') {
+          fields[addFieldModal.index] = { name, type, required: !!required, default: defaultValue ?? null, unique: !!unique };
+        } else {
+          fields.push({ name, type, required: !!required, default: defaultValue ?? null, unique: !!unique });
+        }
+        return { ...item, fields };
+      }),
     };
 
     pushSnapshot(nextSchema);
     setAddFieldModal({ open: false });
-  }, [addFieldModal.nodeId, pushSnapshot, schema]);
+  }, [addFieldModal, pushSnapshot, schema]);
 
   if (nodes.length === 0) {
     return (
@@ -650,6 +714,13 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           layoutKey={layoutKey}
           isDrawing={isDrawing}
         />
+        {pendingRename && (
+          <div className="absolute left-6 top-6 z-40 rounded-md border border-amber-400/20 bg-amber-500/6 p-3 flex items-center gap-3">
+            <div className="text-sm text-amber-100">تغيير اسم الموديل سيحدث تحديث للعلاقات المرتبطة به. تطبيق التغيير؟</div>
+            <button onClick={() => applyPendingRename(false)} className="px-3 py-1 rounded bg-white/5 text-white/80">Cancel</button>
+            <button onClick={() => applyPendingRename(true)} className="px-3 py-1 rounded bg-amber-500 text-amber-100">Yes, apply</button>
+          </div>
+        )}
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}
@@ -671,10 +742,18 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       </ReactFlow>
       <AddFieldModal
         open={Boolean(addFieldModal.open)}
-        defaultName={`field_${(schema?.models.find((m) => m.name === addFieldModal.nodeId)?.fields.length ?? 0) + 1}`}
-        defaultType="Char"
+        defaultName={addFieldModal.defaultName ?? `field_${(schema?.models.find((m) => m.name === addFieldModal.nodeId)?.fields.length ?? 0) + 1}`}
+        defaultType={addFieldModal.defaultType ?? 'Char'}
         onClose={() => setAddFieldModal({ open: false })}
         onAdd={handleModalAdd}
+      />
+      <EditTextModal
+        open={editModelModal.open}
+        title="Rename Model"
+        label="Model name"
+        defaultValue={editModelModal.defaultName}
+        onClose={() => setEditModelModal({ open: false })}
+        onSave={handleSaveModelEdit}
       />
     </div>
   );

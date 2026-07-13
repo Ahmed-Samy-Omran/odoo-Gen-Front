@@ -456,7 +456,7 @@ function App() {
                               </button>
                             </div>
                             <div className="h-full overflow-auto">
-                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} />
+                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} onSchemaReplace={setSchemaPreview} />
                             </div>
                           </div>
                         </div>
@@ -467,7 +467,7 @@ function App() {
                           style={{ width: sidebarWidth, minWidth: 220 }}
                         >
                           <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
-                            <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} />
+                            <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} />
 
                             {/* Drag handle (hidden on small screens) */}
                             <div className="absolute -right-6 top-1/2 z-40 hidden sm:flex -translate-y-1/2 items-center">
