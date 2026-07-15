@@ -48,10 +48,13 @@ export const CustomNode: React.FC<any> = ({ id, data, selected }) => {
             <button
               key={field.name}
               type="button"
-              title="اضغط مرتين لتعديل الاسم والنوع"
+              title="اضغط لتعديل الاسم والنوع"
               onClick={(event) => {
                 event.stopPropagation();
+                event.preventDefault();
                 onFieldSelect?.(id, field.name);
+                // Open edit on click so users don't miss the pencil menu
+                data.onEditField?.(id, field.name);
               }}
               onDoubleClick={(event) => {
                 event.preventDefault();

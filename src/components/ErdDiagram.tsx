@@ -98,6 +98,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   const [relationDraft, setRelationDraft] = useState<{ sourceNodeId: string; sourceFieldName?: string } | null>(null);
   const [viewportTick, setViewportTick] = useState(0);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const fieldSelectAtRef = useRef(0);
   const reactFlow = useReactFlow();
 
   const handleZoomIn = useCallback(() => {
@@ -207,6 +208,8 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         isRevealing: i === count - 1,
         selectedFieldName: selectedField?.nodeId === node.id ? selectedField.fieldName : null,
         onFieldSelect: (nodeId: string, fieldName: string | null) => {
+          // Mark field click so ReactFlow onNodeClick doesn't wipe the selection
+          fieldSelectAtRef.current = Date.now();
           setSelectedNodeId(nodeId);
           setSelectedField(fieldName ? { nodeId, fieldName } : null);
           setSelectedEdge(null);
@@ -216,6 +219,10 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           setEditModelModal({ open: true, nodeId, defaultName: model?.name });
         },
         onEditField: (nodeId: string, fieldName: string) => {
+          fieldSelectAtRef.current = Date.now();
+          setSelectedNodeId(nodeId);
+          setSelectedField({ nodeId, fieldName });
+          setSelectedEdge(null);
           const model = schema?.models.find((m) => m.name === nodeId);
           const idx = model?.fields.findIndex((f) => f.name === fieldName) ?? -1;
           if (idx >= 0) {
@@ -700,6 +707,12 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           }
           if (relationDraft && relationDraft.sourceNodeId === node.id) {
             handleCancelRelation();
+            return;
+          }
+          // Field clicks bubble to the node; keep field selection if it just happened
+          if (Date.now() - fieldSelectAtRef.current < 250) {
+            setSelectedNodeId(node.id);
+            setSelectedEdge(null);
             return;
           }
           setSelectedNodeId(node.id);
