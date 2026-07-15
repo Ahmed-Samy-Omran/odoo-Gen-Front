@@ -215,37 +215,50 @@ function App() {
   const [isAwaitingAiSchema, setIsAwaitingAiSchema] = useState(false);
   const schemaSetRef = useRef(false);
   const modelsSyncedRef = useRef(false);
+  const modelsRef = useRef<Model[]>([]);
+
+  useEffect(() => {
+    modelsRef.current = models;
+  }, [models]);
 
   const syncSchemaPreviewFromModels = useCallback((nextModels: Model[]) => {
-    const previousModels = models;
-    const previousModelsById = new Map(previousModels.map((model) => [model.id, model]));
+    const previousModelsById = new Map(modelsRef.current.map((model) => [model.id, model]));
 
     setModels(nextModels);
+    modelsRef.current = nextModels;
     modelsSyncedRef.current = true;
     setSchemaPreview((current) => {
-      if (!current) return current;
+      // Keep sidebar and ERD in sync — build schema from models even if none exists yet
+      if (!current && nextModels.length === 0) return current;
 
-      const existingModels = new Map(current.models.map((model) => [model.name, model]));
+      const moduleName = current?.module_name || 'custom_module';
+      const existingModels = new Map((current?.models || []).map((model) => [model.name, model]));
+      const knownModelNames = new Set(nextModels.map((m) => m.name));
 
       return {
-        ...current,
+        module_name: moduleName,
+        actors: current?.actors?.length ? current.actors : ['User', 'Administrator'],
+        use_cases: (current?.use_cases || []).filter(
+          (uc) => !uc.model || knownModelNames.has(uc.model),
+        ),
         models: nextModels.map((model) => {
           const previousModel = previousModelsById.get(model.id);
-          const existingModel = existingModels.get(previousModel?.name || model.name) || existingModels.get(model.name);
+          const existingModel =
+            existingModels.get(previousModel?.name || model.name) || existingModels.get(model.name);
           return {
             name: model.name,
-            module_name: current.module_name,
+            module_name: moduleName,
             description: existingModel?.description,
             fields: model.fields.map((field) => {
-                const existingField = existingModel?.fields?.find((f) => f.name === field.name);
-                return {
-                  name: field.name,
-                  type: field.type,
-                  required: field.required,
-                  relation: existingField?.relation,
-                  default: existingField?.default ?? null,
-                  unique: existingField?.unique ?? false,
-                };
+              const existingField = existingModel?.fields?.find((f) => f.name === field.name);
+              return {
+                name: field.name,
+                type: field.type,
+                required: field.required,
+                relation: existingField?.relation,
+                default: field.default ?? existingField?.default ?? null,
+                unique: field.unique ?? existingField?.unique ?? false,
+              };
             }),
           };
         }),
@@ -254,7 +267,7 @@ function App() {
             .map((model) => {
               const previousModel = previousModelsById.get(model.id);
               const sourceName = previousModel?.name || model.name;
-              const savedPosition = current.positions?.[sourceName] || current.positions?.[model.name];
+              const savedPosition = current?.positions?.[sourceName] || current?.positions?.[model.name];
               return savedPosition ? [model.name, savedPosition] : null;
             })
             .filter((entry): entry is [string, { x: number; y: number }] => Boolean(entry)),
@@ -361,6 +374,10 @@ function App() {
         setDownloadUrl('');
         setStatus('error');
         setStatusMessage(result.message || 'Generation failed');
+<<<<<<< HEAD
+=======
+        // Do NOT inject the hardcoded fitzone demo — that made every failed run look the same
+>>>>>>> 576f3111c7cde5a17f04758168638e8b3940baae
       }
     } catch (error) {
       console.error('App generation error:', error);
@@ -458,7 +475,7 @@ function App() {
                               </button>
                             </div>
                             <div className="h-full overflow-auto">
-                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} onSchemaReplace={setSchemaPreview} />
+                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} />
                             </div>
                           </div>
                         </div>

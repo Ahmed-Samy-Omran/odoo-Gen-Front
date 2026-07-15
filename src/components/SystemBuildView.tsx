@@ -60,11 +60,9 @@ interface SystemBuildViewProps {
 
 
 function schemaFingerprint(schema: SchemaPreview | null): string | null {
-
   if (!schema) return null;
-
-  return `${schema.module_name}|${schema.models.length}|${schema.use_cases.length}`;
-
+  const modelKey = schema.models.map((m) => `${m.name}:${m.fields.map((f) => f.name).join(',')}`).join('|');
+  return `${schema.module_name}|${modelKey}|${schema.use_cases.length}`;
 }
 
 
