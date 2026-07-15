@@ -119,16 +119,17 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
   const timersRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
-
+  const effectiveSchema = isAwaitingAiSchema ? null : schema;
+  const effectiveEditableSchema = isAwaitingAiSchema ? null : editableSchema;
 
   const downloadFileName = useMemo(() => {
-    if (!schema?.module_name) return 'module.zip';
-    return `${schema.module_name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_')}.zip`;
-  }, [schema?.module_name]);
+    if (!effectiveSchema?.module_name) return 'module.zip';
+    return `${effectiveSchema.module_name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_')}.zip`;
+  }, [effectiveSchema?.module_name]);
 
   useEffect(() => {
-    setEditableSchema(schema);
-  }, [schema]);
+    setEditableSchema(isAwaitingAiSchema ? null : schema);
+  }, [schema, isAwaitingAiSchema]);
 
   const { nodes, edges } = useMemo(() => {
 
@@ -140,9 +141,9 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
 
-  const useCaseTotal = schema?.use_cases.length ?? 0;
+  const useCaseTotal = effectiveSchema?.use_cases.length ?? 0;
 
-  const schemaKey = schemaFingerprint(schema);
+  const schemaKey = schemaFingerprint(effectiveSchema);
 
 
 
@@ -164,7 +165,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
 
-    if (!schema || !schemaKey) {
+    if (!effectiveSchema || !schemaKey) {
 
       setVisibleNodes(0);
 
@@ -266,7 +267,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
     if (isComplete || hasError) {
 
-      if (schema) {
+      if (effectiveSchema) {
 
         setVisibleNodes(nodes.length);
 
@@ -284,16 +285,16 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
     }
 
-  }, [isComplete, hasError, schema, nodes.length, edges.length, useCaseTotal]);
+  }, [isComplete, hasError, effectiveSchema, nodes.length, edges.length, useCaseTotal]);
 
 
 
   useEffect(() => {
-    if (hasError && (!schema || schema.models.length === 0)) {
+    if (hasError && (!effectiveSchema || effectiveSchema.models.length === 0)) {
       setDiagramTab('erd');
       setViewTab('diagrams');
     }
-  }, [hasError, schema]);
+  }, [hasError, effectiveSchema]);
 
   // Auto-switch to files when complete
 
@@ -535,9 +536,9 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             ERD
 
-            {schema && (
+            {effectiveSchema && (
 
-              <span className="text-white/30">({schema.models.length})</span>
+              <span className="text-white/30">({effectiveSchema.models.length})</span>
 
             )}
 
@@ -563,7 +564,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             Use Cases
 
-            {schema && (
+            {effectiveSchema && (
 
               <span className="text-white/30">({useCaseTotal})</span>
 
@@ -599,7 +600,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
         <div className="flex-1 overflow-hidden relative">
 
-          {schema ? (
+          {effectiveSchema ? (
 
             diagramTab === 'erd' ? (
 
@@ -617,7 +618,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
                 isDrawing={isGenerating && !animationDone}
 
-                schema={editableSchema}
+                schema={effectiveEditableSchema}
 
                 onSchemaChange={(nextSchema) => {
                   setEditableSchema(nextSchema);
@@ -630,7 +631,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
               <UseCaseDiagram
 
-                schema={schema}
+                schema={effectiveSchema}
 
                 visibleUseCaseCount={visibleUseCases}
 
@@ -682,7 +683,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
           {/* Phase indicator */}
 
-          {schema && isGenerating && !hasError && (
+          {effectiveSchema && isGenerating && !hasError && (
 
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-none">
 

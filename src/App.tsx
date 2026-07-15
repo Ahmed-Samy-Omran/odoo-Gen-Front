@@ -352,36 +352,11 @@ function App() {
     }
 
     try {
-      const isNewGeneration = !payload.rawConfig && (!payload.models || payload.models.length === 0);
-      const payloadModels = isNewGeneration
-        ? []
-        : (
-            payload.models?.length
-              ? payload.models
-              : schemaPreview?.models?.length
-                ? schemaPreview.models.map((m) => ({
-                    name: m.name,
-                    fields: m.fields?.map((f) => ({
-                      name: f.name,
-                      type: f.type,
-                      required: f.required,
-                    })) || [],
-                  }))
-                : models?.map((m) => ({
-                    name: m.name,
-                    fields: m.fields?.map((f) => ({
-                      name: f.name,
-                      type: f.type,
-                      required: f.required,
-                    })) || [],
-                  })) || []
-          );
-
       const fullPayload: GeneratorPayload = payload.rawConfig
         ? payload
         : {
             ...payload,
-            models: payloadModels,
+            models: payload.models?.length ? payload.models : [],
           };
 
       const result = await generateModule(fullPayload, handleProgress);
