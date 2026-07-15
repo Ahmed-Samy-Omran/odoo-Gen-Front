@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X, Pencil } from 'lucide-react';
+import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X } from 'lucide-react';
 import type { SchemaPreview } from '../utils/diagramBuilder';
 import { DiagramZoomToolbar } from './DiagramZoomToolbar';
 import { CustomNode } from './CustomNode';
@@ -645,11 +645,6 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
             <div className="flex items-center gap-1.5">
                   {!selectedEdge && !relationDraft && (
                 <>
-                  {selectedField && (
-                    <ActionButton title="تعديل الحقل" onClick={handleEditSelectedField} className="border-violet-400/20 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20">
-                      <Pencil className="h-4 w-4" />
-                    </ActionButton>
-                  )}
                   <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
                     <Plus className="h-4 w-4" />
                   </ActionButton>
