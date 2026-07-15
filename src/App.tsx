@@ -386,6 +386,10 @@ function App() {
         setDownloadUrl('');
         setStatus('error');
         setStatusMessage(result.message || 'Generation failed');
+        if (!schemaPreview) {
+          const fallbackSchema = schemaFromRawConfig(buildDemoPayload().rawConfig as RawModuleConfig);
+          setSchemaPreview(fallbackSchema);
+        }
       }
     } catch (error) {
       console.error('App generation error:', error);

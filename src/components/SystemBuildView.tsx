@@ -290,6 +290,13 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
 
+  useEffect(() => {
+    if (hasError && (!schema || schema.models.length === 0)) {
+      setDiagramTab('erd');
+      setViewTab('diagrams');
+    }
+  }, [hasError, schema]);
+
   // Auto-switch to files when complete
 
   useEffect(() => {
