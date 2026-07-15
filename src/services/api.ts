@@ -97,7 +97,20 @@ export interface ChatResponse {
 
 export type ProgressCallback = (status: JobStatus) => void;
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+function resolveApiBaseUrl(): string {
+  const configured = import.meta.env.VITE_API_URL?.trim();
+  if (configured) return configured.replace(/\/$/, '');
+
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol || 'http:';
+    const hostname = window.location.hostname || '127.0.0.1';
+    return `${protocol}//${hostname}:8000`;
+  }
+
+  return 'http://127.0.0.1:8000';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 const POLL_INTERVAL_MS = 2500;
 
 const ZIP_RESPONSE_ERROR =
