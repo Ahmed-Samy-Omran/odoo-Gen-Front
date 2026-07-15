@@ -282,7 +282,7 @@ function App() {
     setProgress(job.progress ?? 0);
     setStatusMessage(job.error || job.message || 'Generating...');
     setEstimatedRemaining(job.estimated_remaining_sec ?? null);
-    if (job.schema_preview && !schemaSetRef.current) {
+    if (job.schema_preview) {
       setSchemaPreview(job.schema_preview);
       schemaSetRef.current = true;
     }
@@ -319,29 +319,33 @@ function App() {
     }
 
     try {
+      const isNewGeneration = !payload.rawConfig && (!payload.models || payload.models.length === 0);
+
       const fullPayload: GeneratorPayload = payload.rawConfig
         ? payload
         : {
             ...payload,
-            models: (
-              schemaPreview?.models?.length
-                ? schemaPreview.models.map((m) => ({
-                    name: m?.name,
-                    fields: m?.fields?.map((f) => ({
-                      name: f?.name,
-                      type: f?.type,
-                      required: f?.required,
-                    })) || [],
-                  }))
-                : models?.map((m) => ({
-                    name: m?.name,
-                    fields: m?.fields?.map((f) => ({
-                      name: f?.name,
-                      type: f?.type,
-                      required: f?.required,
-                    })) || [],
-                  })) || []
-            ),
+            models: isNewGeneration
+              ? []
+              : (
+                  schemaPreview?.models?.length
+                    ? schemaPreview.models.map((m) => ({
+                        name: m?.name,
+                        fields: m?.fields?.map((f) => ({
+                          name: f?.name,
+                          type: f?.type,
+                          required: f?.required,
+                        })) || [],
+                      }))
+                    : models?.map((m) => ({
+                        name: m?.name,
+                        fields: m?.fields?.map((f) => ({
+                          name: f?.name,
+                          type: f?.type,
+                          required: f?.required,
+                        })) || [],
+                      })) || []
+                ),
           };
 
       const result = await generateModule(fullPayload, handleProgress);
