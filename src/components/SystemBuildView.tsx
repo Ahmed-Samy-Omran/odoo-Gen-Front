@@ -26,7 +26,11 @@ interface SystemBuildViewProps {
 
   schema: SchemaPreview | null;
 
+  isAwaitingAiSchema?: boolean;
+
   isGenerating: boolean;
+
+  isDrawing?: boolean;
 
   isComplete: boolean;
 
@@ -68,6 +72,8 @@ function schemaFingerprint(schema: SchemaPreview | null): string | null {
 export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
   schema,
+
+  isAwaitingAiSchema = false,
 
   isGenerating,
 
@@ -635,7 +641,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
               <div className="text-center space-y-3 max-w-md px-6">
 
-                {isGenerating ? (
+                {isGenerating || isAwaitingAiSchema ? (
 
                   <>
 
@@ -643,7 +649,11 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
                     <p className="text-white/40 text-sm">{statusMessage}</p>
 
-                    <p className="text-white/20 text-xs">Waiting for AI to analyze requirements...</p>
+                    <p className="text-white/20 text-xs">
+                      {isAwaitingAiSchema
+                        ? 'Analyzing requirements and preparing a fresh schema...'
+                        : 'Waiting for AI to analyze requirements...'}
+                    </p>
 
                   </>
 

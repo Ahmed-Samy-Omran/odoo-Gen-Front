@@ -451,19 +451,6 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     setPendingRename(null);
   }, [pendingRename, schema, pushSnapshot]);
 
-  useEffect(() => {
-    if (!schema) {
-      const saved = localStorage.getItem('odoo_erd_schema');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as SchemaPreview;
-          onSchemaChange?.(parsed);
-        } catch {
-          // ignore invalid saved data
-        }
-      }
-    }
-  }, [schema, onSchemaChange]);
 
   // handle modal add
   const handleModalAdd = useCallback((name: string, type: string, required: boolean, defaultValue?: string | null, unique?: boolean) => {

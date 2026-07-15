@@ -212,6 +212,7 @@ function App() {
     };
   }, [isMobile, showLeftPanel]);
   const [schemaPreview, setSchemaPreview] = useState<SchemaPreview | null>(null);
+  const [isAwaitingAiSchema, setIsAwaitingAiSchema] = useState(false);
   const schemaSetRef = useRef(false);
   const modelsSyncedRef = useRef(false);
 
@@ -274,6 +275,10 @@ function App() {
     setRepositoryUrl('');
     setDownloadUrl('');
     setSchemaPreview(null);
+    setIsAwaitingAiSchema(false);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('odoo_erd_schema');
+    }
     schemaSetRef.current = false;
     modelsSyncedRef.current = false;
   }, []);
@@ -284,7 +289,11 @@ function App() {
     setEstimatedRemaining(job.estimated_remaining_sec ?? null);
     if (job.schema_preview) {
       setSchemaPreview(job.schema_preview);
+      setIsAwaitingAiSchema(false);
       schemaSetRef.current = true;
+    }
+    if (job.status === 'done') {
+      setIsAwaitingAiSchema(false);
     }
   }, []);
 
@@ -307,12 +316,23 @@ function App() {
 
     if (payload.rawConfig) {
       setSchemaPreview(schemaFromRawConfig(payload.rawConfig as RawModuleConfig));
+      setIsAwaitingAiSchema(false);
       schemaSetRef.current = true;
       modelsSyncedRef.current = false;
     } else {
       const hasStructuredModels = payload.models?.some((m) => m.fields?.length > 0);
+      const isPromptGeneration = !payload.models || payload.models.length === 0;
+
+      if (isPromptGeneration) {
+        setSchemaPreview(null);
+        setIsAwaitingAiSchema(true);
+        schemaSetRef.current = false;
+        modelsSyncedRef.current = false;
+      }
+
       if (hasStructuredModels) {
         setSchemaPreview(buildSchemaFromPayload(payload.moduleName, payload.models));
+        setIsAwaitingAiSchema(false);
         schemaSetRef.current = true;
         modelsSyncedRef.current = false;
       }
@@ -320,32 +340,35 @@ function App() {
 
     try {
       const isNewGeneration = !payload.rawConfig && (!payload.models || payload.models.length === 0);
+      const payloadModels = isNewGeneration
+        ? []
+        : (
+            payload.models?.length
+              ? payload.models
+              : schemaPreview?.models?.length
+                ? schemaPreview.models.map((m) => ({
+                    name: m.name,
+                    fields: m.fields?.map((f) => ({
+                      name: f.name,
+                      type: f.type,
+                      required: f.required,
+                    })) || [],
+                  }))
+                : models?.map((m) => ({
+                    name: m.name,
+                    fields: m.fields?.map((f) => ({
+                      name: f.name,
+                      type: f.type,
+                      required: f.required,
+                    })) || [],
+                  })) || []
+          );
 
       const fullPayload: GeneratorPayload = payload.rawConfig
         ? payload
         : {
             ...payload,
-            models: isNewGeneration
-              ? []
-              : (
-                  schemaPreview?.models?.length
-                    ? schemaPreview.models.map((m) => ({
-                        name: m?.name,
-                        fields: m?.fields?.map((f) => ({
-                          name: f?.name,
-                          type: f?.type,
-                          required: f?.required,
-                        })) || [],
-                      }))
-                    : models?.map((m) => ({
-                        name: m?.name,
-                        fields: m?.fields?.map((f) => ({
-                          name: f?.name,
-                          type: f?.type,
-                          required: f?.required,
-                        })) || [],
-                      })) || []
-                ),
+            models: payloadModels,
           };
 
       const result = await generateModule(fullPayload, handleProgress);
@@ -504,6 +527,7 @@ function App() {
                     {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
                       <SystemBuildView
                         schema={schemaPreview}
+                        isAwaitingAiSchema={isAwaitingAiSchema}
                         onSchemaChange={setSchemaPreview}
                         isGenerating={status === 'generating'}
                         isComplete={status === 'success'}
