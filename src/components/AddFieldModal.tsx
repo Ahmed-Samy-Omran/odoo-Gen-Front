@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Pencil } from 'lucide-react';
 
 interface Props {
   open: boolean;
+  mode?: 'add' | 'edit';
   defaultName?: string;
   defaultType?: string;
+  defaultRequired?: boolean;
+  defaultDefaultValue?: string | null;
+  defaultUnique?: boolean;
   onClose: () => void;
   onAdd: (name: string, type: string, required: boolean, defaultValue?: string | null, unique?: boolean) => void;
 }
@@ -15,29 +19,42 @@ const FIELD_TYPES = [
   'One2one', 'One2many', 'Many2many', 'Binary', 'Html',
 ];
 
-export const AddFieldModal: React.FC<Props> = ({ open, defaultName = '', defaultType = 'Char', onClose, onAdd }) => {
+export const AddFieldModal: React.FC<Props> = ({
+  open,
+  mode = 'add',
+  defaultName = '',
+  defaultType = 'Char',
+  defaultRequired = false,
+  defaultDefaultValue = null,
+  defaultUnique = false,
+  onClose,
+  onAdd,
+}) => {
   const [name, setName] = useState(defaultName);
   const [type, setType] = useState(defaultType);
-  const [required, setRequired] = useState(false);
-  const [defaultValue, setDefaultValue] = useState<string | null>(null);
-  const [unique, setUnique] = useState(false);
+  const [required, setRequired] = useState(defaultRequired);
+  const [defaultValue, setDefaultValue] = useState<string | null>(defaultDefaultValue);
+  const [unique, setUnique] = useState(defaultUnique);
 
   useEffect(() => {
+    if (!open) return;
     setName(defaultName);
     setType(defaultType);
-    setRequired(false);
-    setDefaultValue(null);
-    setUnique(false);
-  }, [defaultName, defaultType, open]);
+    setRequired(!!defaultRequired);
+    setDefaultValue(defaultDefaultValue ?? null);
+    setUnique(!!defaultUnique);
+  }, [defaultName, defaultType, defaultRequired, defaultDefaultValue, defaultUnique, open]);
 
   if (!open) return null;
+
+  const isEdit = mode === 'edit';
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur" onClick={onClose} />
       <div className="relative z-70 w-full max-w-md rounded-xl border border-white/10 bg-black/95 p-5 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-white/90">Add Field</h4>
+          <h4 className="text-sm font-semibold text-white/90">{isEdit ? 'Edit Field' : 'Add Field'}</h4>
           <button type="button" onClick={onClose} className="p-1 text-white/40 hover:text-white">
             <X className="w-4 h-4" />
           </button>
@@ -51,6 +68,7 @@ export const AddFieldModal: React.FC<Props> = ({ open, defaultName = '', default
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="field_name"
+              autoFocus
             />
           </div>
 
@@ -92,8 +110,8 @@ export const AddFieldModal: React.FC<Props> = ({ open, defaultName = '', default
               }}
               className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 hover:bg-emerald-500/20"
             >
-              <Plus className="w-4 h-4" />
-              Add
+              {isEdit ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {isEdit ? 'Save' : 'Add'}
             </button>
           </div>
         </div>

@@ -48,9 +48,15 @@ export const CustomNode: React.FC<any> = ({ id, data, selected }) => {
             <button
               key={field.name}
               type="button"
+              title="اضغط مرتين لتعديل الاسم والنوع"
               onClick={(event) => {
                 event.stopPropagation();
                 onFieldSelect?.(id, field.name);
+              }}
+              onDoubleClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                data.onEditField?.(id, field.name);
               }}
               className={`diagram-erd-field w-full text-left transition-colors ${
                 isSelectedField ? 'bg-cyan-400/10 text-cyan-50' : ''
@@ -71,13 +77,13 @@ export const CustomNode: React.FC<any> = ({ id, data, selected }) => {
 
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 {getFieldIcon(field.type, field.relation)}
-                <span className={`font-mono text-[11px] truncate ${isSelectedField ? 'text-cyan-100' : 'text-white/50'}`} onDoubleClick={() => data.onEditField?.(id, field.name)}>
+                <span className={`font-mono text-[11px] truncate ${isSelectedField ? 'text-cyan-100' : 'text-white/50'}`}>
                   {field.name}
                 </span>
               </div>
 
               <span className={`text-[10px] font-mono shrink-0 ${isSelectedField ? 'text-cyan-100/70' : 'text-white/20'}`}>
-                <span onDoubleClick={() => data.onEditField?.(id, field.name)}>{field.type}</span>
+                {field.type}
               </span>
 
               {field.required && (

@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X } from 'lucide-react';
+import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X, Pencil } from 'lucide-react';
 import type { SchemaPreview } from '../utils/diagramBuilder';
 import { DiagramZoomToolbar } from './DiagramZoomToolbar';
 import { CustomNode } from './CustomNode';
@@ -220,12 +220,21 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           const idx = model?.fields.findIndex((f) => f.name === fieldName) ?? -1;
           if (idx >= 0) {
             const f = model!.fields[idx];
-            setAddFieldModal({ open: true, nodeId, index: idx, defaultName: f.name, defaultType: f.type, required: f.required, defaultValue: f.default ?? null, unique: f.unique ?? false });
+            setAddFieldModal({
+              open: true,
+              nodeId,
+              index: idx,
+              defaultName: f.name,
+              defaultType: f.type,
+              required: f.required,
+              defaultValue: f.default ?? null,
+              unique: f.unique ?? false,
+            });
           }
         },
       },
     }));
-  }, [nodes, visibleNodeCount, interactionMode, selectedField, selectedNodeId]);
+  }, [nodes, visibleNodeCount, interactionMode, selectedField, selectedNodeId, schema]);
 
   useEffect(() => {
     setFlowNodes(visibleNodes);
@@ -370,6 +379,24 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     setAddFieldModal({ open: true, nodeId });
   }, [schema, selectedField?.nodeId, selectedNodeId]);
 
+  const handleEditSelectedField = useCallback(() => {
+    if (!schema || !selectedField) return;
+    const model = schema.models.find((m) => m.name === selectedField.nodeId);
+    const idx = model?.fields.findIndex((f) => f.name === selectedField.fieldName) ?? -1;
+    if (idx < 0 || !model) return;
+    const f = model.fields[idx];
+    setAddFieldModal({
+      open: true,
+      nodeId: selectedField.nodeId,
+      index: idx,
+      defaultName: f.name,
+      defaultType: f.type,
+      required: f.required,
+      defaultValue: f.default ?? null,
+      unique: f.unique ?? false,
+    });
+  }, [schema, selectedField]);
+
   const handleDeleteSelection = useCallback(() => {
     if (!schema) return;
 
@@ -468,7 +495,15 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         if (item.name !== nodeId) return item;
         const fields = Array.isArray(item.fields) ? [...item.fields] : [];
         if (isEdit && typeof addFieldModal.index === 'number') {
-          fields[addFieldModal.index] = { name, type, required: !!required, default: defaultValue ?? null, unique: !!unique };
+          const previous = fields[addFieldModal.index];
+          fields[addFieldModal.index] = {
+            ...previous,
+            name,
+            type,
+            required: !!required,
+            default: defaultValue ?? null,
+            unique: !!unique,
+          };
         } else {
           fields.push({ name, type, required: !!required, default: defaultValue ?? null, unique: !!unique });
         }
@@ -603,6 +638,11 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
             <div className="flex items-center gap-1.5">
                   {!selectedEdge && !relationDraft && (
                 <>
+                  {selectedField && (
+                    <ActionButton title="تعديل الحقل" onClick={handleEditSelectedField} className="border-violet-400/20 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20">
+                      <Pencil className="h-4 w-4" />
+                    </ActionButton>
+                  )}
                   <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
                     <Plus className="h-4 w-4" />
                   </ActionButton>
@@ -729,8 +769,12 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       </ReactFlow>
       <AddFieldModal
         open={Boolean(addFieldModal.open)}
+        mode={typeof addFieldModal.index === 'number' ? 'edit' : 'add'}
         defaultName={addFieldModal.defaultName ?? `field_${(schema?.models.find((m) => m.name === addFieldModal.nodeId)?.fields.length ?? 0) + 1}`}
         defaultType={addFieldModal.defaultType ?? 'Char'}
+        defaultRequired={addFieldModal.required ?? false}
+        defaultDefaultValue={addFieldModal.defaultValue ?? null}
+        defaultUnique={addFieldModal.unique ?? false}
         onClose={() => setAddFieldModal({ open: false })}
         onAdd={handleModalAdd}
       />

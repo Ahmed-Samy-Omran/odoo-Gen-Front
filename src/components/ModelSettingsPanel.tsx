@@ -338,8 +338,12 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
       </div>
         <AddFieldModal
           open={fieldModal.open}
+          mode={typeof fieldModal.index === 'number' ? 'edit' : 'add'}
           defaultName={fieldModal.defaultName}
           defaultType={fieldModal.defaultType}
+          defaultRequired={fieldModal.required ?? false}
+          defaultDefaultValue={fieldModal.defaultValue ?? null}
+          defaultUnique={fieldModal.unique ?? false}
           onClose={() => setFieldModal({ open: false })}
           onAdd={handleFieldModalAdd}
         />
