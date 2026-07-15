@@ -374,10 +374,7 @@ function App() {
         setDownloadUrl('');
         setStatus('error');
         setStatusMessage(result.message || 'Generation failed');
-<<<<<<< HEAD
-=======
         // Do NOT inject the hardcoded fitzone demo — that made every failed run look the same
->>>>>>> 576f3111c7cde5a17f04758168638e8b3940baae
       }
     } catch (error) {
       console.error('App generation error:', error);
