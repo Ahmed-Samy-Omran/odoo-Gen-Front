@@ -105,58 +105,6 @@ function App() {
     }
   }, [sidebarWidth]);
 
-  useEffect(() => {
-    if (!schemaPreview) return;
-    try {
-      localStorage.setItem('odoo_erd_schema', JSON.stringify(schemaPreview));
-    } catch {
-      // ignore
-    }
-  }, [schemaPreview]);
-
-  useEffect(() => {
-    try {
-      const rawSchema = localStorage.getItem('odoo_erd_schema');
-      if (rawSchema) {
-        const parsed = JSON.parse(rawSchema);
-        const isValidSchema =
-          parsed &&
-          typeof parsed === 'object' &&
-          typeof parsed.module_name === 'string' &&
-          Array.isArray(parsed.models) &&
-          Array.isArray(parsed.actors) &&
-          Array.isArray(parsed.use_cases) &&
-          parsed.models.every(
-            (model: any) =>
-              model &&
-              typeof model === 'object' &&
-              typeof model.name === 'string' &&
-              Array.isArray(model.fields) &&
-              model.fields.every(
-                (field: any) =>
-                  field &&
-                  typeof field === 'object' &&
-                  typeof field.name === 'string' &&
-                  typeof field.type === 'string' &&
-                  typeof field.required === 'boolean',
-              ),
-          );
-
-        if (isValidSchema) {
-          setSchemaPreview(parsed);
-        } else {
-          localStorage.removeItem('odoo_erd_schema');
-        }
-      }
-    } catch {
-      try {
-        localStorage.removeItem('odoo_erd_schema');
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
-
   // global shortcut Ctrl+B to toggle sidebar
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -273,58 +221,92 @@ function App() {
     modelsRef.current = models;
   }, [models]);
 
+  // persist schemaPreview to localStorage when it changes
+  useEffect(() => {
+    if (!schemaPreview) return;
+    try {
+      localStorage.setItem('odoo_erd_schema', JSON.stringify(schemaPreview));
+    } catch {
+      // ignore
+    }
+  }, [schemaPreview]);
+
+  // load persisted schema from localStorage on mount
+  useEffect(() => {
+    try {
+      const rawSchema = localStorage.getItem('odoo_erd_schema');
+      if (rawSchema) {
+        const parsed = JSON.parse(rawSchema);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.models)) {
+          setSchemaPreview(parsed);
+        }
+      }
+    } catch {
+      // ignore invalid persisted schema
+    }
+  }, []);
+
   const syncSchemaPreviewFromModels = useCallback((nextModels: Model[]) => {
     const previousModelsById = new Map(modelsRef.current.map((model) => [model.id, model]));
 
+    // update local models immediately
     setModels(nextModels);
     modelsRef.current = nextModels;
     modelsSyncedRef.current = true;
+
+    // Try to build the schema preview from models safely. If anything fails, keep the current preview.
     setSchemaPreview((current) => {
-      // Keep sidebar and ERD in sync — build schema from models even if none exists yet
-      if (!current && nextModels.length === 0) return current;
+      try {
+        // Keep sidebar and ERD in sync — build schema from models even if none exists yet
+        if (!current && nextModels.length === 0) return current;
 
-      const moduleName = current?.module_name || 'custom_module';
-      const existingModels = new Map((current?.models || []).map((model) => [model.name, model]));
-      const knownModelNames = new Set(nextModels.map((m) => m.name));
+        const moduleName = current?.module_name || 'custom_module';
+        const existingModels = new Map(((current && Array.isArray(current.models)) ? current.models : []).map((model) => [model.name, model]));
+        const knownModelNames = new Set(nextModels.map((m) => m.name));
 
-      return {
-        module_name: moduleName,
-        actors: current?.actors?.length ? current.actors : ['User', 'Administrator'],
-        use_cases: (current?.use_cases || []).filter(
-          (uc) => !uc.model || knownModelNames.has(uc.model),
-        ),
-        models: nextModels.map((model) => {
-          const previousModel = previousModelsById.get(model.id);
-          const existingModel =
-            existingModels.get(previousModel?.name || model.name) || existingModels.get(model.name);
-          return {
-            name: model.name,
-            module_name: moduleName,
-            description: existingModel?.description,
-            fields: model.fields.map((field) => {
-              const existingField = existingModel?.fields?.find((f) => f.name === field.name);
-              return {
-                name: field.name,
-                type: field.type,
-                required: field.required,
-                relation: existingField?.relation,
-                default: field.default ?? existingField?.default ?? null,
-                unique: field.unique ?? existingField?.unique ?? false,
-              };
-            }),
-          };
-        }),
-        positions: Object.fromEntries(
-          nextModels
-            .map((model) => {
-              const previousModel = previousModelsById.get(model.id);
-              const sourceName = previousModel?.name || model.name;
-              const savedPosition = current?.positions?.[sourceName] || current?.positions?.[model.name];
-              return savedPosition ? [model.name, savedPosition] : null;
-            })
-            .filter((entry): entry is [string, { x: number; y: number }] => Boolean(entry)),
-        ),
-      };
+        const nextSchema: SchemaPreview = {
+          module_name: moduleName,
+          actors: current?.actors?.length ? current.actors : ['User', 'Administrator'],
+          use_cases: (current?.use_cases || []).filter((uc) => !uc.model || knownModelNames.has(uc.model)),
+          models: nextModels.map((model) => {
+            const previousModel = previousModelsById.get(model.id);
+            const existingModel = existingModels.get(previousModel?.name || model.name) || existingModels.get(model.name);
+            return {
+              name: model.name,
+              module_name: moduleName,
+              description: existingModel?.description,
+              fields: (Array.isArray(model.fields) ? model.fields : []).map((field) => {
+                const existingField = Array.isArray(existingModel?.fields) ? existingModel!.fields.find((f) => f.name === field.name) : undefined;
+                return {
+                  name: field.name,
+                  type: field.type,
+                  required: field.required,
+                  relation: existingField?.relation,
+                  default: field.default ?? existingField?.default ?? null,
+                  unique: field.unique ?? existingField?.unique ?? false,
+                };
+              }),
+            };
+          }),
+          positions: Object.fromEntries(
+            nextModels
+              .map((model) => {
+                const previousModel = previousModelsById.get(model.id);
+                const sourceName = previousModel?.name || model.name;
+                const savedPosition = current?.positions?.[sourceName] || current?.positions?.[model.name];
+                return savedPosition ? [model.name, savedPosition] : null;
+              })
+              .filter((entry): entry is [string, { x: number; y: number }] => Boolean(entry)),
+          ),
+        };
+
+        return nextSchema;
+      } catch (err) {
+        // Do not drop the current preview on error; log and keep current
+        // eslint-disable-next-line no-console
+        console.error('syncSchemaPreviewFromModels error:', err);
+        return current;
+      }
     });
   }, []);
 

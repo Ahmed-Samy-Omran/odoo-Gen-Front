@@ -18,6 +18,7 @@ import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
 import AddFieldModal from './AddFieldModal';
 import EditTextModal from './EditTextModal';
+import ConfirmModal from './ConfirmModal';
 
 const DEFAULT_MAX_ZOOM = 0.72;
 const FIT_PADDING = 0.4;
@@ -296,10 +297,24 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         y: ((sourceNode.position?.y ?? 0) + (targetNode.position?.y ?? 0)) / 2 - 8,
       };
     } else if (selectedNode) {
-      baseFlowPosition = {
-        x: (selectedNode.position?.x ?? 0) + (selectedField ? 230 : 180),
-        y: (selectedNode.position?.y ?? 0) + 22,
-      };
+      // If a specific field is selected, position the menu vertically next to that field row.
+      if (selectedField && schema) {
+        const model = schema.models.find((m) => m.name === selectedField.nodeId);
+        const fieldIdx = model ? model.fields.findIndex((f) => f.name === selectedField.fieldName) : -1;
+        const headerHeight = 32; // approximate header height in px
+        const rowHeight = 30; // approximate per-field row height
+        const yOffset = headerHeight + Math.max(0, fieldIdx) * rowHeight + Math.floor(rowHeight / 2);
+        const nodeWidth = 220;
+        baseFlowPosition = {
+          x: (selectedNode.position?.x ?? 0) + nodeWidth + 8,
+          y: (selectedNode.position?.y ?? 0) + yOffset,
+        };
+      } else {
+        baseFlowPosition = {
+          x: (selectedNode.position?.x ?? 0) + (selectedField ? 230 : 180),
+          y: (selectedNode.position?.y ?? 0) + 22,
+        };
+      }
     }
 
     if (!baseFlowPosition) return null;
@@ -379,6 +394,10 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   const [addFieldModal, setAddFieldModal] = useState<{ open: boolean; nodeId?: string; index?: number; defaultName?: string; defaultType?: string; required?: boolean; defaultValue?: string | null; unique?: boolean }>(() => ({ open: false }));
   const [editModelModal, setEditModelModal] = useState<{ open: boolean; nodeId?: string; defaultName?: string }>({ open: false });
   const [pendingRename, setPendingRename] = useState<{ nodeId: string; oldName: string; newName: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    kind?: 'field' | 'edge' | 'node';
+  }>({ open: false });
 
   const handleAddField = useCallback(() => {
     const nodeId = selectedField?.nodeId || selectedNodeId;
@@ -386,39 +405,34 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     setAddFieldModal({ open: true, nodeId });
   }, [schema, selectedField?.nodeId, selectedNodeId]);
 
-  const handleEditSelectedField = useCallback(() => {
-    if (!schema || !selectedField) return;
-    const model = schema.models.find((m) => m.name === selectedField.nodeId);
-    const idx = model?.fields.findIndex((f) => f.name === selectedField.fieldName) ?? -1;
-    if (idx < 0 || !model) return;
-    const f = model.fields[idx];
-    setAddFieldModal({
-      open: true,
-      nodeId: selectedField.nodeId,
-      index: idx,
-      defaultName: f.name,
-      defaultType: f.type,
-      required: f.required,
-      defaultValue: f.default ?? null,
-      unique: f.unique ?? false,
-    });
-  }, [schema, selectedField]);
-
   const handleDeleteSelection = useCallback(() => {
     if (!schema) return;
+    if (selectedField) {
+      setDeleteConfirm({ open: true, kind: 'field' });
+      return;
+    }
+    if (selectedEdge) {
+      setDeleteConfirm({ open: true, kind: 'edge' });
+      return;
+    }
+    if (selectedNodeId) {
+      setDeleteConfirm({ open: true, kind: 'node' });
+      return;
+    }
+  }, [pushSnapshot, schema, selectedEdge, selectedField, selectedNodeId]);
 
+  const performDelete = useCallback(() => {
+    if (!schema) return;
     if (selectedField) {
       const nextSchema: SchemaPreview = {
         ...schema,
         models: schema.models.map((item) => item.name === selectedField.nodeId
-          ? {
-              ...item,
-              fields: item.fields.filter((field) => field.name !== selectedField.fieldName),
-            }
+          ? { ...item, fields: item.fields.filter((field) => field.name !== selectedField.fieldName) }
           : item),
       };
       pushSnapshot(nextSchema);
       setSelectedField(null);
+      setDeleteConfirm({ open: false });
       return;
     }
 
@@ -430,9 +444,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           ? {
               ...item,
               fields: item.fields.filter((field) => {
-                if (sourceHandleField) {
-                  return !(field.name === sourceHandleField && field.relation === selectedEdge.target);
-                }
+                if (sourceHandleField) return !(field.name === sourceHandleField && field.relation === selectedEdge.target);
                 return field.relation !== selectedEdge.target;
               }),
             }
@@ -440,6 +452,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       };
       pushSnapshot(nextSchema);
       setSelectedEdge(null);
+      setDeleteConfirm({ open: false });
       return;
     }
 
@@ -450,8 +463,9 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       };
       pushSnapshot(nextSchema);
       setSelectedNodeId(null);
+      setDeleteConfirm({ open: false });
     }
-  }, [pushSnapshot, schema, selectedEdge, selectedField, selectedNodeId]);
+  }, [schema, selectedField, selectedEdge, selectedNodeId, pushSnapshot]);
 
   const handleSaveLocal = useCallback(() => {
     if (!schema) return;
@@ -638,12 +652,12 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            transition={{ type: 'spring', stiffness: 450, damping: 38 }}
             className="absolute z-30 rounded-2xl border border-white/10 bg-black/60 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl"
             style={{ left: floatingMenu.left, top: floatingMenu.top }}
           >
             <div className="flex items-center gap-1.5">
-                  {!selectedEdge && !relationDraft && (
+              {!selectedEdge && !relationDraft && (
                 <>
                   <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
                     <Plus className="h-4 w-4" />
@@ -793,6 +807,15 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         defaultValue={editModelModal.defaultName}
         onClose={() => setEditModelModal({ open: false })}
         onSave={handleSaveModelEdit}
+      />
+      <ConfirmModal
+        open={deleteConfirm.open}
+        title={deleteConfirm.kind === 'node' ? 'Confirm delete model' : deleteConfirm.kind === 'edge' ? 'Confirm delete relation' : 'Confirm delete field'}
+        message={deleteConfirm.kind === 'node' ? 'Delete this model and its fields? This cannot be undone.' : deleteConfirm.kind === 'edge' ? 'Delete this relation?' : 'Delete this field?'}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onCancel={() => setDeleteConfirm({ open: false })}
+        onConfirm={performDelete}
       />
     </div>
   );
