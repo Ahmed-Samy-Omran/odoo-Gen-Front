@@ -51,6 +51,7 @@ function App() {
   const [showLeftPanel, setShowLeftPanel] = useState(false);
   const [sidebarMounted, setSidebarMounted] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(300);
+  const [chatResetKey, setChatResetKey] = useState(0);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -421,7 +422,15 @@ function App() {
     void handleGenerate(buildDemoPayload());
   };
 
+  const handleNewChat = () => {
+    resetGenerationState();
+    setActiveView('generator');
+    setShowWelcome(false);
+    setChatResetKey((prev) => prev + 1);
+  };
+
   const handleStartGenerating = () => {
+    resetGenerationState();
     setShowWelcome(false);
     setActiveView('generator');
   };
@@ -466,7 +475,7 @@ function App() {
       </div>
 
       <div className="flex flex-1 relative z-10 overflow-hidden">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} showLogo={false} />
+        <Sidebar activeView={activeView} onViewChange={setActiveView} onNewChat={handleNewChat} showLogo={false} />
 
         <main className="flex-1 overflow-hidden relative">
           {activeView === 'history' && <HistoryView />}
@@ -585,7 +594,7 @@ function App() {
         <GenBar
           onGenerate={handleGenerate}
           onTryDemo={handleTryDemo}
-          
+          resetKey={chatResetKey}
         />
       )}
     </div>

@@ -9,6 +9,7 @@ import { buildPayloadFromJson } from '../utils/demoGenerate';
 interface GenBarProps {
   onGenerate?: (payload: GeneratorPayload) => void;
   onTryDemo?: () => void;
+  resetKey?: number;
 }
 
 const isNonEmptyJson = (value: string): boolean => {
@@ -30,11 +31,24 @@ const isNonEmptyJson = (value: string): boolean => {
 
 const ARABIC_JSON_ERROR = 'الرجاء إدخال نص JSON غير فارغ وصالح.';
 
-export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo }) => {
+export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey }) => {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [readyToGenerate, setReadyToGenerate] = useState(false);
   const [requirementsSummary, setRequirementsSummary] = useState('');
+  const [lastResetKey, setLastResetKey] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof resetKey !== 'undefined' && resetKey !== lastResetKey) {
+      setPrompt('');
+      setMessages([]);
+      setReadyToGenerate(false);
+      setRequirementsSummary('');
+      setError('');
+      setMode('text');
+      setLastResetKey(resetKey);
+    }
+  }, [resetKey, lastResetKey]);
   const [isChatting, setIsChatting] = useState(false);
   const [mode, setMode] = useState<'text' | 'json'>('text');
   const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>('local_zip');
