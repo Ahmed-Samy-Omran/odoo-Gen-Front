@@ -18,7 +18,6 @@ import { CustomNode } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
 import AddFieldModal from './AddFieldModal';
 import EditTextModal from './EditTextModal';
-import ConfirmModal from './ConfirmModal';
 
 const DEFAULT_MAX_ZOOM = 0.72;
 const FIT_PADDING = 0.4;
@@ -394,32 +393,12 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   const [addFieldModal, setAddFieldModal] = useState<{ open: boolean; nodeId?: string; index?: number; defaultName?: string; defaultType?: string; required?: boolean; defaultValue?: string | null; unique?: boolean }>(() => ({ open: false }));
   const [editModelModal, setEditModelModal] = useState<{ open: boolean; nodeId?: string; defaultName?: string }>({ open: false });
   const [pendingRename, setPendingRename] = useState<{ nodeId: string; oldName: string; newName: string } | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    open: boolean;
-    kind?: 'field' | 'edge' | 'node';
-  }>({ open: false });
 
   const handleAddField = useCallback(() => {
     const nodeId = selectedField?.nodeId || selectedNodeId;
     if (!schema || !nodeId) return;
     setAddFieldModal({ open: true, nodeId });
   }, [schema, selectedField?.nodeId, selectedNodeId]);
-
-  const handleDeleteSelection = useCallback(() => {
-    if (!schema) return;
-    if (selectedField) {
-      setDeleteConfirm({ open: true, kind: 'field' });
-      return;
-    }
-    if (selectedEdge) {
-      setDeleteConfirm({ open: true, kind: 'edge' });
-      return;
-    }
-    if (selectedNodeId) {
-      setDeleteConfirm({ open: true, kind: 'node' });
-      return;
-    }
-  }, [pushSnapshot, schema, selectedEdge, selectedField, selectedNodeId]);
 
   const performDelete = useCallback(() => {
     if (!schema) return;
@@ -432,7 +411,6 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       };
       pushSnapshot(nextSchema);
       setSelectedField(null);
-      setDeleteConfirm({ open: false });
       return;
     }
 
@@ -452,7 +430,6 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       };
       pushSnapshot(nextSchema);
       setSelectedEdge(null);
-      setDeleteConfirm({ open: false });
       return;
     }
 
@@ -463,9 +440,15 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       };
       pushSnapshot(nextSchema);
       setSelectedNodeId(null);
-      setDeleteConfirm({ open: false });
     }
   }, [schema, selectedField, selectedEdge, selectedNodeId, pushSnapshot]);
+
+  const handleDeleteSelection = useCallback(() => {
+    if (!schema) return;
+    if (selectedField || selectedEdge || selectedNodeId) {
+      performDelete();
+    }
+  }, [performDelete, schema, selectedEdge, selectedField, selectedNodeId]);
 
   const handleSaveLocal = useCallback(() => {
     if (!schema) return;
@@ -808,15 +791,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         onClose={() => setEditModelModal({ open: false })}
         onSave={handleSaveModelEdit}
       />
-      <ConfirmModal
-        open={deleteConfirm.open}
-        title={deleteConfirm.kind === 'node' ? 'Confirm delete model' : deleteConfirm.kind === 'edge' ? 'Confirm delete relation' : 'Confirm delete field'}
-        message={deleteConfirm.kind === 'node' ? 'Delete this model and its fields? This cannot be undone.' : deleteConfirm.kind === 'edge' ? 'Delete this relation?' : 'Delete this field?'}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        onCancel={() => setDeleteConfirm({ open: false })}
-        onConfirm={performDelete}
-      />
+      {/* Confirm modal removed: delete actions now execute immediately on click */}
     </div>
   );
 };

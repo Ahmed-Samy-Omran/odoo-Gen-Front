@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight, Database, Box, Edit, Star, Hash } from 'lucide-react';
 import EditTextModal from './EditTextModal';
-import ConfirmModal from './ConfirmModal';
 import type { SchemaPreview } from '../services/api';
 import AddFieldModal from './AddFieldModal';
 
@@ -48,7 +47,6 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   }>({ open: false });
   const [modelModal, setModelModal] = useState<{ open: boolean; modelId?: string; defaultName?: string }>({ open: false });
   const [pendingRename, setPendingRename] = useState<{ modelId: string; oldName: string; newName: string } | null>(null);
-  const [confirm, setConfirm] = useState<{ open: boolean; kind?: 'model' | 'field'; modelId?: string; fieldIndex?: number }>({ open: false });
 
   const handleFieldModalAdd = (name: string, type: string, required: boolean, defaultValue?: string | null, unique?: boolean) => {
     const modelId = fieldModal.modelId;
@@ -180,44 +178,6 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
     });
   };
 
-  const performConfirmDeletion = () => {
-    if (!confirm.open) return;
-    const { kind, modelId, fieldIndex } = confirm;
-    if (kind === 'model' && modelId) {
-      // update models
-      removeModel(modelId);
-      // update schema replacement if provided
-      try {
-        if (schema && typeof onSchemaReplace === 'function') {
-          const nextSchema: SchemaPreview = {
-            ...schema,
-            models: schema.models.filter((m) => m.name !== (safeModels.find((s) => s.id === modelId)?.name)),
-          };
-          onSchemaReplace(nextSchema);
-          try { localStorage.setItem('odoo_erd_schema', JSON.stringify(nextSchema)); } catch {}
-        }
-      } catch (err) {}
-    }
-    if (kind === 'field' && modelId && typeof fieldIndex === 'number') {
-      removeField(modelId, fieldIndex);
-      // update schema if present
-      try {
-        if (schema && typeof onSchemaReplace === 'function') {
-          const modelName = safeModels.find((s) => s.id === modelId)?.name;
-          if (modelName) {
-            const nextSchema: SchemaPreview = {
-              ...schema,
-              models: schema.models.map((m) => m.name === modelName ? { ...m, fields: m.fields.filter((_, i) => i !== fieldIndex) } : m),
-            };
-            onSchemaReplace(nextSchema);
-            try { localStorage.setItem('odoo_erd_schema', JSON.stringify(nextSchema)); } catch {}
-          }
-        }
-      } catch (err) {}
-    }
-    setConfirm({ open: false });
-  };
-
   const updateModel = (modelId: string, updates: Partial<Model>) => {
     if (!modelId) return;
     onModelsChange(safeModels.map(m => m?.id === modelId ? { ...m, ...updates } : m));
@@ -317,7 +277,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setConfirm({ open: true, kind: 'model', modelId: model.id });
+                    removeModel(model.id);
                   }}
                   className="p-1.5 text-white/30 hover:text-white/70 transition-colors"
                 >
@@ -380,7 +340,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                             <button type="button" onClick={(e) => { e.stopPropagation(); setFieldModal({ open: true, modelId: model.id, index, defaultName: field.name, defaultType: field.type, required: field.required, defaultValue: field.default ?? null, unique: field.unique ?? false }); }} className="p-1 text-white/40 hover:text-white">
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button type="button" onClick={() => setConfirm({ open: true, kind: 'field', modelId: model.id, fieldIndex: index })} className="p-1 text-white/30 transition-colors hover:text-white/70">
+                            <button type="button" onClick={() => removeField(model.id, index)} className="p-1 text-white/30 transition-colors hover:text-white/70">
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
@@ -431,15 +391,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           onClose={() => setModelModal({ open: false })}
           onSave={handleModelRename}
         />
-        <ConfirmModal
-          open={confirm.open}
-          title={confirm.kind === 'model' ? 'Confirm delete model' : 'Confirm delete field'}
-          message={confirm.kind === 'model' ? 'Are you sure you want to delete this model? This will remove its fields and relations.' : 'Are you sure you want to delete this field?'}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-          onCancel={() => setConfirm({ open: false })}
-          onConfirm={performConfirmDeletion}
-        />
+        {/* Deleted confirmation dialog: removal actions execute immediately */}
     </div>
   );
 };
