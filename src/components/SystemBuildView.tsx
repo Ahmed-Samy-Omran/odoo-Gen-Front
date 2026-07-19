@@ -222,10 +222,11 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
   const clampedProgress = Math.min(100, Math.max(0, progress));
+  const showViewTabs = files.length > 0;
 
 
 
-  if (viewTab === 'files' && isComplete && files.length > 0) {
+  if (viewTab === 'files' && showViewTabs) {
 
     return (
 
@@ -237,7 +238,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             onClick={() => setViewTab('diagrams')}
 
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/10 text-white/90"
 
           >
 
@@ -247,7 +248,13 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/10 text-white/90">
+          <button
+
+            onClick={() => setViewTab('files')}
+
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'files' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+
+          >
 
             <FileCode className="w-3.5 h-3.5" />
 
@@ -421,6 +428,25 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
 
+        {showViewTabs && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-glass-border bg-black/40">
+            <button
+              onClick={() => setViewTab('diagrams')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'diagrams' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              Diagrams
+            </button>
+            <button
+              onClick={() => setViewTab('files')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'files' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              Generated Files
+            </button>
+          </div>
+        )}
+
         {/* Diagram tabs */}
 
         <div className="flex items-center gap-1 px-4 py-2 border-b border-glass-border">
@@ -480,27 +506,6 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
             )}
 
           </button>
-
-
-
-          {isComplete && files.length > 0 && (
-
-            <button
-
-              onClick={() => setViewTab('files')}
-
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors ml-auto"
-
-            >
-
-              <FileCode className="w-3.5 h-3.5" />
-
-              View Files
-
-            </button>
-
-          )}
-
         </div>
 
 
@@ -586,11 +591,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             </div>
 
-          )}
-
-
-
-          {/* Phase indicator */}
+          )}          {/* Phase indicator */}
 
           {effectiveSchema && isGenerating && !hasError && (
 

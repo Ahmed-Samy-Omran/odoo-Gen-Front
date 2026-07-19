@@ -8,7 +8,11 @@ import { ParticleBackground } from './components/ParticleBackground';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
 import {
+  fetchJobFiles,
+  fetchJobRestore,
   generateModule,
+  API_BASE_URL,
+  type ChatMessage,
   type GeneratorPayload,
   type GeneratedFile,
   type JobStatus,
@@ -36,22 +40,75 @@ interface Model {
 }
 
 function App() {
-  const [activeView, setActiveView] = useState<ViewType>('generator');
+  // Restore persisted state or use defaults
+  const [activeView, setActiveView] = useState<ViewType>(() => {
+    try {
+      const hasManualSelection = localStorage.getItem('odoo_view_persisted') === '1';
+      const stored = localStorage.getItem('odoo_active_view');
+      if (hasManualSelection && stored) {
+        return stored as ViewType;
+      }
+      return 'generator';
+    } catch {
+      return 'generator';
+    }
+  });
   const [status, setStatus] = useState<StatusType>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [estimatedRemaining, setEstimatedRemaining] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [models, setModels] = useState<Model[]>([]);
-  const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>('local_zip');
-  const [repositoryUrl, setRepositoryUrl] = useState<string>('');
+  const [models, setModels] = useState<Model[]>(() => {
+    try {
+      const stored = localStorage.getItem('odoo_models');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [deploymentStrategy, setDeploymentStrategy] = useState<'github' | 'local_zip'>(() => {
+    try {
+      const stored = localStorage.getItem('odoo_deployment_strategy');
+      return (stored as 'github' | 'local_zip') || 'local_zip';
+    } catch {
+      return 'local_zip';
+    }
+  });
+  const [repositoryUrl, setRepositoryUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem('odoo_repository_url') || '';
+    } catch {
+      return '';
+    }
+  });
   const [downloadUrl, setDownloadUrl] = useState<string>('');
-  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>(() => {
+    try {
+      const stored = localStorage.getItem('odoo_generated_files');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedFile, setSelectedFile] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('odoo_selected_file') || null;
+    } catch {
+      return null;
+    }
+  });
   const [showLeftPanel, setShowLeftPanel] = useState(false);
   const [sidebarMounted, setSidebarMounted] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(300);
   const [chatResetKey, setChatResetKey] = useState(0);
+  const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([]);
+  const [activeJobId, setActiveJobId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('odoo_active_job') || null;
+    } catch {
+      return null;
+    }
+  });
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -97,6 +154,26 @@ function App() {
       // ignore
     }
   }, [showLeftPanel]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('odoo_generated_files', JSON.stringify(generatedFiles));
+    } catch {
+      // ignore
+    }
+  }, [generatedFiles]);
+
+  useEffect(() => {
+    try {
+      if (selectedFile) {
+        localStorage.setItem('odoo_selected_file', selectedFile);
+      } else {
+        localStorage.removeItem('odoo_selected_file');
+      }
+    } catch {
+      // ignore
+    }
+  }, [selectedFile]);
 
   useEffect(() => {
     try {
@@ -311,8 +388,29 @@ function App() {
     });
   }, []);
 
+  const normalizeRestoredMessages = useCallback((messages?: Array<{ role?: string; content?: string }> | null): ChatMessage[] => {
+    if (!Array.isArray(messages)) return [];
+    return messages
+      .filter((message) => typeof message?.content === 'string')
+      .map((message) => ({
+        role: message.role === 'assistant' ? 'assistant' : 'user',
+        content: message.content || '',
+      }));
+  }, []);
+
+  const handleViewChange = useCallback((view: ViewType) => {
+    setActiveView(view);
+    try {
+      localStorage.setItem('odoo_active_view', view);
+      localStorage.setItem('odoo_view_persisted', '1');
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const resetGenerationState = useCallback(() => {
     setGeneratedFiles([]);
+    setSelectedFile(null);
     setSelectedFile(null);
     setModels([]);
     setStatus('idle');
@@ -326,10 +424,84 @@ function App() {
     setIsAwaitingAiSchema(false);
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('odoo_erd_schema');
+      window.localStorage.removeItem('odoo_generated_files');
+      window.localStorage.removeItem('odoo_selected_file');
     }
     schemaSetRef.current = false;
     modelsSyncedRef.current = false;
   }, []);
+
+  const handleSelectHistoryJob = useCallback(async (jobId: string) => {
+    try {
+      resetGenerationState();
+      const restored = await fetchJobRestore(jobId);
+      const restoredSchema = (restored.schema_preview as SchemaPreview | null) || null;
+      const restoredMessages = normalizeRestoredMessages(restored.chat_history || []);
+
+      setActiveJobId(jobId);
+      setRestoredMessages(restoredMessages);
+      setShowWelcome(false);
+      setShowLeftPanel(true);
+      setChatResetKey((prev) => prev + 1);
+      setStatus(restored.status === 'done' ? 'success' : restored.status === 'error' ? 'error' : 'generating');
+      setStatusMessage(restored.message || 'Restored saved session');
+      setProgress(restored.progress || 0);
+      setEstimatedRemaining(null);
+      setShowWelcome(false);
+      handleViewChange('generator');
+
+      if (restoredSchema) {
+        setSchemaPreview(restoredSchema);
+        const nextModels = restoredSchema.models.map((model) => ({
+          id: `${model.name}-${model.module_name}`,
+          name: model.name,
+          fields: model.fields.map((field) => ({
+            id: `${model.name}-${field.name}`,
+            name: field.name,
+            type: field.type,
+            required: field.required,
+            default: field.default ?? null,
+            unique: field.unique ?? false,
+          })),
+        }));
+        setModels(nextModels);
+        modelsSyncedRef.current = true;
+        schemaSetRef.current = true;
+      } else if (restored.module_config) {
+        const config = restored.module_config as { module_name?: string; models?: Array<{ name: string; fields?: Array<{ name: string; type: string; required: boolean }> }> };
+        const fallbackModels = (config.models || []).map((model) => ({
+          name: model.name,
+          fields: model.fields || [],
+        }));
+        const fallbackSchema = buildSchemaFromPayload(config.module_name || 'restored_module', fallbackModels);
+        setSchemaPreview(fallbackSchema);
+        const nextModels = fallbackSchema.models.map((model) => ({
+          id: `${model.name}-${model.module_name}`,
+          name: model.name,
+          fields: model.fields.map((field) => ({
+            id: `${model.name}-${field.name}`,
+            name: field.name,
+            type: field.type,
+            required: field.required,
+            default: field.default ?? null,
+            unique: field.unique ?? false,
+          })),
+        }));
+        setModels(nextModels);
+        modelsSyncedRef.current = true;
+        schemaSetRef.current = true;
+      }
+
+      const restoredFiles = await fetchJobFiles(jobId);
+      setGeneratedFiles(restoredFiles);
+      setSelectedFile(restoredFiles[0]?.path || null);
+      setDownloadUrl(`${API_BASE_URL}/download/${jobId}`);
+    } catch (error) {
+      console.error('History restore error:', error);
+      setStatus('error');
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to restore session');
+    }
+  }, [API_BASE_URL, fetchJobFiles, handleViewChange, normalizeRestoredMessages, resetGenerationState]);
 
   const handleProgress = useCallback((job: JobStatus) => {
     setProgress(job.progress ?? 0);
@@ -394,7 +566,7 @@ function App() {
             models: payload.models?.length ? payload.models : [],
           };
 
-      const result = await generateModule(fullPayload, handleProgress);
+      const result = await generateModule(fullPayload, handleProgress, activeJobId ?? undefined);
 
       if (result?.success) {
         setGeneratedFiles(result.files || []);
@@ -405,6 +577,10 @@ function App() {
         setEstimatedRemaining(null);
         setStatus('success');
         setStatusMessage(result.message || 'Generation successful');
+        if (result.jobId) {
+          setActiveJobId(result.jobId);
+          try { localStorage.setItem('odoo_active_job', result.jobId); } catch {}
+        }
       } else {
         setDownloadUrl('');
         setStatus('error');
@@ -424,15 +600,21 @@ function App() {
 
   const handleNewChat = () => {
     resetGenerationState();
-    setActiveView('generator');
+    handleViewChange('generator');
+    setActiveJobId(null);
+    try { localStorage.removeItem('odoo_active_job'); } catch {}
+    setRestoredMessages([]);
     setShowWelcome(false);
     setChatResetKey((prev) => prev + 1);
   };
 
   const handleStartGenerating = () => {
     resetGenerationState();
+    setActiveJobId(null);
+    try { localStorage.removeItem('odoo_active_job'); } catch {}
+    setRestoredMessages([]);
     setShowWelcome(false);
-    setActiveView('generator');
+    handleViewChange('generator');
   };
 
   useEffect(() => {
@@ -475,10 +657,10 @@ function App() {
       </div>
 
       <div className="flex flex-1 relative z-10 overflow-hidden">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} onNewChat={handleNewChat} showLogo={false} />
+        <Sidebar activeView={activeView} onViewChange={handleViewChange} onNewChat={handleNewChat} showLogo={false} />
 
         <main className="flex-1 overflow-hidden relative">
-          {activeView === 'history' && <HistoryView />}
+          {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
           {activeView === 'settings' && <SettingsView />}
 
           {activeView === 'generator' && (
@@ -595,6 +777,9 @@ function App() {
           onGenerate={handleGenerate}
           onTryDemo={handleTryDemo}
           resetKey={chatResetKey}
+          initialMessages={restoredMessages}
+          onMessagesChange={setRestoredMessages}
+          jobId={activeJobId}
         />
       )}
     </div>

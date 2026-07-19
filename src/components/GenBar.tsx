@@ -10,6 +10,9 @@ interface GenBarProps {
   onGenerate?: (payload: GeneratorPayload) => void;
   onTryDemo?: () => void;
   resetKey?: number;
+  initialMessages?: ChatMessage[];
+  onMessagesChange?: (messages: ChatMessage[]) => void;
+  jobId?: string | null;
 }
 
 const isNonEmptyJson = (value: string): boolean => {
@@ -31,12 +34,16 @@ const isNonEmptyJson = (value: string): boolean => {
 
 const ARABIC_JSON_ERROR = 'الرجاء إدخال نص JSON غير فارغ وصالح.';
 
-export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey }) => {
+export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey, initialMessages = [], onMessagesChange, jobId }) => {
   const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [readyToGenerate, setReadyToGenerate] = useState(false);
   const [requirementsSummary, setRequirementsSummary] = useState('');
   const [lastResetKey, setLastResetKey] = useState<number | null>(null);
+
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
 
   useEffect(() => {
     if (typeof resetKey !== 'undefined' && resetKey !== lastResetKey) {
@@ -124,8 +131,13 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey 
     if (error) setError('');
 
     try {
-      const response = await sendChatMessage(nextMessages);
-      setMessages((prev) => [...prev, { role: 'assistant', content: response.reply }]);
+      const response = await sendChatMessage(nextMessages, jobId);
+      const nextAssistantMessages: ChatMessage[] = [
+        ...nextMessages,
+        { role: 'assistant', content: response.reply },
+      ];
+      setMessages(nextAssistantMessages);
+      onMessagesChange?.(nextAssistantMessages);
       setReadyToGenerate(response.ready_to_generate);
       setRequirementsSummary(response.requirements_summary);
     } catch (err) {
@@ -190,6 +202,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey 
 
     setPrompt('');
     setMessages([]);
+    onMessagesChange?.([]);
     setReadyToGenerate(false);
     setRequirementsSummary('');
   };
