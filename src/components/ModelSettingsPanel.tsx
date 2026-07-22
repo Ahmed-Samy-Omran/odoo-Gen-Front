@@ -112,10 +112,45 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
       setModelModal({ open: false });
       return;
     }
-    // set pending rename for protected refactor
     const mdl = safeModels.find((m) => m.id === modelId);
     const oldName = mdl?.name || '';
-    setPendingRename({ modelId, oldName, newName });
+
+    // Determine if this rename affects existing schema relations
+    let hasRelations = false;
+    try {
+      if (schema && Array.isArray(schema.models)) {
+        for (const m of schema.models) {
+          if (!m || !Array.isArray(m.fields)) continue;
+          for (const f of m.fields) {
+            if (f?.relation === oldName) {
+              hasRelations = true;
+              break;
+            }
+          }
+          if (hasRelations) break;
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    if (hasRelations) {
+      // require confirmation when relations exist
+      setPendingRename({ modelId, oldName, newName });
+    } else {
+      // apply immediately if no relations reference this model name
+      updateModel(modelId, { name: newName });
+      try {
+        if (schema && typeof onSchemaReplace === 'function') {
+          const nextSchema = {
+            ...schema,
+            models: schema.models.map((m) => (m.name === oldName ? { ...m, name: newName } : m)),
+          };
+          onSchemaReplace(nextSchema);
+          try { localStorage.setItem('odoo_erd_schema', JSON.stringify(nextSchema)); } catch {}
+        }
+      } catch (err) {}
+    }
     setModelModal({ open: false });
   };
 
@@ -123,9 +158,10 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
   const addModel = () => {
     const modelId = globalThis.crypto?.randomUUID?.() || `model_${Date.now()}_${safeModels.length + 1}`;
+    const uniqueName = `model_${Date.now()}`;
     const newModel: Model = {
       id: modelId,
-      name: `model_${safeModels.length + 1}`,
+      name: uniqueName,
       fields: [{ id: `${modelId}_field_1`, name: 'name', type: 'Char', required: true }],
     };
     onModelsChange([...safeModels, newModel]);
@@ -195,8 +231,8 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
         <div className="mb-3 rounded-md border border-amber-400/20 bg-amber-500/6 p-3 flex items-center justify-between">
           <div className="text-sm text-amber-100">هل تريد تغيير اسم الموديل وتحديث جميع العلاقات (FKs) المرتبطة به؟</div>
           <div className="flex items-center gap-2">
-            <button onClick={() => applyPendingRename(false)} className="px-3 py-1 rounded bg-white/5 text-white/80">Cancel</button>
-            <button onClick={() => applyPendingRename(true)} className="px-3 py-1 rounded bg-amber-500 text-amber-100">Yes, apply</button>
+            <button onClick={() => { console.log('applyPendingRename cancel', pendingRename); applyPendingRename(false); }} className="px-3 py-1 rounded bg-white/5 text-white/80">Cancel</button>
+            <button onClick={() => { console.log('applyPendingRename confirm', pendingRename); applyPendingRename(true); }} className="px-3 py-1 rounded bg-amber-500 text-amber-100">Yes, apply</button>
           </div>
         </div>
       )}
@@ -222,7 +258,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
           return (
             <div key={model.id} className="glass-card overflow-hidden">
-              <div className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+                  <div className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3 text-left min-w-0">
                       <button type="button" onClick={() => toggleModel(model.id)} className="p-1">
                         {expandedModels.has(model.id) ? (
@@ -355,6 +391,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           onClose={() => setModelModal({ open: false })}
           onSave={handleModelRename}
         />
+        {/* Deleted confirmation dialog: removal actions execute immediately */}
     </div>
   );
 };

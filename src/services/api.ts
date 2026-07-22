@@ -9,6 +9,7 @@ export interface GeneratorPayload {
   models: ModelDefinition[];
   deploymentStrategy: 'github' | 'local_zip';
   repositoryUrl?: string;
+  job_id?: string;
   /** When set, skips AI and posts directly to /generate-module/ */
   rawConfig?: { modules: unknown[] };
   /** When set, sends this text directly to /analyze-requirements/ (old JSON format) */
@@ -33,6 +34,7 @@ export interface GenerationResult {
   downloadUrl?: string;
   repositoryUrl?: string;
   deploymentMethod: 'github' | 'local_zip';
+  jobId?: string;
 }
 
 export interface GeneratedFile {
@@ -110,7 +112,7 @@ function resolveApiBaseUrl(): string {
   return 'http://127.0.0.1:8000';
 }
 
-const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URL = resolveApiBaseUrl();
 const POLL_INTERVAL_MS = 2500;
 
 const ZIP_RESPONSE_ERROR =
@@ -211,14 +213,14 @@ function toBackendPayload(payload: GeneratorPayload) {
   };
 }
 
-export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResponse> {
+export async function sendChatMessage(messages: ChatMessage[], jobId?: string | null): Promise<ChatResponse> {
   const response = await fetch(`${API_BASE_URL}/chat/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, job_id: jobId || null }),
   });
 
   if (!response.ok) {
@@ -229,14 +231,17 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResp
   return safeJsonResponse<ChatResponse>(response);
 }
 
-async function startPromptJob(prompt: string): Promise<JobStatus> {
+async function startPromptJob(prompt: string, jobId?: string): Promise<JobStatus> {
+  const body: any = { prompt };
+  if (jobId) body.job_id = jobId;
+
   const response = await fetch(`${API_BASE_URL}/analyze-requirements/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -247,8 +252,10 @@ async function startPromptJob(prompt: string): Promise<JobStatus> {
   return safeJsonResponse<JobStatus>(response);
 }
 
-async function startConfigJob(payload: GeneratorPayload): Promise<JobStatus> {
-  const body = payload.rawConfig ?? toBackendPayload(payload);
+async function startConfigJob(payload: GeneratorPayload, jobId?: string): Promise<JobStatus> {
+  const body: any = payload.rawConfig ?? toBackendPayload(payload);
+  if (jobId) body.job_id = jobId;
+
   const response = await fetch(`${API_BASE_URL}/generate-module/`, {
     method: 'POST',
     headers: {
@@ -264,6 +271,17 @@ async function startConfigJob(payload: GeneratorPayload): Promise<JobStatus> {
   }
 
   return safeJsonResponse<JobStatus>(response);
+}
+
+export async function fetchJobRestore(jobId: string): Promise<{ job_id: string; status: string; progress: number; message: string; chat_history?: ChatMessage[]; module_config?: unknown; schema_preview?: SchemaPreview | null }> {
+  const response = await fetch(`${API_BASE_URL}/job/${jobId}/restore`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    const errorData: ApiErrorBody = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, 'Failed to restore session'));
+  }
+  return safeJsonResponse(response);
 }
 
 export async function pollJob(jobId: string): Promise<JobStatus> {
@@ -309,6 +327,7 @@ async function waitForJob(jobId: string, onProgress?: ProgressCallback): Promise
 export async function generateModule(
   payload: GeneratorPayload,
   onProgress?: ProgressCallback,
+  jobId?: string,
 ): Promise<GenerationResult> {
   try {
     if (!payload?.moduleName) {
@@ -318,8 +337,8 @@ export async function generateModule(
     const hasRawConfig = Boolean(payload.rawConfig?.modules?.length);
     const hasStructuredModels = payload.models?.some((m) => m.fields?.length > 0);
     const initialJob = hasRawConfig || hasStructuredModels
-      ? await startConfigJob(payload)
-      : await startPromptJob(payload.aiPrompt?.trim() || buildPrompt(payload));
+      ? await startConfigJob(payload, jobId)
+      : await startPromptJob(payload.aiPrompt?.trim() || buildPrompt(payload), jobId);
 
     onProgress?.(initialJob);
 
@@ -330,6 +349,13 @@ export async function generateModule(
       ? `${API_BASE_URL}${finalJob.download_url}`
       : undefined;
 
+    // Persist active job id locally so App can reuse it for edits
+    try {
+      localStorage.setItem('odoo_active_job', finalJob.job_id);
+    } catch {
+      // ignore
+    }
+
     return {
       success: true,
       message: finalJob.message || 'Generation successful',
@@ -337,6 +363,7 @@ export async function generateModule(
       downloadUrl,
       repositoryUrl: finalJob.github_url || payload.repositoryUrl,
       deploymentMethod: finalJob.github_url ? 'github' : payload.deploymentStrategy,
+      jobId: finalJob.job_id,
     };
   } catch (error) {
     console.error('Generation error:', error);

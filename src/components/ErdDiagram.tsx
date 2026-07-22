@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X, Pencil } from 'lucide-react';
+import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X } from 'lucide-react';
 import type { SchemaPreview } from '../utils/diagramBuilder';
 import { DiagramZoomToolbar } from './DiagramZoomToolbar';
 import { CustomNode } from './CustomNode';
@@ -296,10 +296,24 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         y: ((sourceNode.position?.y ?? 0) + (targetNode.position?.y ?? 0)) / 2 - 8,
       };
     } else if (selectedNode) {
-      baseFlowPosition = {
-        x: (selectedNode.position?.x ?? 0) + (selectedField ? 230 : 180),
-        y: (selectedNode.position?.y ?? 0) + 22,
-      };
+      // If a specific field is selected, position the menu vertically next to that field row.
+      if (selectedField && schema) {
+        const model = schema.models.find((m) => m.name === selectedField.nodeId);
+        const fieldIdx = model ? model.fields.findIndex((f) => f.name === selectedField.fieldName) : -1;
+        const headerHeight = 32; // approximate header height in px
+        const rowHeight = 30; // approximate per-field row height
+        const yOffset = headerHeight + Math.max(0, fieldIdx) * rowHeight + Math.floor(rowHeight / 2);
+        const nodeWidth = 220;
+        baseFlowPosition = {
+          x: (selectedNode.position?.x ?? 0) + nodeWidth + 8,
+          y: (selectedNode.position?.y ?? 0) + yOffset,
+        };
+      } else {
+        baseFlowPosition = {
+          x: (selectedNode.position?.x ?? 0) + (selectedField ? 230 : 180),
+          y: (selectedNode.position?.y ?? 0) + 22,
+        };
+      }
     }
 
     if (!baseFlowPosition) return null;
@@ -386,35 +400,13 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     setAddFieldModal({ open: true, nodeId });
   }, [schema, selectedField?.nodeId, selectedNodeId]);
 
-  const handleEditSelectedField = useCallback(() => {
-    if (!schema || !selectedField) return;
-    const model = schema.models.find((m) => m.name === selectedField.nodeId);
-    const idx = model?.fields.findIndex((f) => f.name === selectedField.fieldName) ?? -1;
-    if (idx < 0 || !model) return;
-    const f = model.fields[idx];
-    setAddFieldModal({
-      open: true,
-      nodeId: selectedField.nodeId,
-      index: idx,
-      defaultName: f.name,
-      defaultType: f.type,
-      required: f.required,
-      defaultValue: f.default ?? null,
-      unique: f.unique ?? false,
-    });
-  }, [schema, selectedField]);
-
-  const handleDeleteSelection = useCallback(() => {
+  const performDelete = useCallback(() => {
     if (!schema) return;
-
     if (selectedField) {
       const nextSchema: SchemaPreview = {
         ...schema,
         models: schema.models.map((item) => item.name === selectedField.nodeId
-          ? {
-              ...item,
-              fields: item.fields.filter((field) => field.name !== selectedField.fieldName),
-            }
+          ? { ...item, fields: item.fields.filter((field) => field.name !== selectedField.fieldName) }
           : item),
       };
       pushSnapshot(nextSchema);
@@ -430,9 +422,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           ? {
               ...item,
               fields: item.fields.filter((field) => {
-                if (sourceHandleField) {
-                  return !(field.name === sourceHandleField && field.relation === selectedEdge.target);
-                }
+                if (sourceHandleField) return !(field.name === sourceHandleField && field.relation === selectedEdge.target);
                 return field.relation !== selectedEdge.target;
               }),
             }
@@ -451,7 +441,14 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       pushSnapshot(nextSchema);
       setSelectedNodeId(null);
     }
-  }, [pushSnapshot, schema, selectedEdge, selectedField, selectedNodeId]);
+  }, [schema, selectedField, selectedEdge, selectedNodeId, pushSnapshot]);
+
+  const handleDeleteSelection = useCallback(() => {
+    if (!schema) return;
+    if (selectedField || selectedEdge || selectedNodeId) {
+      performDelete();
+    }
+  }, [performDelete, schema, selectedEdge, selectedField, selectedNodeId]);
 
   const handleSaveLocal = useCallback(() => {
     if (!schema) return;
@@ -638,18 +635,13 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            transition={{ type: 'spring', stiffness: 450, damping: 38 }}
             className="absolute z-30 rounded-2xl border border-white/10 bg-black/60 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl"
             style={{ left: floatingMenu.left, top: floatingMenu.top }}
           >
             <div className="flex items-center gap-1.5">
-                  {!selectedEdge && !relationDraft && (
+              {!selectedEdge && !relationDraft && (
                 <>
-                  {selectedField && (
-                    <ActionButton title="تعديل الحقل" onClick={handleEditSelectedField} className="border-violet-400/20 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20">
-                      <Pencil className="h-4 w-4" />
-                    </ActionButton>
-                  )}
                   <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
                     <Plus className="h-4 w-4" />
                   </ActionButton>
@@ -799,6 +791,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         onClose={() => setEditModelModal({ open: false })}
         onSave={handleSaveModelEdit}
       />
+      {/* Confirm modal removed: delete actions now execute immediately on click */}
     </div>
   );
 };

@@ -13,6 +13,11 @@ import { CanvasView } from './CanvasView';
 import { generateErdFromSchema } from '../utils/diagramBuilder';
 
 import type { GeneratedFile, SchemaPreview } from '../services/api';
+const schemaFingerprint = (schema: SchemaPreview | null): string => {
+  if (!schema) return '';
+  return `${schema.module_name ?? ''}|${schema.models?.length ?? 0}|${schema.use_cases?.length ?? 0}`;
+};
+
 
 
 
@@ -20,103 +25,51 @@ type DiagramTab = 'erd' | 'usecase';
 
 type ViewTab = 'diagrams' | 'files';
 
-
-
 interface SystemBuildViewProps {
-
   schema: SchemaPreview | null;
-
   isAwaitingAiSchema?: boolean;
-
   isGenerating: boolean;
-
-  isDrawing?: boolean;
-
   isComplete: boolean;
-
   hasError?: boolean;
   onTryDemo?: () => void;
   progress: number;
-
   statusMessage: string;
-
   estimatedRemainingSec?: number | null;
-
   files?: GeneratedFile[];
-
   selectedFile?: string | null;
-
   onSelectFile?: (path: string) => void;
-
   deploymentStrategy?: 'github' | 'local_zip';
-
   repositoryUrl?: string;
-
   downloadUrl?: string;
   onSchemaChange?: (schema: SchemaPreview) => void;
-
 }
-
-
-
-function schemaFingerprint(schema: SchemaPreview | null): string | null {
-  if (!schema) return null;
-  const modelKey = schema.models.map((m) => `${m.name}:${m.fields.map((f) => f.name).join(',')}`).join('|');
-  return `${schema.module_name}|${modelKey}|${schema.use_cases.length}`;
-}
-
-
 
 export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
-
   schema,
-
   isAwaitingAiSchema = false,
-
   isGenerating,
-
   isComplete,
-
   hasError = false,
-
   onTryDemo,
-
   progress,
-
   statusMessage,
-
-  estimatedRemainingSec,
-
+  estimatedRemainingSec = null,
   files = [],
-
-  selectedFile,
-
+  selectedFile = null,
   onSelectFile,
-
   deploymentStrategy = 'local_zip',
-
   repositoryUrl,
-
   downloadUrl,
   onSchemaChange,
-
 }) => {
-
   const [diagramTab, setDiagramTab] = useState<DiagramTab>('erd');
-
   const [viewTab, setViewTab] = useState<ViewTab>('diagrams');
-
   const [visibleNodes, setVisibleNodes] = useState(0);
-
   const [visibleEdges, setVisibleEdges] = useState(0);
-
   const [visibleUseCases, setVisibleUseCases] = useState(0);
-
   const [showBoundary, setShowBoundary] = useState(false);
-
   const [animationDone, setAnimationDone] = useState(false);
   const [editableSchema, setEditableSchema] = useState<SchemaPreview | null>(null);
-
   const timersRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
   const effectiveSchema = isAwaitingAiSchema ? null : schema;
@@ -132,30 +85,19 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   }, [schema, isAwaitingAiSchema]);
 
   const { nodes, edges } = useMemo(() => {
-
     if (!editableSchema) return { nodes: [], edges: [] };
-
     return generateErdFromSchema(editableSchema);
-
   }, [editableSchema]);
 
-
-
   const useCaseTotal = effectiveSchema?.use_cases.length ?? 0;
-
   const schemaKey = schemaFingerprint(effectiveSchema);
-
-
+  const majorKeyRef = useRef<string | null>(null);
+  const majorKey = effectiveSchema ? `${effectiveSchema.module_name}|${effectiveSchema.models.length}|${useCaseTotal}` : null;
 
   const clearTimers = () => {
-
     timersRef.current.forEach(clearInterval);
-
     timersRef.current = [];
-
   };
-
-
 
   // Progressive reveal animation — runs once per schema
 
@@ -166,36 +108,30 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
     if (!effectiveSchema || !schemaKey) {
-
       setVisibleNodes(0);
-
       setVisibleEdges(0);
-
       setVisibleUseCases(0);
-
       setShowBoundary(false);
-
       setAnimationDone(false);
-
+      majorKeyRef.current = majorKey;
       return;
-
     }
 
-
+    if (majorKey && majorKeyRef.current === majorKey) {
+      setVisibleNodes(nodes.length);
+      setVisibleEdges(edges.length);
+      setVisibleUseCases(useCaseTotal);
+      setShowBoundary(true);
+      setAnimationDone(true);
+      return;
+    }
 
     setVisibleNodes(0);
-
     setVisibleEdges(0);
-
     setVisibleUseCases(0);
-
     setShowBoundary(false);
-
     setAnimationDone(false);
-
     setDiagramTab('erd');
-
-
 
     const ucInterval = useCaseTotal > 16 ? 60 : 140;
     const ucBatch = useCaseTotal > 16 ? 2 : 1;
@@ -254,38 +190,11 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
     };
 
     startNodes();
+    majorKeyRef.current = majorKey;
 
     return clearTimers;
 
-  }, [schemaKey, nodes.length, edges.length, useCaseTotal]);
-
-
-
-  // Mark animation done immediately when backend finishes (don't block on animation)
-
-  useEffect(() => {
-
-    if (isComplete || hasError) {
-
-      if (effectiveSchema) {
-
-        setVisibleNodes(nodes.length);
-
-        setVisibleEdges(edges.length);
-
-        setVisibleUseCases(useCaseTotal);
-
-        setShowBoundary(true);
-
-      }
-
-      setAnimationDone(true);
-
-      clearTimers();
-
-    }
-
-  }, [isComplete, hasError, effectiveSchema, nodes.length, edges.length, useCaseTotal]);
+  }, [schemaKey, nodes.length, edges.length, useCaseTotal, majorKey]);
 
 
 
@@ -313,10 +222,11 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
   const clampedProgress = Math.min(100, Math.max(0, progress));
+  const showViewTabs = files.length > 0;
 
 
 
-  if (viewTab === 'files' && isComplete && files.length > 0) {
+  if (viewTab === 'files' && showViewTabs) {
 
     return (
 
@@ -328,7 +238,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             onClick={() => setViewTab('diagrams')}
 
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/10 text-white/90"
 
           >
 
@@ -338,7 +248,13 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/10 text-white/90">
+          <button
+
+            onClick={() => setViewTab('files')}
+
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'files' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+
+          >
 
             <FileCode className="w-3.5 h-3.5" />
 
@@ -512,6 +428,25 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
 
+        {showViewTabs && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-glass-border bg-black/40">
+            <button
+              onClick={() => setViewTab('diagrams')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'diagrams' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              Diagrams
+            </button>
+            <button
+              onClick={() => setViewTab('files')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'files' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              Generated Files
+            </button>
+          </div>
+        )}
+
         {/* Diagram tabs */}
 
         <div className="flex items-center gap-1 px-4 py-2 border-b border-glass-border">
@@ -571,27 +506,6 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
             )}
 
           </button>
-
-
-
-          {isComplete && files.length > 0 && (
-
-            <button
-
-              onClick={() => setViewTab('files')}
-
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors ml-auto"
-
-            >
-
-              <FileCode className="w-3.5 h-3.5" />
-
-              View Files
-
-            </button>
-
-          )}
-
         </div>
 
 
@@ -677,11 +591,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             </div>
 
-          )}
-
-
-
-          {/* Phase indicator */}
+          )}          {/* Phase indicator */}
 
           {effectiveSchema && isGenerating && !hasError && (
 
