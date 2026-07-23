@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Plus, Pencil } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Props {
   open: boolean;
@@ -105,7 +106,10 @@ export const AddFieldModal: React.FC<Props> = ({
               type="button"
               onClick={() => {
                 const trimmed = (name || '').trim();
-                if (!trimmed) return alert('Please provide a field name');
+                if (!trimmed) {
+                  toast.error('Please provide a field name');
+                  return;
+                }
                 onAdd(trimmed, type || 'Char', required, defaultValue ?? null, unique);
               }}
               className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 hover:bg-emerald-500/20"

@@ -284,6 +284,31 @@ export async function fetchJobRestore(jobId: string): Promise<{ job_id: string; 
   return safeJsonResponse(response);
 }
 
+export async function syncJobConfig(
+  jobId: string,
+  moduleConfig: Record<string, unknown>,
+  schemaPreview?: SchemaPreview | null,
+): Promise<{ status: string; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/job/${jobId}/sync-config`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      module_config: moduleConfig,
+      schema_preview: schemaPreview ?? null,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData: ApiErrorBody = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, 'Failed to sync changes to cloud'));
+  }
+
+  return safeJsonResponse<{ status: string; message: string }>(response);
+}
+
 export async function pollJob(jobId: string): Promise<JobStatus> {
   const response = await fetch(`${API_BASE_URL}/job/${jobId}`, {
     headers: { Accept: 'application/json' },

@@ -2,7 +2,6 @@ import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
-  MiniMap,
   useReactFlow,
   useOnViewportChange,
   type Node,
@@ -12,6 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Trash2, ArrowLeftRight, Undo2, Redo2, Save, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { SchemaPreview } from '../utils/diagramBuilder';
 import { DiagramZoomToolbar } from './DiagramZoomToolbar';
 import { CustomNode } from './CustomNode';
@@ -74,6 +74,8 @@ interface ErdDiagramProps {
   isDrawing?: boolean;
   schema?: SchemaPreview | null;
   onSchemaChange?: (schema: SchemaPreview) => void;
+  activeJobId?: string | null;
+  onCloudSync?: () => Promise<void>;
 }
 
 export const ErdDiagram: React.FC<ErdDiagramProps> = ({
@@ -85,6 +87,8 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   isDrawing = false,
   schema,
   onSchemaChange,
+  activeJobId,
+  onCloudSync,
 }) => {
   const [interactionMode, setInteractionMode] = useState<'pan' | 'select'>('pan');
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_MAX_ZOOM);
@@ -450,11 +454,22 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
     }
   }, [performDelete, schema, selectedEdge, selectedField, selectedNodeId]);
 
-  const handleSaveLocal = useCallback(() => {
+  const handleSaveLocal = useCallback(async () => {
     if (!schema) return;
-    localStorage.setItem('odoo_erd_schema', JSON.stringify(schema));
-    window.alert('ERD schema saved locally in this browser.');
-  }, [schema]);
+
+    if (activeJobId && onCloudSync) {
+      try {
+        await onCloudSync();
+        toast.success('Changes synced to cloud');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to sync changes to cloud';
+        toast.error(errorMessage);
+      }
+    } else {
+      localStorage.setItem('odoo_erd_schema', JSON.stringify(schema));
+      toast.success('ERD schema saved locally');
+    }
+  }, [schema, activeJobId, onCloudSync]);
 
   const handleSaveModelEdit = useCallback((newName: string) => {
     const nodeId = editModelModal.nodeId;
@@ -694,7 +709,19 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         zoomOnScroll
         onNodeClick={(_, node) => {
           if (relationDraft && relationDraft.sourceNodeId !== node.id) {
-            handleCreateRelation(relationDraft.sourceNodeId, node.id, relationDraft.sourceFieldName);
+            const sourceNodeId = relationDraft.sourceNodeId;
+            const sourceFieldName = relationDraft.sourceFieldName;
+
+            // Clear the draft immediately so the UI feels responsive, then apply the
+            // relation update on the next frame to avoid blocking the click feedback.
+            setRelationDraft(null);
+            setSelectedNodeId(sourceNodeId);
+            setSelectedField(sourceFieldName ? { nodeId: sourceNodeId, fieldName: sourceFieldName } : null);
+            setSelectedEdge(null);
+
+            requestAnimationFrame(() => {
+              handleCreateRelation(sourceNodeId, node.id, sourceFieldName);
+            });
             return;
           }
           if (relationDraft && relationDraft.sourceNodeId === node.id) {
@@ -758,13 +785,6 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           gap={24}
           size={1}
           color="rgba(255, 255, 255, 0.03)"
-        />
-        <MiniMap
-          className="diagram-minimap"
-          nodeColor="rgba(255, 255, 255, 0.08)"
-          maskColor="rgba(0, 0, 0, 0.85)"
-          pannable
-          zoomable
         />
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">

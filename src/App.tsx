@@ -5,12 +5,14 @@ import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
+import { ToastProvider } from './components/ToastProvider';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
 import {
   fetchJobFiles,
   fetchJobRestore,
   generateModule,
+  syncJobConfig,
   API_BASE_URL,
   type ChatMessage,
   type GeneratorPayload,
@@ -291,15 +293,57 @@ function App() {
   }, [isMobile, showLeftPanel]);
   const [schemaPreview, setSchemaPreview] = useState<SchemaPreview | null>(null);
   const [isAwaitingAiSchema, setIsAwaitingAiSchema] = useState(false);
+  const [, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const schemaSetRef = useRef(false);
   const modelsSyncedRef = useRef(false);
   const modelsRef = useRef<Model[]>([]);
+  const syncTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     modelsRef.current = models;
   }, [models]);
 
-  // persist schemaPreview to localStorage when it changes
+  useEffect(() => {
+    if (!schemaPreview || !activeJobId) return;
+
+    if (syncTimerRef.current) {
+      window.clearTimeout(syncTimerRef.current);
+    }
+
+    syncTimerRef.current = window.setTimeout(async () => {
+      try {
+        setCloudSyncStatus('syncing');
+        const moduleConfig = {
+          module_name: schemaPreview.module_name || 'custom_module',
+          models: schemaPreview.models.map((model) => ({
+            name: model.name,
+            fields: model.fields.map((field) => ({
+              name: field.name,
+              type: field.type,
+              required: field.required,
+              default: field.default ?? null,
+              unique: field.unique ?? false,
+            })),
+          })),
+        };
+
+        const response = await syncJobConfig(activeJobId, moduleConfig, schemaPreview);
+        setStatusMessage(response.message || 'Changes synced to cloud successfully');
+        setCloudSyncStatus('synced');
+        setTimeout(() => setCloudSyncStatus('idle'), 2000);
+      } catch (error) {
+        setCloudSyncStatus('error');
+        setStatusMessage(error instanceof Error ? error.message : 'Failed to sync changes to cloud');
+      }
+    }, 250);
+
+    return () => {
+      if (syncTimerRef.current) {
+        window.clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, [activeJobId, schemaPreview]);
+
   useEffect(() => {
     if (!schemaPreview) return;
     try {
@@ -517,6 +561,35 @@ function App() {
     }
   }, []);
 
+  const handleCloudSync = useCallback(async () => {
+    if (!schemaPreview || !activeJobId) return;
+
+    try {
+      setCloudSyncStatus('syncing');
+      const moduleConfig = {
+        module_name: schemaPreview.module_name || 'custom_module',
+        models: schemaPreview.models.map((model) => ({
+          name: model.name,
+          fields: model.fields.map((field) => ({
+            name: field.name,
+            type: field.type,
+            required: field.required,
+            default: field.default ?? null,
+            unique: field.unique ?? false,
+          })),
+        })),
+      };
+
+      const response = await syncJobConfig(activeJobId, moduleConfig, schemaPreview);
+      setStatusMessage(response.message || 'Changes synced to cloud successfully');
+      setCloudSyncStatus('synced');
+      setTimeout(() => setCloudSyncStatus('idle'), 2000);
+    } catch (error) {
+      setCloudSyncStatus('error');
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to sync changes to cloud');
+    }
+  }, [activeJobId, schemaPreview]);
+
   const handleGenerate = async (payload: GeneratorPayload) => {
     resetGenerationState();
 
@@ -639,6 +712,7 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-black overflow-hidden relative">
+      <ToastProvider />
       <ParticleBackground />
 
       {/* Top-left toggle icon -> opens/closes sidebar */}
@@ -697,7 +771,7 @@ function App() {
                               </button>
                             </div>
                             <div className="h-full overflow-auto">
-                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} />
+                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} onCloudSync={handleCloudSync} />
                             </div>
                           </div>
                         </div>
@@ -756,6 +830,8 @@ function App() {
                         deploymentStrategy={deploymentStrategy}
                         repositoryUrl={repositoryUrl}
                         downloadUrl={downloadUrl}
+                        activeJobId={activeJobId}
+                        onCloudSync={handleCloudSync}
                       />
                     ) : (
                       <div className="flex-1 flex items-center justify-center">

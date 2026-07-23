@@ -42,6 +42,8 @@ interface SystemBuildViewProps {
   repositoryUrl?: string;
   downloadUrl?: string;
   onSchemaChange?: (schema: SchemaPreview) => void;
+  activeJobId?: string | null;
+  onCloudSync?: () => Promise<void>;
 }
 
 export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
@@ -61,6 +63,8 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   repositoryUrl,
   downloadUrl,
   onSchemaChange,
+  activeJobId,
+  onCloudSync,
 }) => {
   const [diagramTab, setDiagramTab] = useState<DiagramTab>('erd');
   const [viewTab, setViewTab] = useState<ViewTab>('diagrams');
@@ -519,26 +523,19 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
             diagramTab === 'erd' ? (
 
               <ErdDiagram
-
                 nodes={nodes}
-
                 edges={edges}
-
                 visibleNodeCount={visibleNodes}
-
                 visibleEdgeCount={visibleEdges}
-
                 layoutKey={schemaKey ?? ''}
-
                 isDrawing={isGenerating && !animationDone}
-
                 schema={effectiveEditableSchema}
-
                 onSchemaChange={(nextSchema) => {
                   setEditableSchema(nextSchema);
                   onSchemaChange?.(nextSchema);
                 }}
-
+                activeJobId={activeJobId}
+                onCloudSync={onCloudSync}
               />
 
             ) : (

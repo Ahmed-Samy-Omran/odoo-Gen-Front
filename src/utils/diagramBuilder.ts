@@ -48,7 +48,7 @@ export function generateErdFromSchema(schema: SchemaPreview): { nodes: Node[]; e
       type: 'tableNode',
       position: savedPosition ?? { x: 80 + col * xGap, y: 60 + row * yGap },
       data: {
-        label: model.name,
+        label: normalizeModelName(model.name),
         modelName: model.name,
         moduleName: model.module_name,
         fields: model.fields,
@@ -94,6 +94,13 @@ export interface GroupedUseCase {
   model?: string;
 }
 
+export function normalizeModelName(name: string | null | undefined): string {
+  const trimmed = (name ?? '').toString().trim();
+  if (!trimmed) return '';
+  const parts = trimmed.split('.').filter(Boolean);
+  return parts[parts.length - 1] || trimmed;
+}
+
 export function groupUseCasesForDisplay(useCases: SchemaUseCase[]): {
   grouped: GroupedUseCase[];
   standalone: SchemaUseCase[];
@@ -135,11 +142,12 @@ export function groupUseCasesForDisplay(useCases: SchemaUseCase[]): {
 }
 
 export function buildCrudUseCases(modelName: string): SchemaUseCase[] {
+  const displayName = normalizeModelName(modelName);
   return [
-    { name: `Create ${modelName}`, actor: 'User', model: modelName },
-    { name: `View ${modelName}`, actor: 'User', model: modelName },
-    { name: `Edit ${modelName}`, actor: 'User', model: modelName },
-    { name: `Delete ${modelName}`, actor: 'Administrator', model: modelName },
+    { name: `Create ${displayName}`, actor: 'User', model: modelName },
+    { name: `View ${displayName}`, actor: 'User', model: modelName },
+    { name: `Edit ${displayName}`, actor: 'User', model: modelName },
+    { name: `Delete ${displayName}`, actor: 'Administrator', model: modelName },
   ];
 }
 

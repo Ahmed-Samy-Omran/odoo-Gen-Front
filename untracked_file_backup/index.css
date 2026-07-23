@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #04070b;
+  color: #f8fafc;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/[0.02] border border-white/[0.06] rounded-xl backdrop-blur-sm;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.02);
+  }
+
+  .glass-card:hover {
+    @apply border-white/[0.09] bg-white/[0.03];
+  }
+
+  .cyber-input {
+    @apply bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white/80 placeholder-white/20 outline-none transition-all duration-200;
+  }
+
+  .cyber-input:focus {
+    @apply border-white/20 bg-white/[0.06] ring-1 ring-white/10;
+  }
+
+  .cyber-input:hover {
+    @apply border-white/[0.12] bg-white/[0.05];
+  }
+
+  .cyber-button-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-black transition-all duration-200 cursor-pointer;
+    border: none;
+  }
+
+  .cyber-button-primary:hover {
+    @apply bg-white/90 scale-[1.02];
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+  }
+
+  .cyber-button-primary:active {
+    @apply scale-[0.98];
+  }
+
+  .cyber-button-primary:disabled {
+    @apply opacity-40 cursor-not-allowed scale-100;
+  }
+
+  .cyber-button {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/[0.05] text-white/70 border border-white/[0.08] transition-all duration-200 cursor-pointer;
+  }
+
+  .cyber-button:hover {
+    @apply bg-white/[0.08] text-white/90 border-white/[0.12];
+  }
+
+  .cyber-button:active {
+    @apply scale-[0.98];
+  }
+
+  .cyber-button:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  .nav-icon-btn {
+    @apply flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/70 transition-all duration-200 cursor-pointer;
+  }
+
+  .nav-icon-btn:hover {
+    @apply bg-white/[0.09] text-white/90 border-white/[0.14];
+  }
+
+  .nav-icon-btn.active {
+    @apply bg-white/[0.10] text-white border-white/[0.18];
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+  }
+
+  .diagram-erd-node {
+    @apply rounded-[24px] border border-white/10 bg-slate-950/90 shadow-[0_20px_80px_rgba(0,0,0,0.55)];
+    min-width: 260px;
+    max-width: 280px;
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+  }
+
+  .diagram-erd-node-selected {
+    @apply border-cyan-400/30;
+  }
+
+  .diagram-erd-node-header {
+    @apply flex items-center gap-3 px-4 py-3 border-b border-white/10;
+    min-height: 46px;
+  }
+
+  .diagram-erd-node-body {
+    @apply flex flex-col gap-1 px-4 py-3;
+  }
+
+  .diagram-erd-field {
+    @apply flex items-center gap-2 rounded-2xl px-3 py-2 text-white/70 transition-colors;
+  }
+
+  .diagram-erd-field:hover {
+    @apply bg-white/5 text-white;
+  }
+
+  .diagram-handle {
+    @apply absolute rounded-full bg-white/20 shadow-[0_0_0_1px_rgba(255,255,255,0.08)];
+    width: 8px;
+    height: 8px;
+    opacity: 0.85;
+  }
+
+  .diagram-handle-left {
+    left: -12px;
+  }
+
+  .diagram-handle-right {
+    right: -12px;
+  }
+
+  .diagram-erd-node-body button {
+    @apply relative flex items-center gap-2;
+  }
+
+  .cyber-code {
+    @apply font-mono text-xs bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1 text-white/70;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border;
+  }
+
+  .status-badge-success {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20;
+  }
+
+  .status-badge-error {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-red-500/10 text-red-400 border-red-500/20;
+  }
+
+  .status-badge-warning {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-amber-500/10 text-amber-400 border-amber-500/20;
+  }
+
+  .status-badge-idle {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-white/[0.04] text-white/40 border-white/[0.08];
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.18);
+  }
+}

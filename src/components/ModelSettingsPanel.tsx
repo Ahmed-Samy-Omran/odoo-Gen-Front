@@ -3,6 +3,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, Database, Box, Edit, Star, Has
 import EditTextModal from './EditTextModal';
 import type { SchemaPreview } from '../services/api';
 import AddFieldModal from './AddFieldModal';
+import { normalizeModelName } from '../utils/diagramBuilder';
 
 interface ModelField {
   id: string;
@@ -24,6 +25,7 @@ interface ModelSettingsPanelProps {
   onModelsChange: (models: Model[]) => void;
   schema?: SchemaPreview | null;
   onSchemaReplace?: (schema: SchemaPreview) => void;
+  onCloudSync?: () => Promise<void>;
 }
 
 export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
@@ -31,8 +33,10 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
   onModelsChange,
   schema = null,
   onSchemaReplace,
+  onCloudSync,
 }) => {
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const safeModels = Array.isArray(models) ? models : [];
   // editingNames was used for inline edits previously; modal handles edits now
   const [fieldModal, setFieldModal] = useState<{
@@ -156,6 +160,19 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
 
   // fieldTypes list kept in AddFieldModal; no inline select in compact sidebar
 
+  const handleCloudSync = async () => {
+    if (!onCloudSync) return;
+    setSyncState('syncing');
+    try {
+      await onCloudSync();
+      setSyncState('synced');
+      window.setTimeout(() => setSyncState('idle'), 1800);
+    } catch {
+      setSyncState('error');
+      window.setTimeout(() => setSyncState('idle'), 2200);
+    }
+  };
+
   const addModel = () => {
     const modelId = globalThis.crypto?.randomUUID?.() || `model_${Date.now()}_${safeModels.length + 1}`;
     const uniqueName = `model_${Date.now()}`;
@@ -241,14 +258,25 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           <h3 className="text-lg font-semibold text-white/90">Data Models</h3>
           <p className="text-sm text-white/30">Define your Odoo models and fields</p>
         </div>
-        <button
-          type="button"
-          onClick={addModel}
-          className="cyber-button-primary text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_12px_30px_rgba(0,0,0,0.35)]"
-        >
-          <Plus className="w-4 h-4" />
-          Add Model
-        </button>
+        <div className="flex items-center gap-2">
+          {onCloudSync && (
+            <button
+              type="button"
+              onClick={() => void handleCloudSync()}
+              className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-500/20"
+            >
+              {syncState === 'syncing' ? 'Syncing…' : syncState === 'synced' ? 'Synced' : syncState === 'error' ? 'Error' : 'Save to Cloud'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={addModel}
+            className="cyber-button-primary text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_12px_30px_rgba(0,0,0,0.35)]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Model
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -269,7 +297,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                       </button>
                       <Box className="w-4 h-4 text-white/60" />
                       <button type="button" onClick={() => setModelModal({ open: true, modelId: model.id, defaultName: model.name })} className="text-white/90 font-medium truncate text-left">
-                        {model.name}
+                        {normalizeModelName(model.name)}
                       </button>
                       <span className="text-xs text-white/30">({fields.length} fields)</span>
                     </div>
