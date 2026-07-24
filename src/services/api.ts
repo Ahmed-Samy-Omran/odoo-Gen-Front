@@ -413,3 +413,14 @@ export async function checkHealth(): Promise<boolean> {
     return false;
   }
 }
+
+export async function deleteJob(jobId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/job/${jobId}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Delete failed: ${response.statusText}`));
+  }
+}
