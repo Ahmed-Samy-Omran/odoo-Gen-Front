@@ -167,6 +167,14 @@ function App() {
 
   useEffect(() => {
     try {
+      localStorage.setItem('odoo_models', JSON.stringify(models));
+    } catch {
+      // ignore
+    }
+  }, [models]);
+
+  useEffect(() => {
+    try {
       if (selectedFile) {
         localStorage.setItem('odoo_selected_file', selectedFile);
       } else {
@@ -367,6 +375,27 @@ function App() {
       // ignore invalid persisted schema
     }
   }, []);
+
+  useEffect(() => {
+    if (!schemaPreview || models.length > 0) return;
+
+    const nextModels = schemaPreview.models.map((model) => ({
+      id: `${model.name}-${model.module_name}`,
+      name: model.name,
+      fields: model.fields.map((field) => ({
+        id: `${model.name}-${field.name}`,
+        name: field.name,
+        type: field.type,
+        required: field.required,
+        default: field.default ?? null,
+        unique: field.unique ?? false,
+      })),
+    }));
+
+    setModels(nextModels);
+    modelsRef.current = nextModels;
+    modelsSyncedRef.current = true;
+  }, [schemaPreview, models.length]);
 
   const syncSchemaPreviewFromModels = useCallback((nextModels: Model[]) => {
     const previousModelsById = new Map(modelsRef.current.map((model) => [model.id, model]));
