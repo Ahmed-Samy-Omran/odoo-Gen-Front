@@ -2,6 +2,7 @@ export interface GeneratorPayload {
   moduleName: string;
   description: string;
   version: string;
+  odoo_version?: string;
   author: string;
   category: string;
   depends: string[];
@@ -150,8 +151,9 @@ async function safeJsonResponse<T>(response: Response): Promise<T> {
 }
 
 export function buildPrompt(payload: GeneratorPayload): string {
+  const selectedVersion = payload.odoo_version || payload.version || '17.0';
   const lines: string[] = [
-    `Create an Odoo ${payload.version} module named "${payload.moduleName}".`,
+    `Create an Odoo ${selectedVersion} module named "${payload.moduleName}".`,
   ];
 
   if (payload.description?.trim()) {
@@ -193,13 +195,16 @@ export function buildPrompt(payload: GeneratorPayload): string {
 }
 
 function toBackendPayload(payload: GeneratorPayload) {
+  const resolvedVersion = payload.odoo_version || payload.version || '17.0';
   return {
+    odoo_version: resolvedVersion,
     modules: [
       {
         module_name: payload.moduleName,
         module_description: payload.description,
         depends: payload.depends,
         git_deploy_target: payload.deploymentStrategy,
+        odoo_version: resolvedVersion,
         models: (payload.models || []).map((m) => ({
           name: m.name,
           fields: (m.fields || []).map((f) => ({
@@ -231,9 +236,10 @@ export async function sendChatMessage(messages: ChatMessage[], jobId?: string | 
   return safeJsonResponse<ChatResponse>(response);
 }
 
-async function startPromptJob(prompt: string, jobId?: string): Promise<JobStatus> {
+async function startPromptJob(prompt: string, jobId?: string, payload?: GeneratorPayload): Promise<JobStatus> {
   const body: any = { prompt };
   if (jobId) body.job_id = jobId;
+  body.odoo_version = (payload?.odoo_version || payload?.version || '17.0');
 
   const response = await fetch(`${API_BASE_URL}/analyze-requirements/`, {
     method: 'POST',
@@ -273,7 +279,7 @@ async function startConfigJob(payload: GeneratorPayload, jobId?: string): Promis
   return safeJsonResponse<JobStatus>(response);
 }
 
-export async function fetchJobRestore(jobId: string): Promise<{ job_id: string; status: string; progress: number; message: string; chat_history?: ChatMessage[]; module_config?: unknown; schema_preview?: SchemaPreview | null }> {
+export async function fetchJobRestore(jobId: string): Promise<{ job_id: string; status: string; progress: number; message: string; chat_history?: ChatMessage[]; module_config?: unknown; schema_preview?: SchemaPreview | null; odoo_version?: string | null }> {
   const response = await fetch(`${API_BASE_URL}/job/${jobId}/restore`, {
     headers: { Accept: 'application/json' },
   });
@@ -288,6 +294,7 @@ export async function syncJobConfig(
   jobId: string,
   moduleConfig: Record<string, unknown>,
   schemaPreview?: SchemaPreview | null,
+  odooVersion?: string,
 ): Promise<{ status: string; message: string }> {
   const response = await fetch(`${API_BASE_URL}/job/${jobId}/sync-config`, {
     method: 'PATCH',
@@ -298,6 +305,7 @@ export async function syncJobConfig(
     body: JSON.stringify({
       module_config: moduleConfig,
       schema_preview: schemaPreview ?? null,
+      odoo_version: odooVersion ?? null,
     }),
   });
 
@@ -363,7 +371,7 @@ export async function generateModule(
     const hasStructuredModels = payload.models?.some((m) => m.fields?.length > 0);
     const initialJob = hasRawConfig || hasStructuredModels
       ? await startConfigJob(payload, jobId)
-      : await startPromptJob(payload.aiPrompt?.trim() || buildPrompt(payload), jobId);
+      : await startPromptJob(payload.aiPrompt?.trim() || buildPrompt(payload), jobId, payload);
 
     onProgress?.(initialJob);
 

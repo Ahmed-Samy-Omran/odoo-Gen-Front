@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Save, Info, Key, Database } from 'lucide-react';
 
-export const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  odooVersion: string;
+  onSaveSettings: (version: string) => void;
+}
+
+export const SettingsView: React.FC<SettingsViewProps> = ({ odooVersion, onSaveSettings }) => {
+  const [selectedVersion, setSelectedVersion] = useState(odooVersion);
+
+  useEffect(() => {
+    setSelectedVersion(odooVersion);
+  }, [odooVersion]);
+
   return (
     <div className="w-full h-full p-6 overflow-y-auto">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -73,18 +84,25 @@ export const SettingsView: React.FC = () => {
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-white/40 uppercase tracking-wider">Target Odoo Version</label>
-              <select className="w-full cyber-input cursor-pointer">
-                <option value="17.0" className="bg-black">Odoo 17.0</option>
-                <option value="16.0" className="bg-black">Odoo 16.0</option>
+              <select
+                className="w-full cyber-input cursor-pointer"
+                value={selectedVersion}
+                onChange={(event) => setSelectedVersion(event.target.value)}
+              >
                 <option value="15.0" className="bg-black">Odoo 15.0</option>
-                <option value="14.0" className="bg-black">Odoo 14.0</option>
+                <option value="16.0" className="bg-black">Odoo 16.0</option>
+                <option value="17.0" className="bg-black">Odoo 17.0</option>
               </select>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end">
-          <button className="cyber-button-primary gap-2">
+          <button
+            type="button"
+            className="cyber-button-primary gap-2"
+            onClick={() => onSaveSettings(selectedVersion)}
+          >
             <Save className="w-4 h-4" />
             Save Settings
           </button>

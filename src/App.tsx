@@ -111,6 +111,21 @@ function App() {
       return null;
     }
   });
+  const [activeJobConfig, setActiveJobConfig] = useState<{ odoo_version?: string }>(() => {
+    try {
+      const stored = localStorage.getItem('odoo_active_job_config');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          return parsed as { odoo_version?: string };
+        }
+      }
+      const savedVersion = localStorage.getItem('odoo_version');
+      return savedVersion ? { odoo_version: savedVersion } : { odoo_version: '17.0' };
+    } catch {
+      return { odoo_version: '17.0' };
+    }
+  });
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -172,6 +187,19 @@ function App() {
       // ignore
     }
   }, [models]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('odoo_active_job_config', JSON.stringify(activeJobConfig));
+      if (activeJobConfig.odoo_version) {
+        localStorage.setItem('odoo_version', activeJobConfig.odoo_version);
+      } else {
+        localStorage.removeItem('odoo_version');
+      }
+    } catch {
+      // ignore
+    }
+  }, [activeJobConfig]);
 
   useEffect(() => {
     try {
@@ -481,6 +509,10 @@ function App() {
     }
   }, []);
 
+  const handleSaveSettings = useCallback((odooVersion: string) => {
+    setActiveJobConfig({ odoo_version: odooVersion || '17.0' });
+  }, []);
+
   const resetGenerationState = useCallback(() => {
     setGeneratedFiles([]);
     setSelectedFile(null);
@@ -512,6 +544,9 @@ function App() {
       const restoredMessages = normalizeRestoredMessages(restored.chat_history || []);
 
       setActiveJobId(jobId);
+      if (restored.odoo_version) {
+        setActiveJobConfig({ odoo_version: restored.odoo_version });
+      }
       setRestoredMessages(restoredMessages);
       setShowWelcome(false);
       setShowLeftPanel(true);
@@ -661,12 +696,13 @@ function App() {
     }
 
     try {
-      const fullPayload: GeneratorPayload = payload.rawConfig
-        ? payload
-        : {
-            ...payload,
-            models: payload.models?.length ? payload.models : [],
-          };
+      const selectedVersion = activeJobConfig.odoo_version || payload.odoo_version || payload.version || '17.0';
+      const fullPayload: GeneratorPayload = {
+        ...payload,
+        models: payload.models?.length ? payload.models : [],
+        odoo_version: selectedVersion,
+        version: selectedVersion,
+      };
 
       const result = await generateModule(fullPayload, handleProgress, activeJobId ?? undefined);
 
@@ -764,7 +800,7 @@ function App() {
 
         <main className="flex-1 overflow-hidden relative">
           {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
-          {activeView === 'settings' && <SettingsView />}
+          {activeView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
 
           {activeView === 'generator' && (
             <>
