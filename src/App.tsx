@@ -756,24 +756,42 @@ function App() {
   };
 
   useEffect(() => {
-    if (!schemaPreview || modelsSyncedRef.current || models.length > 0) return;
+    if (!schemaPreview) return;
 
-    setModels(
-      schemaPreview.models.map((model) => ({
-        id: `${model.name}-${model.module_name}`,
-        name: model.name,
-        fields: model.fields.map((field) => ({
-          id: `${model.name}-${field.name}`,
-          name: field.name,
-          type: field.type,
-          required: field.required,
-          default: field.default ?? null,
-          unique: field.unique ?? false,
-        })),
+    const nextModels = schemaPreview.models.map((model) => ({
+      id: `${model.name}-${model.module_name}`,
+      name: model.name,
+      fields: model.fields.map((field) => ({
+        id: `${model.name}-${field.name}`,
+        name: field.name,
+        type: field.type,
+        required: field.required,
+        default: field.default ?? null,
+        unique: field.unique ?? false,
       })),
-    );
+    }));
+
+    const modelsAreIdentical = nextModels.length === models.length && nextModels.every((nextModel, index) => {
+      const currentModel = models[index];
+      if (!currentModel) return false;
+      if (currentModel.id !== nextModel.id || currentModel.name !== nextModel.name) return false;
+      if (!Array.isArray(currentModel.fields) || currentModel.fields.length !== nextModel.fields.length) return false;
+      return currentModel.fields.every((field, fieldIndex) => {
+        const nextField = nextModel.fields[fieldIndex];
+        return field.id === nextField.id
+          && field.name === nextField.name
+          && field.type === nextField.type
+          && field.required === nextField.required
+          && field.default === nextField.default
+          && field.unique === nextField.unique;
+      });
+    });
+
+    if (modelsAreIdentical) return;
+
+    setModels(nextModels);
     modelsSyncedRef.current = true;
-  }, [models.length, schemaPreview]);
+  }, [models, schemaPreview]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-black overflow-hidden relative">

@@ -112,7 +112,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
     }
   };
 
-  const confirmDelete = async (id: string) => {
+  const confirmDelete = async (id: string, moduleName: string) => {
     backupRef.current = history;
     setHistory((current) => current.filter((item) => item.id !== id));
     setConfirmDeleteId(null);
@@ -120,6 +120,36 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
     try {
       await deleteJob(id);
       toast.success('Job deleted');
+
+      try {
+        const activeJob = window.localStorage.getItem('odoo_active_job');
+        const shouldClearPersistedSchema = activeJob === id;
+
+        if (shouldClearPersistedSchema) {
+          window.localStorage.removeItem('odoo_active_job');
+          window.localStorage.removeItem('odoo_erd_schema');
+          window.localStorage.removeItem('odoo_models');
+          window.localStorage.removeItem('odoo_generated_files');
+          window.localStorage.removeItem('odoo_selected_file');
+        } else {
+          const rawSchema = window.localStorage.getItem('odoo_erd_schema');
+          if (rawSchema) {
+            try {
+              const parsed = JSON.parse(rawSchema);
+              if (parsed?.module_name === moduleName) {
+                window.localStorage.removeItem('odoo_erd_schema');
+                window.localStorage.removeItem('odoo_models');
+                window.localStorage.removeItem('odoo_generated_files');
+                window.localStorage.removeItem('odoo_selected_file');
+              }
+            } catch {
+              // ignore invalid schema data
+            }
+          }
+        }
+      } catch {
+        // ignore localStorage cleanup failures
+      }
     } catch (err) {
       if (backupRef.current) {
         setHistory(backupRef.current);
