@@ -229,7 +229,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => confirmDelete(item.id)}
+                        onClick={() => confirmDelete(item.id, item.moduleName)}
                         className="px-3 py-1 rounded bg-rose-500 text-white"
                       >
                         Delete
