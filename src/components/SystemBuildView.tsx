@@ -306,11 +306,11 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
         {/* Progress header */}
 
-        <div className="px-4 py-3 border-b border-glass-border bg-black/40 space-y-2">
+        <div className="px-4 py-4 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner space-y-2">
 
           <div className="flex items-center justify-between gap-4">
 
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
 
               {hasError ? (
 
@@ -322,7 +322,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
               ) : null}
 
-              <span className={`text-sm font-medium truncate ${hasError ? 'text-red-300/90' : 'text-white/70'}`}>
+              <span className={`text-sm font-medium leading-5 break-words ${hasError ? 'text-red-300/90' : 'text-white/70'}`}>
 
                 {statusMessage}
 
@@ -433,7 +433,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
 
         {showViewTabs && (
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-glass-border bg-black/40">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
             <button
               onClick={() => setViewTab('diagrams')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'diagrams' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
@@ -453,7 +453,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
         {/* Diagram tabs */}
 
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-glass-border">
+        <div className="flex items-center gap-1 px-4 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
 
           <button
 

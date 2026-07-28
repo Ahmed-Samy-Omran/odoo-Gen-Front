@@ -104,7 +104,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden rounded-2xl border border-white/10 bg-black/20 backdrop-blur-xl">
+    <div className="flex-1 flex overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
       <div className="w-full max-w-[260px] border-r border-white/10 overflow-auto flex-shrink-0 bg-black/25">
         <div className="p-3 border-b border-white/10">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Files</h3>

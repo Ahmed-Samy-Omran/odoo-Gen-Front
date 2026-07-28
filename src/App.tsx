@@ -794,7 +794,7 @@ function App() {
   }, [models, schemaPreview]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-black overflow-hidden relative">
+    <div className="h-screen w-screen flex flex-col bg-[#050505] overflow-hidden relative">
       <ToastProvider />
       <ParticleBackground />
 
@@ -839,7 +839,7 @@ function App() {
                           />
                           <div
                             ref={sidebarRef}
-                            className={`relative h-full bg-black/95 border-r border-glass-border shadow-2xl transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
+                            className={`relative h-full bg-[#111111]/95 border border-[rgba(255,255,255,0.08)] shadow-inner transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
                             style={{ width: Math.min(sidebarWidth, window.innerWidth * 0.95) }}
                           >
                             <div className="p-3 flex items-center justify-between border-b border-white/6">
@@ -861,7 +861,7 @@ function App() {
                       ) : (
                         <div
                           ref={sidebarRef}
-                          className={`glass-card border-r border-glass-border flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl ring-4 ring-cyan-500/10' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
+                          className={`glass-card border-r border-[rgba(255,255,255,0.08)] flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-inner' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
                           style={{ width: sidebarWidth, minWidth: 220 }}
                         >
                           <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
@@ -932,14 +932,16 @@ function App() {
       </div>
 
       {activeView === 'generator' && !showWelcome && (
-        <GenBar
-          onGenerate={handleGenerate}
-          onTryDemo={handleTryDemo}
-          resetKey={chatResetKey}
-          initialMessages={restoredMessages}
-          onMessagesChange={setRestoredMessages}
-          jobId={activeJobId}
-        />
+        <>
+          <GenBar
+            onGenerate={handleGenerate}
+            onTryDemo={handleTryDemo}
+            resetKey={chatResetKey}
+            initialMessages={restoredMessages}
+            onMessagesChange={setRestoredMessages}
+            jobId={activeJobId}
+          />
+        </>
       )}
     </div>
   );
