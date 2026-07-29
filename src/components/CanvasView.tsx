@@ -105,12 +105,12 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   return (
     <div className="flex-1 flex overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
-      <div className="w-full max-w-[260px] border-r border-white/10 overflow-auto flex-shrink-0 bg-black/25">
+      <div className="flex min-h-0 w-full max-w-[260px] flex-col flex-shrink-0 border-r border-white/10 bg-black/25">
         <div className="p-3 border-b border-white/10">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Files</h3>
         </div>
 
-        <div className="p-2 space-y-0.5">
+        <div className="max-h-[calc(100vh-320px)] flex-1 min-h-0 overflow-y-auto px-2 py-2 pb-28">
           {Object.entries(fileTree).map(([dir, filenames]) => (
             <div key={dir}>
               <div className="flex items-center gap-2 px-2 py-1.5 text-white/50 text-xs">

@@ -933,14 +933,19 @@ function App() {
 
       {activeView === 'generator' && !showWelcome && (
         <>
-          <GenBar
-            onGenerate={handleGenerate}
-            onTryDemo={handleTryDemo}
-            resetKey={chatResetKey}
-            initialMessages={restoredMessages}
-            onMessagesChange={setRestoredMessages}
-            jobId={activeJobId}
-          />
+              <GenBar
+                onGenerate={handleGenerate}
+                onTryDemo={handleTryDemo}
+                resetKey={chatResetKey}
+                initialMessages={restoredMessages}
+                onMessagesChange={setRestoredMessages}
+                jobId={activeJobId}
+                repositoryUrl={repositoryUrl}
+                downloadUrl={downloadUrl}
+                onCloudSync={handleCloudSync}
+                status={status}
+                onRepositoryUrlChange={setRepositoryUrl}
+              />
         </>
       )}
     </div>

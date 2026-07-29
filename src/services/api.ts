@@ -204,6 +204,7 @@ function toBackendPayload(payload: GeneratorPayload) {
         module_description: payload.description,
         depends: payload.depends,
         git_deploy_target: payload.deploymentStrategy,
+        repository_url: payload.deploymentStrategy === 'github' ? payload.repositoryUrl?.trim() || undefined : undefined,
         odoo_version: resolvedVersion,
         models: (payload.models || []).map((m) => ({
           name: m.name,
@@ -259,7 +260,28 @@ async function startPromptJob(prompt: string, jobId?: string, payload?: Generato
 }
 
 async function startConfigJob(payload: GeneratorPayload, jobId?: string): Promise<JobStatus> {
-  const body: any = payload.rawConfig ?? toBackendPayload(payload);
+  const rawModules = Array.isArray(payload.rawConfig?.modules) ? payload.rawConfig.modules : [];
+  const body: any = payload.rawConfig
+    ? {
+        ...payload.rawConfig,
+        modules: rawModules.map((module) => {
+          if (module && typeof module === 'object') {
+            const moduleData = { ...(module as Record<string, unknown>) };
+            if (payload.deploymentStrategy === 'github') {
+              moduleData.git_deploy_target = 'github';
+              const repoUrl = payload.repositoryUrl?.trim();
+              if (repoUrl) {
+                moduleData.repository_url = repoUrl;
+              }
+            } else {
+              moduleData.git_deploy_target = 'local_zip';
+            }
+            return moduleData;
+          }
+          return module;
+        }),
+      }
+    : toBackendPayload(payload);
   if (jobId) body.job_id = jobId;
 
   const response = await fetch(`${API_BASE_URL}/generate-module/`, {
