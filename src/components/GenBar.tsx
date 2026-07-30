@@ -16,7 +16,9 @@ interface GenBarProps {
   downloadUrl?: string;
   onCloudSync?: () => void;
   status?: 'idle' | 'generating' | 'success' | 'error';
+  progress?: number;
   onRepositoryUrlChange?: (url: string) => void;
+  isReady?: boolean;
 }
 
 type InputMode = 'chat' | 'json' | 'demo';
@@ -37,7 +39,7 @@ function buildDefaultPayload(prompt?: string, deploymentStrategy: DeploymentMode
   };
 }
 
-export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey, repositoryUrl, status = 'idle', onRepositoryUrlChange }) => {
+export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repositoryUrl, status = 'idle', progress = 0, onRepositoryUrlChange, isReady = false }) => {
   const [inputValue, setInputValue] = useState('');
   const [inputMode, setInputMode] = useState<InputMode>('chat');
   const [demoLoaded, setDemoLoaded] = useState(false);
@@ -61,10 +63,29 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey,
   }, [resetKey]);
 
   const tasks = React.useMemo<TaskProgressItem[]>(() => {
-    const planStatus: TaskStatus = status === 'success' ? 'completed' : status === 'generating' ? 'running' : 'pending';
-    const schemaStatus: TaskStatus = status === 'generating' ? 'running' : status === 'success' ? 'completed' : 'pending';
-    const fileStatus: TaskStatus = status === 'success' ? 'completed' : 'pending';
-    const deployStatus: TaskStatus = status === 'success' ? 'completed' : 'pending';
+    const planStatus: TaskStatus = progress >= 10 || status === 'success'
+      ? 'completed'
+      : status === 'generating'
+      ? 'running'
+      : 'pending';
+
+    const schemaStatus: TaskStatus = progress >= 55 || status === 'success'
+      ? 'completed'
+      : progress >= 10
+      ? 'running'
+      : 'pending';
+
+    const fileStatus: TaskStatus = progress >= 92 || status === 'success'
+      ? 'completed'
+      : progress >= 55
+      ? 'running'
+      : 'pending';
+
+    const deployStatus: TaskStatus = progress >= 100
+      ? 'completed'
+      : progress >= 92
+      ? 'running'
+      : 'pending';
 
     return [
       { id: 'plan', label: 'Reviewing module requirements', status: planStatus },
@@ -72,7 +93,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey,
       { id: 'files', label: 'Preparing files', status: fileStatus },
       { id: 'deploy', label: 'Packaging output', status: deployStatus },
     ];
-  }, [status]);
+  }, [progress, status]);
 
   const handleGenerate = () => {
     const trimmed = inputValue.trim();
@@ -126,7 +147,6 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey,
     setInputMode('demo');
     setDemoLoaded(true);
     setInputValue('');
-    onTryDemo?.();
     focusChat();
   };
 
@@ -161,7 +181,12 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, onTryDemo, resetKey,
             />
             <button
               onClick={handleGenerate}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-slate-100 transition hover:bg-white/15"
+              disabled={!isReady}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-100 transition ${
+                isReady
+                  ? 'bg-white/10 hover:bg-white/20 opacity-100'
+                  : 'bg-black/10 opacity-50 cursor-not-allowed'
+              }`}
               aria-label="Generate"
             >
               <Send className="h-4 w-4" />

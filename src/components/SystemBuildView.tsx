@@ -76,8 +76,9 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   const [editableSchema, setEditableSchema] = useState<SchemaPreview | null>(null);
   const timersRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
-  const effectiveSchema = isAwaitingAiSchema ? null : schema;
-  const effectiveEditableSchema = isAwaitingAiSchema ? null : editableSchema;
+  const shouldShowSchema = !isAwaitingAiSchema && schema !== null && (isComplete || progress >= 55);
+  const effectiveSchema = shouldShowSchema ? schema : null;
+  const effectiveEditableSchema = shouldShowSchema ? editableSchema : null;
 
   const downloadFileName = useMemo(() => {
     if (!effectiveSchema?.module_name) return 'module.zip';
@@ -85,13 +86,13 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   }, [effectiveSchema?.module_name]);
 
   useEffect(() => {
-    setEditableSchema(isAwaitingAiSchema ? null : schema);
-  }, [schema, isAwaitingAiSchema]);
+    setEditableSchema(shouldShowSchema ? schema : null);
+  }, [schema, isAwaitingAiSchema, shouldShowSchema]);
 
   const { nodes, edges } = useMemo(() => {
-    if (!editableSchema) return { nodes: [], edges: [] };
-    return generateErdFromSchema(editableSchema);
-  }, [editableSchema]);
+    if (!effectiveEditableSchema) return { nodes: [], edges: [] };
+    return generateErdFromSchema(effectiveEditableSchema);
+  }, [effectiveEditableSchema]);
 
   const useCaseTotal = effectiveSchema?.use_cases.length ?? 0;
   const schemaKey = schemaFingerprint(effectiveSchema);
@@ -297,6 +298,8 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   }
 
 
+
+  const isGeneratingFiles = isGenerating && !isComplete;
 
   return (
 
@@ -517,6 +520,20 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
         {/* Diagram canvas */}
 
         <div className="flex-1 overflow-hidden relative">
+          {isGeneratingFiles && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+              <div className="rounded-3xl border border-white/10 bg-[#111111]/95 px-6 py-5 text-center shadow-xl">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+                <p className="text-sm font-semibold text-white">Generating files... please wait</p>
+                <p className="mt-1 text-xs text-slate-400">{statusMessage}</p>
+                <p className="mt-3 text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                  Progress: {Math.min(100, Math.max(0, progress))}%
+                </p>
+              </div>
+            </div>
+          )}
 
           {effectiveSchema ? (
 

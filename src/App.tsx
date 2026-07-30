@@ -6,6 +6,7 @@ import { SettingsView } from './components/SettingsView';
 import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
 import { ToastProvider } from './components/ToastProvider';
+import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
 import {
@@ -15,6 +16,7 @@ import {
   syncJobConfig,
   API_BASE_URL,
   type ChatMessage,
+  type ChatResponse,
   type GeneratorPayload,
   type GeneratedFile,
   type JobStatus,
@@ -104,9 +106,29 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState<number>(300);
   const [chatResetKey, setChatResetKey] = useState(0);
   const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([]);
+  const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
+  const [technicalSummary, setTechnicalSummary] = useState('');
   const [activeJobId, setActiveJobId] = useState<string | null>(() => {
     try {
       return localStorage.getItem('odoo_active_job') || null;
+    } catch {
+      return null;
+    }
+  });
+  const [demoCache, setDemoCache] = useState<{
+    schemaPreview: SchemaPreview;
+    models: Model[];
+    generatedFiles: GeneratedFile[];
+    selectedFile: string | null;
+    downloadUrl: string;
+    repositoryUrl: string;
+    activeJobId: string | null;
+    statusMessage: string;
+    progress: number;
+  } | null>(() => {
+    try {
+      const raw = localStorage.getItem('odoo_demo_cache');
+      return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
@@ -200,6 +222,16 @@ function App() {
       // ignore
     }
   }, [activeJobConfig]);
+
+  useEffect(() => {
+    try {
+      if (demoCache) {
+        localStorage.setItem('odoo_demo_cache', JSON.stringify(demoCache));
+      }
+    } catch {
+      // ignore
+    }
+  }, [demoCache]);
 
   useEffect(() => {
     try {
@@ -425,6 +457,11 @@ function App() {
     modelsSyncedRef.current = true;
   }, [schemaPreview, models.length]);
 
+  const handleChatResponse = useCallback((response: ChatResponse) => {
+    setIsReadyToGenerate(response.ready_to_generate);
+    setTechnicalSummary(response.requirements_summary || '');
+  }, []);
+
   const syncSchemaPreviewFromModels = useCallback((nextModels: Model[]) => {
     const previousModelsById = new Map(modelsRef.current.map((model) => [model.id, model]));
 
@@ -511,6 +548,9 @@ function App() {
 
   const handleSaveSettings = useCallback((odooVersion: string) => {
     setActiveJobConfig({ odoo_version: odooVersion || '17.0' });
+    toast.success('Settings saved successfully!', {
+      style: { border: '1px solid #34d399', padding: '16px', color: '#34d399' },
+    });
   }, []);
 
   const resetGenerationState = useCallback(() => {
@@ -534,7 +574,45 @@ function App() {
     }
     schemaSetRef.current = false;
     modelsSyncedRef.current = false;
+    setIsReadyToGenerate(false);
+    setTechnicalSummary('');
   }, []);
+
+  const restoreDemoCache = useCallback((cache: {
+    schemaPreview: SchemaPreview;
+    models: Model[];
+    generatedFiles: GeneratedFile[];
+    selectedFile: string | null;
+    downloadUrl: string;
+    repositoryUrl: string;
+    activeJobId: string | null;
+    statusMessage: string;
+    progress: number;
+  }) => {
+    resetGenerationState();
+    setStatus('success');
+    setStatusMessage(cache.statusMessage || 'Demo loaded from cache');
+    setProgress(cache.progress ?? 100);
+    setEstimatedRemaining(null);
+    setSchemaPreview(cache.schemaPreview);
+    setModels(cache.models);
+    setGeneratedFiles(cache.generatedFiles);
+    setSelectedFile(cache.selectedFile);
+    setDownloadUrl(cache.downloadUrl);
+    setRepositoryUrl(cache.repositoryUrl);
+    setActiveJobId(cache.activeJobId);
+    setShowWelcome(false);
+    setShowLeftPanel(true);
+    setIsAwaitingAiSchema(false);
+    setIsReadyToGenerate(true);
+    try {
+      if (cache.activeJobId) {
+        localStorage.setItem('odoo_active_job', cache.activeJobId);
+      }
+    } catch {
+      // ignore
+    }
+  }, [resetGenerationState]);
 
   const handleSelectHistoryJob = useCallback(async (jobId: string) => {
     try {
@@ -654,7 +732,18 @@ function App() {
     }
   }, [activeJobId, schemaPreview]);
 
-  const handleGenerate = async (payload: GeneratorPayload) => {
+  useEffect(() => {
+    if (!technicalSummary) return;
+    console.debug('technicalSummary updated:', technicalSummary);
+  }, [technicalSummary]);
+
+  useEffect(() => {
+    if (false) {
+      handleChatResponse({ reply: '', ready_to_generate: false, requirements_summary: '' });
+    }
+  }, [handleChatResponse]);
+
+  const handleGenerate = async (payload: GeneratorPayload, options?: { cacheDemo?: boolean }) => {
     resetGenerationState();
 
     setStatus('generating');
@@ -719,6 +808,32 @@ function App() {
           setActiveJobId(result.jobId);
           try { localStorage.setItem('odoo_active_job', result.jobId); } catch {}
         }
+
+        if (options?.cacheDemo && payload.rawConfig) {
+          const demoCacheValue = {
+            schemaPreview: schemaFromRawConfig(payload.rawConfig as RawModuleConfig),
+            models: buildSchemaFromPayload(payload.moduleName, payload.models || []).models.map((model) => ({
+              id: `${model.name}-${model.module_name}`,
+              name: model.name,
+              fields: model.fields.map((field) => ({
+                id: `${model.name}-${field.name}`,
+                name: field.name,
+                type: field.type,
+                required: field.required,
+                default: field.default ?? null,
+                unique: field.unique ?? false,
+              })),
+            })),
+            generatedFiles: result.files || [],
+            selectedFile: result.files?.[0]?.path || null,
+            downloadUrl: result.downloadUrl || '',
+            repositoryUrl: result.repositoryUrl || payload.repositoryUrl || '',
+            activeJobId: result.jobId || null,
+            statusMessage: result.message || 'Demo generated',
+            progress: 100,
+          };
+          setDemoCache(demoCacheValue);
+        }
       } else {
         setDownloadUrl('');
         setStatus('error');
@@ -733,7 +848,32 @@ function App() {
   };
 
   const handleTryDemo = () => {
-    void handleGenerate(buildDemoPayload());
+    setIsReadyToGenerate(true);
+    setTechnicalSummary('Demo payload is ready to generate without AI.');
+
+    let cache = demoCache;
+    if (!cache) {
+      try {
+        const raw = localStorage.getItem('odoo_demo_cache');
+        if (raw) {
+          cache = JSON.parse(raw) as typeof demoCache;
+        }
+      } catch {
+        cache = null;
+      }
+    }
+
+    if (cache) {
+      setShowWelcome(false);
+      setShowLeftPanel(true);
+      setStatus('generating');
+      setStatusMessage('Loading cached demo...');
+      setProgress(10);
+      window.setTimeout(() => restoreDemoCache(cache!), 900);
+      return;
+    }
+
+    void handleGenerate(buildDemoPayload(), { cacheDemo: true });
   };
 
   const handleNewChat = () => {
@@ -944,7 +1084,9 @@ function App() {
                 downloadUrl={downloadUrl}
                 onCloudSync={handleCloudSync}
                 status={status}
+                progress={progress}
                 onRepositoryUrlChange={setRepositoryUrl}
+                isReady={isReadyToGenerate}
               />
         </>
       )}
