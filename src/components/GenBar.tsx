@@ -63,35 +63,35 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
   }, [resetKey]);
 
   const tasks = React.useMemo<TaskProgressItem[]>(() => {
-    const planStatus: TaskStatus = progress >= 10 || status === 'success'
+    const planStatus: TaskStatus = progress >= 25 || status === 'success'
       ? 'completed'
       : status === 'generating'
       ? 'running'
       : 'pending';
 
-    const schemaStatus: TaskStatus = progress >= 55 || status === 'success'
+    const schemaStatus: TaskStatus = progress >= 50 || status === 'success'
       ? 'completed'
-      : progress >= 10
+      : progress >= 26
       ? 'running'
       : 'pending';
 
-    const fileStatus: TaskStatus = progress >= 92 || status === 'success'
+    const fileStatus: TaskStatus = progress >= 85 || status === 'success'
       ? 'completed'
-      : progress >= 55
+      : progress >= 51
       ? 'running'
       : 'pending';
 
     const deployStatus: TaskStatus = progress >= 100
       ? 'completed'
-      : progress >= 92
+      : progress >= 86
       ? 'running'
       : 'pending';
 
     return [
-      { id: 'plan', label: 'Reviewing module requirements', status: planStatus },
-      { id: 'schema', label: 'Generating schema', status: schemaStatus },
-      { id: 'files', label: 'Preparing files', status: fileStatus },
-      { id: 'deploy', label: 'Packaging output', status: deployStatus },
+      { id: 'plan', label: 'Analyzing Requirements', status: planStatus },
+      { id: 'schema', label: 'Architecting Odoo Schema', status: schemaStatus },
+      { id: 'files', label: 'Generating Python & XML Code', status: fileStatus },
+      { id: 'deploy', label: 'Finalizing & Packaging Module', status: deployStatus },
     ];
   }, [progress, status]);
 
