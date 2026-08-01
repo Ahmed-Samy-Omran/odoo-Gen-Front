@@ -90,6 +90,7 @@ export interface SchemaPreview {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  status?: 'sending' | 'sent';
 }
 
 export interface ChatResponse {
@@ -219,14 +220,23 @@ function toBackendPayload(payload: GeneratorPayload) {
   };
 }
 
-export async function sendChatMessage(messages: ChatMessage[], jobId?: string | null): Promise<ChatResponse> {
+export async function sendChatMessage(messages: ChatMessage[], jobId?: string | null, options?: { preferred_language?: 'english' | 'arabic' }): Promise<ChatResponse> {
+  const body: any = {
+    messages: messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+    job_id: jobId || null,
+  };
+  if (options?.preferred_language) body.preferred_language = options.preferred_language;
+
   const response = await fetch(`${API_BASE_URL}/chat/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ messages, job_id: jobId || null }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {

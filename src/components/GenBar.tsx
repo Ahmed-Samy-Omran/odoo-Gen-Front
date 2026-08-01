@@ -5,14 +5,22 @@ import type { GeneratorPayload, ChatMessage } from '../services/api';
 import { sendChatMessage } from '../services/api';
 import { buildPayloadFromJson, buildDemoPayload } from '../utils/demoGenerate';
 import { TaskProgressTracker, type TaskProgressItem, type TaskStatus } from './TaskProgressTracker';
-import AiIcon from './AiIcon';
 
 interface GenBarProps {
   onGenerate?: (payload: GeneratorPayload) => void;
   onTryDemo?: () => void;
   resetKey?: number;
-  initialMessages?: ChatMessage[];
-  onMessagesChange?: (messages: ChatMessage[]) => void;
+  // lifted chat state (managed by App)
+  messages?: ChatMessage[];
+  setMessages?: (messages: ChatMessage[]) => void;
+  isChatting?: boolean;
+  setIsChatting?: (v: boolean) => void;
+  readyToGenerate?: boolean;
+  setReadyToGenerate?: (v: boolean) => void;
+  requirementsSummary?: string;
+  setRequirementsSummary?: (v: string) => void;
+  error?: string;
+  setError?: (v: string) => void;
   jobId?: string | null;
   repositoryUrl?: string;
   downloadUrl?: string;
@@ -41,7 +49,7 @@ function buildDefaultPayload(prompt?: string, deploymentStrategy: DeploymentMode
   };
 }
 
-export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repositoryUrl, status = 'idle', progress = 0, onRepositoryUrlChange, isReady = false, initialMessages = [], onMessagesChange, jobId }) => {
+export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repositoryUrl, status = 'idle', progress = 0, onRepositoryUrlChange, isReady = false, messages = [], setMessages, isChatting = false, setIsChatting, readyToGenerate = false, setReadyToGenerate, requirementsSummary = '', setRequirementsSummary, error = '', setError, jobId }) => {
   const [inputValue, setInputValue] = useState('');
   const [inputMode, setInputMode] = useState<InputMode>('chat');
   const [demoLoaded, setDemoLoaded] = useState(false);
@@ -49,27 +57,40 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
   const [githubRepositoryUrl, setGithubRepositoryUrl] = useState(repositoryUrl || '');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [isChatting, setIsChatting] = useState(false);
-  const [readyToGenerate, setReadyToGenerate] = useState(false);
-  const [requirementsSummary, setRequirementsSummary] = useState('');
-  const [error, setError] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  // Support lifted chat state from App; fall back to internal state if not provided
+  const [internalMessages, setInternalMessages] = useState<ChatMessage[]>(messages || []);
+  const effectiveMessages = typeof setMessages === 'function' ? messages : internalMessages;
+  const effectiveSetMessages = setMessages ?? setInternalMessages;
+
+  const [internalIsChatting, setInternalIsChatting] = useState<boolean>(false);
+  const effectiveIsChatting = typeof setIsChatting === 'function' ? isChatting : internalIsChatting;
+  const effectiveSetIsChatting = setIsChatting ?? setInternalIsChatting;
+
+  const [internalReadyToGenerate, setInternalReadyToGenerate] = useState<boolean>(false);
+  const effectiveReadyToGenerate = typeof setReadyToGenerate === 'function' ? readyToGenerate : internalReadyToGenerate;
+  const effectiveSetReadyToGenerate = setReadyToGenerate ?? setInternalReadyToGenerate;
+
+  const [internalRequirementsSummary, setInternalRequirementsSummary] = useState<string>(requirementsSummary || '');
+  const effectiveRequirementsSummary = typeof setRequirementsSummary === 'function' ? requirementsSummary : internalRequirementsSummary;
+  const effectiveSetRequirementsSummary = setRequirementsSummary ?? setInternalRequirementsSummary;
+
+  const [internalError, setInternalError] = useState<string>(error || '');
+  const effectiveError = typeof setError === 'function' ? error : internalError;
+  const effectiveSetError = setError ?? setInternalError;
 
   useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
+    // keep internal messages synced when App provides initial messages
+    if (effectiveMessages && !setMessages) {
+      setInternalMessages(effectiveMessages);
+    }
+  }, [effectiveMessages, setMessages]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isChatting]);
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(''), 5000);
+    if (effectiveError) {
+      const timer = setTimeout(() => effectiveSetError(''), 5000);
       return () => clearTimeout(timer);
     }
-  }, [error]);
+  }, [effectiveError]);
 
   useEffect(() => {
     setGithubRepositoryUrl(repositoryUrl || '');
@@ -84,10 +105,10 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
     setInputMode('chat');
     setDemoLoaded(false);
     setDeploymentMode('local_zip');
-    setMessages([]);
-    setReadyToGenerate(false);
-    setRequirementsSummary('');
-    setError('');
+    effectiveSetMessages([]);
+    effectiveSetReadyToGenerate(false);
+    effectiveSetRequirementsSummary('');
+    effectiveSetError('');
   }, [resetKey]);
 
   const tasks = React.useMemo<TaskProgressItem[]>(() => {
@@ -123,47 +144,59 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
     ];
   }, [progress, status]);
 
+  const markSentMessages = (items: ChatMessage[]): ChatMessage[] => items.map((message) => {
+    if (message.role === 'user' && message.status === 'sending') {
+      return { ...message, status: 'sent' as const };
+    }
+
+    return message;
+  });
+
   const handleSendMessage = async () => {
     const text = inputValue.trim();
-    if (!text || isChatting || inputMode !== 'chat') return;
+    if (!text || effectiveIsChatting || inputMode !== 'chat') return;
 
-    const userMessage: ChatMessage = { role: 'user', content: text };
-    const nextMessages = [...messages, userMessage];
+    const userMessage: ChatMessage = { role: 'user', content: text, status: 'sending' };
+    const nextMessages = [...effectiveMessages, userMessage];
 
-    setMessages(nextMessages);
+    effectiveSetMessages(nextMessages);
     setInputValue('');
-    setIsChatting(true);
-    setReadyToGenerate(false);
-    if (error) setError('');
+    effectiveSetIsChatting(true);
+    effectiveSetReadyToGenerate(false);
+    if (effectiveError) effectiveSetError('');
 
     try {
-      const response = await sendChatMessage(nextMessages, jobId);
+      // Add language hint: if a message contains Arabic characters prefer Arabic reply, else prefer English
+      const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
+      const preferred_language = arabicRegex.test(text) ? 'arabic' : 'english';
+
+      const response = await sendChatMessage(nextMessages, jobId, { preferred_language });
       const nextAssistantMessages: ChatMessage[] = [
-        ...nextMessages,
+        ...markSentMessages(nextMessages),
         { role: 'assistant', content: response.reply },
       ];
-      setMessages(nextAssistantMessages);
-      onMessagesChange?.(nextAssistantMessages);
-      setReadyToGenerate(response.ready_to_generate);
-      setRequirementsSummary(response.requirements_summary);
+      effectiveSetMessages(nextAssistantMessages);
+      effectiveSetReadyToGenerate(response.ready_to_generate);
+      effectiveSetRequirementsSummary(response.requirements_summary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error communicating with AI');
+      effectiveSetMessages(markSentMessages(nextMessages));
+      effectiveSetError(err instanceof Error ? err.message : 'Error communicating with AI');
     } finally {
-      setIsChatting(false);
+      effectiveSetIsChatting(false);
     }
   };
 
   const handleGenerate = (force: boolean | React.MouseEvent = false) => {
     const isForced = force === true;
     if (inputMode === 'chat') {
-      if (!isForced && (!readyToGenerate || !requirementsSummary.trim())) {
-        setError('Please complete the conversation with AI until requirements are ready.');
+      if (!isForced && (!effectiveReadyToGenerate || !effectiveRequirementsSummary.trim())) {
+        effectiveSetError('Please complete the conversation with AI until requirements are ready.');
         return;
       }
       
-      const finalPrompt = requirementsSummary.trim() 
-        ? requirementsSummary 
-        : messages.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n');
+      const finalPrompt = effectiveRequirementsSummary.trim() 
+        ? effectiveRequirementsSummary 
+        : effectiveMessages.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n');
         
       const payload = buildDefaultPayload(finalPrompt, deploymentMode, githubRepositoryUrl);
       payload.aiPrompt = finalPrompt;
@@ -230,14 +263,14 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
 
   return (
     <div className="fixed bottom-3 left-1/2 z-50 w-[calc(100%-1rem)] max-w-3xl -translate-x-1/2 sm:w-[calc(100%-2.5rem)]">
-      {error && (
+      {effectiveError && (
         <div className="fixed bottom-full mb-4 left-1/2 -translate-x-1/2 z-[100] animate-bounce-short">
           <div className="bg-[#18181b]/95 text-rose-400 border border-rose-500/30 backdrop-blur-md px-6 py-3 rounded-full shadow-xl flex items-center gap-3 text-sm font-medium whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            <span>{error}</span>
+            <span>{effectiveError}</span>
           </div>
         </div>
-      )}
+      )} 
 
       <div className="rounded-2xl border border-white/5 bg-[#0d0d0d] px-2.5 py-2.5 text-white sm:px-3 sm:py-3 shadow-2xl">
         <motion.div
@@ -249,42 +282,6 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
           <TaskProgressTracker tasks={tasks} title="Task progress" className="w-full" />
         </motion.div>
 
-        {inputMode === 'chat' && messages.length > 0 && (
-          <div className="mb-3 max-h-[30vh] overflow-y-auto space-y-2 px-2 py-2">
-            {messages.map((message, index) => (
-              <div
-                key={`${index}-${message.content.slice(0, 12)}`}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${
-                    message.role === 'user'
-                      ? 'bg-white text-black'
-                      : 'bg-white/5 text-white/85 border border-white/10'
-                  }`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40">
-                      <AiIcon className="w-3 h-3" />
-                      <span>AI</span>
-                    </div>
-                  )}
-                  {message.content}
-                </div>
-              </div>
-            ))}
-            {isChatting && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-white/50 text-sm flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Thinking...</span>
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-        )}
-
         <div className="rounded-xl border border-white/5 bg-[#0b0b0b] px-3 py-2.5">
           <div className="flex items-end gap-2">
             <textarea
@@ -292,7 +289,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isChatting}
+              disabled={effectiveIsChatting}
               placeholder={
                 inputMode === 'json'
                   ? 'Paste your Odoo module JSON configuration here...'
@@ -301,19 +298,19 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
                   : 'Describe the Odoo module you want to build...'
               }
               rows={1}
-              className="min-h-[44px] flex-1 resize-none overflow-hidden bg-transparent text-[13px] leading-5 text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
+              className="min-h-[44px] flex-1 resize-none overflow-hidden bg-transparent border-none text-[13px] leading-5 text-slate-200 outline-none placeholder:text-slate-500 focus:border-none focus:ring-0 disabled:opacity-50"
             />
             <button
               onClick={inputMode === 'chat' ? handleSendMessage : handleGenerate}
-              disabled={inputMode === 'chat' ? (isChatting || !inputValue.trim()) : !isReady}
+              disabled={inputMode === 'chat' ? (effectiveIsChatting || !inputValue.trim()) : !isReady}
               className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-100 transition ${
-                (inputMode === 'chat' ? (!isChatting && inputValue.trim()) : isReady)
+                (inputMode === 'chat' ? (!effectiveIsChatting && inputValue.trim()) : isReady)
                   ? 'bg-white/10 hover:bg-white/20 opacity-100'
                   : 'bg-black/10 opacity-50 cursor-not-allowed'
               }`}
               aria-label={inputMode === 'chat' ? 'Send Message' : 'Generate'}
             >
-              {isChatting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {effectiveIsChatting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
 
@@ -389,34 +386,30 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
                 </button>
               </div>
 
-              {inputMode === 'chat' && messages.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium mr-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${readyToGenerate ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                    <span className={readyToGenerate ? 'text-emerald-400' : 'text-amber-400/80'}>
-                      {readyToGenerate ? 'Ready' : 'Gathering Info'}
-                    </span>
+              <div className="flex flex-col gap-2">
+                {inputMode === 'chat' && (
+                  <div className="flex flex-col gap-2 rounded-xl border border-white/5 bg-[#0b0b0b] px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
+                        <span className={`inline-flex h-2.5 w-2.5 rounded-full ${effectiveReadyToGenerate ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                        <span>{effectiveReadyToGenerate ? 'Ready to generate' : 'Awaiting AI guidance'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerate(effectiveReadyToGenerate ? false : true)}
+                        className="rounded-full bg-white/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-100 transition hover:bg-white/20"
+                      >
+                        {effectiveReadyToGenerate ? 'Generate Module' : 'Force Generate'}
+                      </button>
+                    </div>
+                    <div className="text-[12px] leading-5 text-slate-400">
+                      {effectiveReadyToGenerate
+                        ? 'The AI has gathered enough requirements and the module is ready to generate.'
+                        : 'Continue the chat until the AI confirms requirements are ready, or force generation.'}
+                    </div>
                   </div>
-
-                  {!readyToGenerate ? (
-                    <button
-                      onClick={() => handleGenerate(true)}
-                      className="shrink-0 rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/50 transition hover:bg-rose-500/20 hover:text-rose-300 flex items-center gap-1.5"
-                      title="Force generation even if AI needs more details"
-                    >
-                      FORCE GENERATE
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleGenerate(false)}
-                      className="shrink-0 rounded-full bg-emerald-500/20 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/30 flex items-center gap-1.5 shadow-[0_0_0_1px_rgba(16,185,129,0.3)]"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      GENERATE MODULE
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {deploymentMode === 'github' && (

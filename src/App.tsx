@@ -9,6 +9,10 @@ import { ToastProvider } from './components/ToastProvider';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
+import { ArrowDown } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   fetchJobFiles,
   fetchJobRestore,
@@ -24,9 +28,40 @@ import {
 } from './services/api';
 import { buildSchemaFromPayload } from './utils/diagramBuilder';
 import { buildDemoPayload, schemaFromRawConfig, type RawModuleConfig } from './utils/demoGenerate';
+import { INITIAL_AI_MESSAGE } from './constants/chat';
 
 type ViewType = 'generator' | 'history' | 'settings';
 type StatusType = 'idle' | 'generating' | 'success' | 'error';
+
+const ARABIC_CHAR_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
+
+function hasArabicText(text: string): boolean {
+  return ARABIC_CHAR_REGEX.test(text);
+}
+
+function getMessageDirection(text: string): 'rtl' | 'ltr' {
+  return hasArabicText(text) ? 'rtl' : 'ltr';
+}
+
+const markdownComponents = {
+  h1: ({ children }: { children?: React.ReactNode }) => <h1 className="chat-message-text mb-2 font-semibold text-white">{children}</h1>,
+  h2: ({ children }: { children?: React.ReactNode }) => <h2 className="chat-message-text mb-2 font-semibold text-white">{children}</h2>,
+  h3: ({ children }: { children?: React.ReactNode }) => <h3 className="chat-message-text mb-1.5 font-semibold text-white">{children}</h3>,
+  p: ({ children }: { children?: React.ReactNode }) => <p className="chat-message-text m-0 text-slate-100">{children}</p>,
+  ul: ({ children }: { children?: React.ReactNode }) => <ul className="chat-message-text my-2 list-disc space-y-1 pl-5 text-slate-100">{children}</ul>,
+  ol: ({ children }: { children?: React.ReactNode }) => <ol className="chat-message-text my-2 list-decimal space-y-1 pl-5 text-slate-100">{children}</ol>,
+  li: ({ children }: { children?: React.ReactNode }) => <li className="chat-message-text">{children}</li>,
+  strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold text-white">{children}</strong>,
+  code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => (
+    <code
+      className={inline
+        ? 'rounded bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-slate-100'
+        : 'block rounded-xl bg-black/40 p-3 font-mono text-[12px] leading-6 text-slate-100'}
+    >
+      {children}
+    </code>
+  ),
+};
 
 interface ModelField {
   id: string;
@@ -62,6 +97,15 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [estimatedRemaining, setEstimatedRemaining] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [chatAutoScroll] = useState(true);
+  const [isChatScrolledUp, setIsChatScrolledUp] = useState(false);
+  const chatListRef = useRef<HTMLDivElement | null>(null);
+  const scrollChatToBottom = () => {
+    if (chatListRef.current) {
+      chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+      setIsChatScrolledUp(false);
+    }
+  };
   const [models, setModels] = useState<Model[]>(() => {
     try {
       const stored = localStorage.getItem('odoo_models');
@@ -105,7 +149,15 @@ function App() {
   const [sidebarMounted, setSidebarMounted] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(300);
   const [chatResetKey, setChatResetKey] = useState(0);
-  const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([]);
+  const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([{ role: 'assistant', content: INITIAL_AI_MESSAGE }]);
+  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const isAiTyping = restoredMessages.some((message) => message.role === 'user' && message.status === 'sending');
+
+  useEffect(() => {
+    if (!chatAutoScroll || !chatBottomRef.current) return;
+
+    chatBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [restoredMessages, isAiTyping, chatAutoScroll]);
   const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
   const [technicalSummary, setTechnicalSummary] = useState('');
   const [activeJobId, setActiveJobId] = useState<string | null>(() => {
@@ -1035,6 +1087,95 @@ function App() {
                   )}
 
                   <div className="flex-1 flex flex-col overflow-hidden">
+                    {restoredMessages.length > 0 && (
+                      <div className="px-4 py-4">
+                        <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
+                          <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
+                          <div className="text-xs text-slate-500">Messages are shown here, outside the bottom input bar.</div>
+                        </div>
+                        <div
+                          ref={chatListRef}
+                          onScroll={() => {
+                            if (!chatListRef.current) return;
+                            const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
+                            setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
+                          }}
+                          className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32"
+                        >
+                          {restoredMessages.map((message, index) => (
+                            <div
+                              key={index}
+                              className={`flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                            >
+                              <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
+                                <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
+                                  {message.role === 'assistant' ? 'AI' : 'YOU'}
+                                </div>
+                                <div
+                                  dir={getMessageDirection(message.content)}
+                                  className={`rounded-2xl px-4 py-2.5 border border-white/10 bg-white/5 text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100`}
+                                  style={{ unicodeBidi: 'plaintext' }}
+                                >
+                                  <div className={`chat-message-text break-words ${message.role === 'assistant' ? 'chat-message-text-assistant' : 'whitespace-pre-line'} ${hasArabicText(message.content) ? 'arabic-text' : ''}`}>
+                                    {message.role === 'assistant' ? (
+                                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                        {message.content}
+                                      </ReactMarkdown>
+                                    ) : (
+                                      message.content
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <AnimatePresence initial={false}>
+                            {isAiTyping && (
+                              <motion.div
+                                key="ai-typing-indicator"
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 4 }}
+                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                                className="flex justify-start"
+                              >
+                                <div className="max-w-[75%] flex flex-col items-start">
+                                  <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
+                                  <div
+                                    dir="ltr"
+                                    className="rounded-2xl rounded-tr-none border border-white/10 bg-white/5 px-3 py-2.5 text-slate-100"
+                                    style={{ unicodeBidi: 'plaintext' }}
+                                    aria-label="AI is typing"
+                                    role="status"
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
+                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                          <div ref={chatBottomRef} aria-hidden="true" className="h-1" />
+                        </div>
+                        {isChatScrolledUp && (
+                          <div className="mt-3 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={scrollChatToBottom}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
+                              aria-label="Scroll to bottom"
+                              title="Scroll to bottom"
+                            >
+                              <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
                       <SystemBuildView
                         schema={schemaPreview}
@@ -1056,12 +1197,14 @@ function App() {
                         activeJobId={activeJobId}
                         onCloudSync={handleCloudSync}
                       />
-                    ) : (
+                    ) : restoredMessages.length === 0 ? (
                       <div className="flex-1 flex items-center justify-center">
                         <p className="text-white/30">
                           Configure your module and click Generate
                         </p>
                       </div>
+                    ) : (
+                      <div className="flex-1" />
                     )}
                   </div>
                 </div>
@@ -1077,8 +1220,8 @@ function App() {
                 onGenerate={handleGenerate}
                 onTryDemo={handleTryDemo}
                 resetKey={chatResetKey}
-                initialMessages={restoredMessages}
-                onMessagesChange={setRestoredMessages}
+                messages={restoredMessages}
+                setMessages={setRestoredMessages}
                 jobId={activeJobId}
                 repositoryUrl={repositoryUrl}
                 downloadUrl={downloadUrl}

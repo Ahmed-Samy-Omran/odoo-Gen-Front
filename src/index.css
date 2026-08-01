@@ -31,13 +31,49 @@
   }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', 'Tajawal', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   code, pre, .mono {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  .arabic-text {
+    font-family: 'Tajawal', 'Inter', system-ui, sans-serif;
+    unicode-bidi: plaintext;
+    letter-spacing: normal;
+  }
+
+  .chat-message-text {
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.75;
+    letter-spacing: normal;
+    color: inherit;
+    unicode-bidi: plaintext;
+  }
+
+  .chat-message-text p,
+  .chat-message-text ul,
+  .chat-message-text ol,
+  .chat-message-text h1,
+  .chat-message-text h2,
+  .chat-message-text h3,
+  .chat-message-text h4,
+  .chat-message-text h5,
+  .chat-message-text h6 {
+    font: inherit;
+    color: inherit;
+  }
+
+  .chat-message-text-assistant > :first-child {
+    margin-top: 0;
+  }
+
+  .chat-message-text-assistant > :last-child {
+    margin-bottom: 0;
   }
 }
 
