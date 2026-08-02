@@ -6,6 +6,7 @@ import { SettingsView } from './components/SettingsView';
 import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
 import { ToastProvider } from './components/ToastProvider';
+import { HomePageSkeleton } from './components/Skeleton';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
@@ -114,6 +115,7 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [estimatedRemaining, setEstimatedRemaining] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [chatAutoScroll] = useState(true);
   const [isChatScrolledUp, setIsChatScrolledUp] = useState(false);
   const chatListRef = useRef<HTMLDivElement | null>(null);
@@ -171,6 +173,38 @@ function App() {
   const isAiTyping = restoredMessages.some((message) => message.role === 'user' && message.status === 'sending');
   const [copiedMessageKey, setCopiedMessageKey] = useState<string | null>(null);
   const [expandedMessageKeys, setExpandedMessageKeys] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrapHomeShell = async () => {
+      try {
+        const savedVersion = localStorage.getItem('odoo_version');
+        const savedJob = localStorage.getItem('odoo_active_job');
+        const savedSidebar = localStorage.getItem('odoo_sidebar_open');
+        const savedSchema = localStorage.getItem('odoo_erd_schema');
+
+        void savedVersion;
+        void savedJob;
+        void savedSidebar;
+        void savedSchema;
+
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+      } catch {
+        // ignore bootstrap issues and proceed to the real UI
+      } finally {
+        if (mounted) {
+          setIsHomeLoading(false);
+        }
+      }
+    };
+
+    void bootstrapHomeShell();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!chatAutoScroll || !chatBottomRef.current) return;
@@ -1010,293 +1044,309 @@ function App() {
       <ToastProvider />
       <ParticleBackground />
 
-      {/* Top-left toggle icon -> opens/closes sidebar */}
-      <div className="fixed top-4 left-4 z-50">
-        <button
-          type="button"
-          title="Toggle sidebar (Ctrl+B)"
-          aria-label="Toggle sidebar"
-          onClick={() => setShowLeftPanel((v) => !v)}
-          className={`nav-icon-btn ${showLeftPanel ? 'active' : ''} shadow-lg`}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/90">
-            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
+      <AnimatePresence mode="wait">
+        {isHomeLoading ? (
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 z-20"
+          >
+            <HomePageSkeleton />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="app-shell"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="h-screen w-screen flex flex-col"
+          >
+            <div className="fixed top-4 left-4 z-50">
+              <button
+                type="button"
+                title="Toggle sidebar (Ctrl+B)"
+                aria-label="Toggle sidebar"
+                onClick={() => setShowLeftPanel((v) => !v)}
+                className={`nav-icon-btn ${showLeftPanel ? 'active' : ''} shadow-lg`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/90">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
 
-      <div className="flex flex-1 relative z-10 overflow-hidden">
-        <Sidebar activeView={activeView} onViewChange={handleViewChange} onNewChat={handleNewChat} showLogo={false} />
+            <div className="flex flex-1 relative z-10 overflow-hidden">
+              <Sidebar activeView={activeView} onViewChange={handleViewChange} onNewChat={handleNewChat} showLogo={false} />
 
-        <main className="flex-1 overflow-hidden relative">
-          {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
-          {activeView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
+              <main className="flex-1 overflow-hidden relative">
+                {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
+                {activeView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
 
-          {activeView === 'generator' && (
-            <>
-              {showWelcome ? (
-                <WelcomeDashboard
-                  onStartGenerating={handleStartGenerating}
-                  onTryDemo={handleTryDemo}
-                />
-              ) : (
-                <div className="flex h-full overflow-hidden">
-                  {sidebarMounted && (
-                    <>
-                      {isMobile ? (
-                        <div className="fixed inset-0 z-40 flex">
-                          <div
-                            className={`absolute inset-0 bg-black transition-opacity duration-300 ${showLeftPanel ? 'opacity-60' : 'opacity-0 pointer-events-none'}`}
-                            onClick={() => showLeftPanel && setShowLeftPanel(false)}
-                          />
-                          <div
-                            ref={sidebarRef}
-                            className={`relative h-full bg-[#111111]/95 border border-[rgba(255,255,255,0.08)] shadow-inner transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
-                            style={{ width: Math.min(sidebarWidth, window.innerWidth * 0.95) }}
-                          >
-                            <div className="p-3 flex items-center justify-between border-b border-white/6">
-                              <div className="text-white font-semibold">Data Models</div>
-                              <button
-                                type="button"
-                                ref={closeButtonRef}
-                                onClick={() => setShowLeftPanel(false)}
-                                className="px-2 py-1 rounded bg-white/5 text-white/80"
-                              >
-                                Close
-                              </button>
-                            </div>
-                            <div className="h-full overflow-auto">
-                              <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} onCloudSync={handleCloudSync} />
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          ref={sidebarRef}
-                          className={`glass-card flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-inner' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
-                          style={{ width: sidebarWidth, minWidth: 220 }}
-                        >
-                          <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
-                            <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} />
-
-                            {/* Drag handle (hidden on small screens) */}
-                            <div className="absolute -right-6 top-1/2 z-40 hidden sm:flex -translate-y-1/2 items-center">
-                              <div
-                                title="Drag to resize sidebar (double-click to toggle)"
-                                onMouseDown={(e) => {
-                                  draggingRef.current = true;
-                                  startXRef.current = e.clientX;
-                                  startWidthRef.current = sidebarWidth;
-                                  setIsDraggingState(true);
-                                  // disable transition during drag for immediate response
-                                  if (sidebarRef.current) sidebarRef.current.style.transition = 'none';
-                                  document.body.style.cursor = 'col-resize';
-                                }}
-                                onDoubleClick={() => setSidebarWidth((w) => (w > 240 ? 240 : 360))}
-                                className="flex items-center justify-center w-9 h-9 rounded-full bg-black/60 border border-white/6 cursor-col-resize hover:bg-white/5 transition-colors"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/85">
-                                  <path d="M10 6h2v2h-2V6zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2z" fill="currentColor" />
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    {restoredMessages.length > 0 && (
-                      <div className="px-4 py-4">
-                        <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-                          <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
-                          <div className="text-xs text-slate-500">Messages are shown here, outside the bottom input bar.</div>
-                        </div>
-                        <div
-                          ref={chatListRef}
-                          onScroll={() => {
-                            if (!chatListRef.current) return;
-                            const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
-                            setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
-                          }}
-                          className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32 bg-transparent"
-                        >
-                          {restoredMessages.map((message, index) => (
-                            <div
-                              key={index}
-                              className={`group flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
-                            >
-                              {(() => {
-                                const messageKey = `${message.role}-${index}-${message.createdAt ?? ''}`;
-                                const isLongMessage = shouldCollapseMessage(message.content);
-                                const isExpanded = Boolean(expandedMessageKeys[messageKey]);
-
-                                return (
-                              <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
-                                <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
-                                  {message.role === 'assistant' ? 'AI' : 'YOU'}
-                                </div>
-                                <div className="relative overflow-hidden">
-                                  <div
-                                    dir={getMessageDirection(message.content)}
-                                    className={`rounded-2xl px-4 py-2.5 bg-white/[0.04] text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100 shadow-none`}
-                                    style={{ unicodeBidi: 'plaintext' }}
-                                  >
-                                    <div
-                                      className={`chat-message-text break-words whitespace-pre-line ${hasArabicText(message.content) ? 'arabic-text' : ''}`}
-                                      style={{
-                                        maxHeight: isLongMessage && !isExpanded ? '120px' : '1400px',
-                                        overflow: 'hidden',
-                                        paddingBottom: isLongMessage ? '4rem' : 0,
-                                        transition: 'max-height 240ms ease',
-                                      }}
-                                    >
-                                      {message.role === 'assistant' ? (
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                          {message.content}
-                                        </ReactMarkdown>
-                                      ) : (
-                                        message.content
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {isLongMessage && !isExpanded && (
-                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0b0b] to-transparent" />
-                                  )}
-
-                                  {isLongMessage && (
+                {activeView === 'generator' && (
+                  <>
+                    {showWelcome ? (
+                      <WelcomeDashboard
+                        onStartGenerating={handleStartGenerating}
+                        onTryDemo={handleTryDemo}
+                      />
+                    ) : (
+                      <div className="flex h-full overflow-hidden">
+                        {sidebarMounted && (
+                          <>
+                            {isMobile ? (
+                              <div className="fixed inset-0 z-40 flex">
+                                <div
+                                  className={`absolute inset-0 bg-black transition-opacity duration-300 ${showLeftPanel ? 'opacity-60' : 'opacity-0 pointer-events-none'}`}
+                                  onClick={() => showLeftPanel && setShowLeftPanel(false)}
+                                />
+                                <div
+                                  ref={sidebarRef}
+                                  className={`relative h-full bg-[#111111]/95 border border-[rgba(255,255,255,0.08)] shadow-inner transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
+                                  style={{ width: Math.min(sidebarWidth, window.innerWidth * 0.95) }}
+                                >
+                                  <div className="p-3 flex items-center justify-between border-b border-white/6">
+                                    <div className="text-white font-semibold">Data Models</div>
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        setExpandedMessageKeys((previous) => ({
-                                          ...previous,
-                                          [messageKey]: !previous[messageKey],
-                                        }));
-                                      }}
-                                      className="absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/5 bg-white/10 px-3 py-1.5 text-xs text-white/90 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition hover:bg-white/15"
+                                      ref={closeButtonRef}
+                                      onClick={() => setShowLeftPanel(false)}
+                                      className="px-2 py-1 rounded bg-white/5 text-white/80"
                                     >
-                                      <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
-                                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                      Close
                                     </button>
-                                  )}
-                                </div>
-                                <div className="mt-1 flex items-center gap-2 px-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        await navigator.clipboard.writeText(message.content);
-                                        const copyKey = `${index}-${message.role}`;
-                                        setCopiedMessageKey(copyKey);
-                                        window.setTimeout(() => setCopiedMessageKey((current) => (current === copyKey ? null : current)), 1200);
-                                      } catch {
-                                        // ignore clipboard errors
-                                      }
-                                    }}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
-                                    aria-label="Copy message"
-                                    title="Copy message"
-                                  >
-                                    {copiedMessageKey === `${index}-${message.role}` ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.5} />}
-                                  </button>
-                                  <span className="text-[10px] text-slate-500">
-                                    {formatMessageTime(message.createdAt)}
-                                  </span>
+                                  </div>
+                                  <div className="h-full overflow-auto">
+                                    <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} onCloudSync={handleCloudSync} />
+                                  </div>
                                 </div>
                               </div>
-                                );
-                              })()}
-                            </div>
-                          ))}
-                          <AnimatePresence initial={false}>
-                            {isAiTyping && (
-                              <motion.div
-                                key="ai-typing-indicator"
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 4 }}
-                                transition={{ duration: 0.18, ease: 'easeOut' }}
-                                className="flex justify-start"
+                            ) : (
+                              <div
+                                ref={sidebarRef}
+                                className={`glass-card flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-inner' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
+                                style={{ width: sidebarWidth, minWidth: 220 }}
                               >
-                                <div className="max-w-[75%] flex flex-col items-start">
-                                  <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
-                                  <div
-                                    dir="ltr"
-                                    className="rounded-2xl rounded-tr-none border border-white/10 bg-white/10 px-3 py-2.5 text-slate-100"
-                                    style={{ unicodeBidi: 'plaintext' }}
-                                    aria-label="AI is typing"
-                                    role="status"
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
-                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
-                                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
+                                <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
+                                  <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} />
+
+                                  <div className="absolute -right-6 top-1/2 z-40 hidden sm:flex -translate-y-1/2 items-center">
+                                    <div
+                                      title="Drag to resize sidebar (double-click to toggle)"
+                                      onMouseDown={(e) => {
+                                        draggingRef.current = true;
+                                        startXRef.current = e.clientX;
+                                        startWidthRef.current = sidebarWidth;
+                                        setIsDraggingState(true);
+                                        if (sidebarRef.current) sidebarRef.current.style.transition = 'none';
+                                        document.body.style.cursor = 'col-resize';
+                                      }}
+                                      onDoubleClick={() => setSidebarWidth((w) => (w > 240 ? 240 : 360))}
+                                      className="flex items-center justify-center w-9 h-9 rounded-full bg-black/60 border border-white/6 cursor-col-resize hover:bg-white/5 transition-colors"
+                                    >
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/85">
+                                        <path d="M10 6h2v2h-2V6zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2z" fill="currentColor" />
+                                      </svg>
                                     </div>
                                   </div>
                                 </div>
-                              </motion.div>
+                              </div>
                             )}
-                          </AnimatePresence>
-                          <div ref={chatBottomRef} aria-hidden="true" className="h-1" />
-                        </div>
-                        {isChatScrolledUp && (
-                          <div className="mt-3 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={scrollChatToBottom}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
-                              aria-label="Scroll to bottom"
-                              title="Scroll to bottom"
-                            >
-                              <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
-                            </button>
-                          </div>
+                          </>
                         )}
+
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                          {restoredMessages.length > 0 && (
+                            <div className="px-4 py-4">
+                              <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
+                                <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
+                                <div className="text-xs text-slate-500">Messages are shown here, outside the bottom input bar.</div>
+                              </div>
+                              <div
+                                ref={chatListRef}
+                                onScroll={() => {
+                                  if (!chatListRef.current) return;
+                                  const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
+                                  setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
+                                }}
+                                className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32 bg-transparent"
+                              >
+                                {restoredMessages.map((message, index) => (
+                                  <div
+                                    key={index}
+                                    className={`group flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                                  >
+                                    {(() => {
+                                      const messageKey = `${message.role}-${index}-${message.createdAt ?? ''}`;
+                                      const isLongMessage = shouldCollapseMessage(message.content);
+                                      const isExpanded = Boolean(expandedMessageKeys[messageKey]);
+
+                                      return (
+                                        <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
+                                          <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
+                                            {message.role === 'assistant' ? 'AI' : 'YOU'}
+                                          </div>
+                                          <div className="relative overflow-hidden">
+                                            <div
+                                              dir={getMessageDirection(message.content)}
+                                              className={`rounded-2xl px-4 py-2.5 bg-white/[0.04] text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100 shadow-none`}
+                                              style={{ unicodeBidi: 'plaintext' }}
+                                            >
+                                              <div
+                                                className={`chat-message-text break-words whitespace-pre-line ${hasArabicText(message.content) ? 'arabic-text' : ''}`}
+                                                style={{
+                                                  maxHeight: isLongMessage && !isExpanded ? '120px' : '1400px',
+                                                  overflow: 'hidden',
+                                                  paddingBottom: isLongMessage ? '4rem' : 0,
+                                                  transition: 'max-height 240ms ease',
+                                                }}
+                                              >
+                                                {message.role === 'assistant' ? (
+                                                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                    {message.content}
+                                                  </ReactMarkdown>
+                                                ) : (
+                                                  message.content
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            {isLongMessage && !isExpanded && (
+                                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0b0b] to-transparent" />
+                                            )}
+
+                                            {isLongMessage && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setExpandedMessageKeys((previous) => ({
+                                                    ...previous,
+                                                    [messageKey]: !previous[messageKey],
+                                                  }));
+                                                }}
+                                                className="absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/5 bg-white/10 px-3 py-1.5 text-xs text-white/90 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition hover:bg-white/15"
+                                              >
+                                                <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                              </button>
+                                            )}
+                                          </div>
+                                          <div className="mt-1 flex items-center gap-2 px-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                                            <button
+                                              type="button"
+                                              onClick={async () => {
+                                                try {
+                                                  await navigator.clipboard.writeText(message.content);
+                                                  const copyKey = `${index}-${message.role}`;
+                                                  setCopiedMessageKey(copyKey);
+                                                  window.setTimeout(() => setCopiedMessageKey((current) => (current === copyKey ? null : current)), 1200);
+                                                } catch {
+                                                  // ignore clipboard errors
+                                                }
+                                              }}
+                                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
+                                              aria-label="Copy message"
+                                              title="Copy message"
+                                            >
+                                              {copiedMessageKey === `${index}-${message.role}` ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.5} />}
+                                            </button>
+                                            <span className="text-[10px] text-slate-500">
+                                              {formatMessageTime(message.createdAt)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                ))}
+                                <AnimatePresence initial={false}>
+                                  {isAiTyping && (
+                                    <motion.div
+                                      key="ai-typing-indicator"
+                                      initial={{ opacity: 0, y: 4 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: 4 }}
+                                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                                      className="flex justify-start"
+                                    >
+                                      <div className="max-w-[75%] flex flex-col items-start">
+                                        <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
+                                        <div
+                                          dir="ltr"
+                                          className="rounded-2xl rounded-tr-none border border-white/10 bg-white/10 px-3 py-2.5 text-slate-100"
+                                          style={{ unicodeBidi: 'plaintext' }}
+                                          aria-label="AI is typing"
+                                          role="status"
+                                        >
+                                          <div className="flex items-center gap-1">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                                <div ref={chatBottomRef} aria-hidden="true" className="h-1" />
+                              </div>
+                              {isChatScrolledUp && (
+                                <div className="mt-3 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={scrollChatToBottom}
+                                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
+                                    aria-label="Scroll to bottom"
+                                    title="Scroll to bottom"
+                                  >
+                                    <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
+                            <SystemBuildView
+                              schema={schemaPreview}
+                              isAwaitingAiSchema={isAwaitingAiSchema}
+                              onSchemaChange={setSchemaPreview}
+                              isGenerating={status === 'generating'}
+                              isComplete={status === 'success'}
+                              hasError={status === 'error'}
+                              onTryDemo={handleTryDemo}
+                              progress={progress}
+                              statusMessage={statusMessage}
+                              estimatedRemainingSec={estimatedRemaining}
+                              files={generatedFiles}
+                              selectedFile={selectedFile}
+                              onSelectFile={setSelectedFile}
+                              deploymentStrategy={deploymentStrategy}
+                              repositoryUrl={repositoryUrl}
+                              downloadUrl={downloadUrl}
+                              activeJobId={activeJobId}
+                              onCloudSync={handleCloudSync}
+                            />
+                          ) : restoredMessages.length === 0 ? (
+                            <div className="flex-1 flex items-center justify-center">
+                              <p className="text-white/30">
+                                Configure your module and click Generate
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex-1" />
+                          )}
+                        </div>
                       </div>
                     )}
+                  </>
+                )}
+              </main>
+            </div>
 
-                    {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
-                      <SystemBuildView
-                        schema={schemaPreview}
-                        isAwaitingAiSchema={isAwaitingAiSchema}
-                        onSchemaChange={setSchemaPreview}
-                        isGenerating={status === 'generating'}
-                        isComplete={status === 'success'}
-                        hasError={status === 'error'}
-                        onTryDemo={handleTryDemo}
-                        progress={progress}
-                        statusMessage={statusMessage}
-                        estimatedRemainingSec={estimatedRemaining}
-                        files={generatedFiles}
-                        selectedFile={selectedFile}
-                        onSelectFile={setSelectedFile}
-                        deploymentStrategy={deploymentStrategy}
-                        repositoryUrl={repositoryUrl}
-                        downloadUrl={downloadUrl}
-                        activeJobId={activeJobId}
-                        onCloudSync={handleCloudSync}
-                      />
-                    ) : restoredMessages.length === 0 ? (
-                      <div className="flex-1 flex items-center justify-center">
-                        <p className="text-white/30">
-                          Configure your module and click Generate
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex-1" />
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </main>
-      </div>
-
-      {activeView === 'generator' && !showWelcome && (
-        <>
+            {activeView === 'generator' && !showWelcome && (
               <GenBar
                 onGenerate={handleGenerate}
                 onTryDemo={handleTryDemo}
@@ -1312,8 +1362,10 @@ function App() {
                 onRepositoryUrlChange={setRepositoryUrl}
                 isReady={isReadyToGenerate}
               />
-        </>
-      )}
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
