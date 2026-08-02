@@ -156,7 +156,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
     const text = inputValue.trim();
     if (!text || effectiveIsChatting || inputMode !== 'chat') return;
 
-    const userMessage: ChatMessage = { role: 'user', content: text, status: 'sending' };
+    const userMessage: ChatMessage = { role: 'user', content: text, status: 'sending', createdAt: new Date().toISOString() };
     const nextMessages = [...effectiveMessages, userMessage];
 
     effectiveSetMessages(nextMessages);
@@ -173,7 +173,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
       const response = await sendChatMessage(nextMessages, jobId, { preferred_language });
       const nextAssistantMessages: ChatMessage[] = [
         ...markSentMessages(nextMessages),
-        { role: 'assistant', content: response.reply },
+        { role: 'assistant', content: response.reply, createdAt: new Date().toISOString() },
       ];
       effectiveSetMessages(nextAssistantMessages);
       effectiveSetReadyToGenerate(response.ready_to_generate);

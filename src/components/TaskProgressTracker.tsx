@@ -23,7 +23,7 @@ const pendingIconClassName = 'h-2.5 w-2.5 flex-shrink-0';
 export const TaskProgressTracker: React.FC<TaskProgressTrackerProps> = ({
   tasks,
   title = 'Task progress',
-  initialExpanded = true,
+  initialExpanded = false,
   className = '',
 }) => {
   const [expanded, setExpanded] = useState(initialExpanded);

@@ -9,7 +9,7 @@ import { ToastProvider } from './components/ToastProvider';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -44,19 +44,19 @@ function getMessageDirection(text: string): 'rtl' | 'ltr' {
 }
 
 const markdownComponents = {
-  h1: ({ children }: { children?: React.ReactNode }) => <h1 className="chat-message-text mb-2 font-semibold text-white">{children}</h1>,
-  h2: ({ children }: { children?: React.ReactNode }) => <h2 className="chat-message-text mb-2 font-semibold text-white">{children}</h2>,
-  h3: ({ children }: { children?: React.ReactNode }) => <h3 className="chat-message-text mb-1.5 font-semibold text-white">{children}</h3>,
-  p: ({ children }: { children?: React.ReactNode }) => <p className="chat-message-text m-0 text-slate-100">{children}</p>,
-  ul: ({ children }: { children?: React.ReactNode }) => <ul className="chat-message-text my-2 list-disc space-y-1 pl-5 text-slate-100">{children}</ul>,
-  ol: ({ children }: { children?: React.ReactNode }) => <ol className="chat-message-text my-2 list-decimal space-y-1 pl-5 text-slate-100">{children}</ol>,
-  li: ({ children }: { children?: React.ReactNode }) => <li className="chat-message-text">{children}</li>,
-  strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold text-white">{children}</strong>,
+  h1: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  h2: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  h3: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  p: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  ul: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  ol: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  li: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  strong: ({ children }: { children?: React.ReactNode }) => <strong>{children}</strong>,
   code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => (
     <code
       className={inline
         ? 'rounded bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-slate-100'
-        : 'block rounded-xl bg-black/40 p-3 font-mono text-[12px] leading-6 text-slate-100'}
+        : 'font-mono text-[12px] leading-6 text-slate-100 whitespace-pre-wrap'}
     >
       {children}
     </code>
@@ -76,6 +76,23 @@ interface Model {
   id: string;
   name: string;
   fields: ModelField[];
+}
+
+function formatMessageTime(value?: string): string {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return date.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function shouldCollapseMessage(content: string): boolean {
+  const lineCount = content.split(/\r?\n/).length;
+  return content.length > 300 || lineCount > 5;
 }
 
 function App() {
@@ -149,9 +166,11 @@ function App() {
   const [sidebarMounted, setSidebarMounted] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(300);
   const [chatResetKey, setChatResetKey] = useState(0);
-  const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([{ role: 'assistant', content: INITIAL_AI_MESSAGE }]);
+  const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([{ role: 'assistant', content: INITIAL_AI_MESSAGE, createdAt: new Date().toISOString() }]);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
   const isAiTyping = restoredMessages.some((message) => message.role === 'user' && message.status === 'sending');
+  const [copiedMessageKey, setCopiedMessageKey] = useState<string | null>(null);
+  const [expandedMessageKeys, setExpandedMessageKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!chatAutoScroll || !chatBottomRef.current) return;
@@ -585,6 +604,7 @@ function App() {
       .map((message) => ({
         role: message.role === 'assistant' ? 'assistant' : 'user',
         content: message.content || '',
+        createdAt: new Date().toISOString(),
       }));
   }, []);
 
@@ -1105,28 +1125,89 @@ function App() {
                           {restoredMessages.map((message, index) => (
                             <div
                               key={index}
-                              className={`flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                              className={`group flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
                             >
+                              {(() => {
+                                const messageKey = `${message.role}-${index}-${message.createdAt ?? ''}`;
+                                const isLongMessage = shouldCollapseMessage(message.content);
+                                const isExpanded = Boolean(expandedMessageKeys[messageKey]);
+
+                                return (
                               <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
                                 <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
                                   {message.role === 'assistant' ? 'AI' : 'YOU'}
                                 </div>
-                                <div
-                                  dir={getMessageDirection(message.content)}
-                                  className={`rounded-2xl px-4 py-2.5 border border-white/10 bg-white/5 text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100`}
-                                  style={{ unicodeBidi: 'plaintext' }}
-                                >
-                                  <div className={`chat-message-text break-words ${message.role === 'assistant' ? 'chat-message-text-assistant' : 'whitespace-pre-line'} ${hasArabicText(message.content) ? 'arabic-text' : ''}`}>
-                                    {message.role === 'assistant' ? (
-                                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                        {message.content}
-                                      </ReactMarkdown>
-                                    ) : (
-                                      message.content
-                                    )}
+                                <div className="relative overflow-hidden">
+                                  <div
+                                    dir={getMessageDirection(message.content)}
+                                    className={`rounded-2xl px-4 py-2.5 border border-white/10 bg-white/10 text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100`}
+                                    style={{ unicodeBidi: 'plaintext' }}
+                                  >
+                                    <div
+                                      className={`chat-message-text break-words whitespace-pre-line ${hasArabicText(message.content) ? 'arabic-text' : ''}`}
+                                      style={{
+                                        maxHeight: isLongMessage && !isExpanded ? '120px' : '1400px',
+                                        overflow: 'hidden',
+                                        paddingBottom: isLongMessage ? '4rem' : 0,
+                                        transition: 'max-height 240ms ease',
+                                      }}
+                                    >
+                                      {message.role === 'assistant' ? (
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                          {message.content}
+                                        </ReactMarkdown>
+                                      ) : (
+                                        message.content
+                                      )}
+                                    </div>
                                   </div>
+
+                                  {isLongMessage && !isExpanded && (
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0f18] to-transparent" />
+                                  )}
+
+                                  {isLongMessage && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setExpandedMessageKeys((previous) => ({
+                                          ...previous,
+                                          [messageKey]: !previous[messageKey],
+                                        }));
+                                      }}
+                                      className="absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/5 bg-white/10 px-3 py-1.5 text-xs text-white/90 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition hover:bg-white/15"
+                                    >
+                                      <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="mt-1 flex items-center gap-2 px-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await navigator.clipboard.writeText(message.content);
+                                        const copyKey = `${index}-${message.role}`;
+                                        setCopiedMessageKey(copyKey);
+                                        window.setTimeout(() => setCopiedMessageKey((current) => (current === copyKey ? null : current)), 1200);
+                                      } catch {
+                                        // ignore clipboard errors
+                                      }
+                                    }}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
+                                    aria-label="Copy message"
+                                    title="Copy message"
+                                  >
+                                    {copiedMessageKey === `${index}-${message.role}` ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.5} />}
+                                  </button>
+                                  <span className="text-[10px] text-slate-500">
+                                    {formatMessageTime(message.createdAt)}
+                                  </span>
                                 </div>
                               </div>
+                                );
+                              })()}
                             </div>
                           ))}
                           <AnimatePresence initial={false}>
@@ -1143,7 +1224,7 @@ function App() {
                                   <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
                                   <div
                                     dir="ltr"
-                                    className="rounded-2xl rounded-tr-none border border-white/10 bg-white/5 px-3 py-2.5 text-slate-100"
+                                    className="rounded-2xl rounded-tr-none border border-white/10 bg-white/10 px-3 py-2.5 text-slate-100"
                                     style={{ unicodeBidi: 'plaintext' }}
                                     aria-label="AI is typing"
                                     role="status"

@@ -91,6 +91,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   status?: 'sending' | 'sent';
+  createdAt?: string;
 }
 
 export interface ChatResponse {
