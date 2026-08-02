@@ -1073,7 +1073,7 @@ function App() {
                       ) : (
                         <div
                           ref={sidebarRef}
-                          className={`glass-card border-r border-[rgba(255,255,255,0.08)] flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-inner' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
+                          className={`glass-card flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-inner' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
                           style={{ width: sidebarWidth, minWidth: 220 }}
                         >
                           <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
@@ -1120,7 +1120,7 @@ function App() {
                             const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
                             setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
                           }}
-                          className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32"
+                          className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32 bg-transparent"
                         >
                           {restoredMessages.map((message, index) => (
                             <div
@@ -1140,7 +1140,7 @@ function App() {
                                 <div className="relative overflow-hidden">
                                   <div
                                     dir={getMessageDirection(message.content)}
-                                    className={`rounded-2xl px-4 py-2.5 border border-white/10 bg-white/10 text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100`}
+                                    className={`rounded-2xl px-4 py-2.5 bg-white/[0.04] text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100 shadow-none`}
                                     style={{ unicodeBidi: 'plaintext' }}
                                   >
                                     <div
@@ -1163,7 +1163,7 @@ function App() {
                                   </div>
 
                                   {isLongMessage && !isExpanded && (
-                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0f18] to-transparent" />
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0b0b] to-transparent" />
                                   )}
 
                                   {isLongMessage && (

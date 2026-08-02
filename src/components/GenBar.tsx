@@ -272,7 +272,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
         </div>
       )} 
 
-      <div className="rounded-2xl border border-white/5 bg-[#0d0d0d] px-2.5 py-2.5 text-white sm:px-3 sm:py-3 shadow-2xl">
+      <div className="rounded-2xl bg-[#0d0d0d]/90 px-2.5 py-2.5 text-white sm:px-3 sm:py-3 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -282,7 +282,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
           <TaskProgressTracker tasks={tasks} title="Task progress" className="w-full" />
         </motion.div>
 
-        <div className="rounded-xl border border-white/5 bg-[#0b0b0b] px-3 py-2.5">
+        <div className="rounded-xl bg-[#0b0b0b]/80 px-3 py-2.5">
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -388,7 +388,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
 
               <div className="flex flex-col gap-2">
                 {inputMode === 'chat' && (
-                  <div className="flex flex-col gap-2 rounded-xl border border-white/5 bg-[#0b0b0b] px-3 py-3">
+                  <div className="flex flex-col gap-2 rounded-xl bg-[#0b0b0b]/80 px-3 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
                         <span className={`inline-flex h-2.5 w-2.5 rounded-full ${effectiveReadyToGenerate ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
