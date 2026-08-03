@@ -10,7 +10,7 @@ import { HomePageSkeleton } from './components/Skeleton';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
-import { ArrowDown, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowDown, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -91,11 +91,6 @@ function formatMessageTime(value?: string): string {
   });
 }
 
-function shouldCollapseMessage(content: string): boolean {
-  const lineCount = content.split(/\r?\n/).length;
-  return content.length > 300 || lineCount > 5;
-}
-
 function App() {
   // Restore persisted state or use defaults
   const [activeView, setActiveView] = useState<ViewType>(() => {
@@ -110,6 +105,7 @@ function App() {
       return 'generator';
     }
   });
+  const [builderTab, setBuilderTab] = useState<'chat' | 'demo'>('demo');
   const [status, setStatus] = useState<StatusType>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [progress, setProgress] = useState(0);
@@ -172,7 +168,6 @@ function App() {
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
   const isAiTyping = restoredMessages.some((message) => message.role === 'user' && message.status === 'sending');
   const [copiedMessageKey, setCopiedMessageKey] = useState<string | null>(null);
-  const [expandedMessageKeys, setExpandedMessageKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -1157,158 +1152,139 @@ function App() {
                           </>
                         )}
 
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          {restoredMessages.length > 0 && (
-                            <div className="px-4 py-4">
-                              <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-                                <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
-                                <div className="text-xs text-slate-500">Messages are shown here, outside the bottom input bar.</div>
-                              </div>
-                              <div
-                                ref={chatListRef}
-                                onScroll={() => {
-                                  if (!chatListRef.current) return;
-                                  const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
-                                  setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
-                                }}
-                                className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32 bg-transparent"
+                        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+                          {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) && (
+                            <div className="flex border-b border-white/10 px-4 mt-2">
+                              <button
+                                onClick={() => setBuilderTab('demo')}
+                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${builderTab === 'demo' ? 'border-indigo-500 text-white' : 'border-transparent text-white/50 hover:text-white/80'}`}
                               >
-                                {restoredMessages.map((message, index) => (
-                                  <div
-                                    key={index}
-                                    className={`group flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
-                                  >
-                                    {(() => {
-                                      const messageKey = `${message.role}-${index}-${message.createdAt ?? ''}`;
-                                      const isLongMessage = shouldCollapseMessage(message.content);
-                                      const isExpanded = Boolean(expandedMessageKeys[messageKey]);
-
-                                      return (
-                                        <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
-                                          <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
-                                            {message.role === 'assistant' ? 'AI' : 'YOU'}
-                                          </div>
-                                          <div className="relative overflow-hidden">
-                                            <div
-                                              dir={getMessageDirection(message.content)}
-                                              className={`rounded-2xl px-4 py-2.5 bg-white/[0.04] text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100 shadow-none`}
-                                              style={{ unicodeBidi: 'plaintext' }}
-                                            >
-                                              <div
-                                                className={`chat-message-text break-words whitespace-pre-line ${hasArabicText(message.content) ? 'arabic-text' : ''}`}
-                                                style={{
-                                                  maxHeight: isLongMessage && !isExpanded ? '120px' : '1400px',
-                                                  overflow: 'hidden',
-                                                  paddingBottom: isLongMessage ? '4rem' : 0,
-                                                  transition: 'max-height 240ms ease',
-                                                }}
-                                              >
-                                                {message.role === 'assistant' ? (
-                                                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                                    {message.content}
-                                                  </ReactMarkdown>
-                                                ) : (
-                                                  message.content
-                                                )}
-                                              </div>
-                                            </div>
-
-                                            {isLongMessage && !isExpanded && (
-                                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0b0b] to-transparent" />
-                                            )}
-
-                                            {isLongMessage && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  setExpandedMessageKeys((previous) => ({
-                                                    ...previous,
-                                                    [messageKey]: !previous[messageKey],
-                                                  }));
-                                                }}
-                                                className="absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/5 bg-white/10 px-3 py-1.5 text-xs text-white/90 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition hover:bg-white/15"
-                                              >
-                                                <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
-                                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                              </button>
-                                            )}
-                                          </div>
-                                          <div className="mt-1 flex items-center gap-2 px-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                                            <button
-                                              type="button"
-                                              onClick={async () => {
-                                                try {
-                                                  await navigator.clipboard.writeText(message.content);
-                                                  const copyKey = `${index}-${message.role}`;
-                                                  setCopiedMessageKey(copyKey);
-                                                  window.setTimeout(() => setCopiedMessageKey((current) => (current === copyKey ? null : current)), 1200);
-                                                } catch {
-                                                  // ignore clipboard errors
-                                                }
-                                              }}
-                                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
-                                              aria-label="Copy message"
-                                              title="Copy message"
-                                            >
-                                              {copiedMessageKey === `${index}-${message.role}` ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.5} />}
-                                            </button>
-                                            <span className="text-[10px] text-slate-500">
-                                              {formatMessageTime(message.createdAt)}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                ))}
-                                <AnimatePresence initial={false}>
-                                  {isAiTyping && (
-                                    <motion.div
-                                      key="ai-typing-indicator"
-                                      initial={{ opacity: 0, y: 4 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0, y: 4 }}
-                                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                                      className="flex justify-start"
-                                    >
-                                      <div className="max-w-[75%] flex flex-col items-start">
-                                        <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
-                                        <div
-                                          dir="ltr"
-                                          className="rounded-2xl rounded-tr-none border border-white/10 bg-white/10 px-3 py-2.5 text-slate-100"
-                                          style={{ unicodeBidi: 'plaintext' }}
-                                          aria-label="AI is typing"
-                                          role="status"
-                                        >
-                                          <div className="flex items-center gap-1">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
-                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
-                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                                <div ref={chatBottomRef} aria-hidden="true" className="h-1" />
-                              </div>
-                              {isChatScrolledUp && (
-                                <div className="mt-3 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={scrollChatToBottom}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
-                                    aria-label="Scroll to bottom"
-                                    title="Scroll to bottom"
-                                  >
-                                    <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
-                                  </button>
-                                </div>
-                              )}
+                                Demo & Files
+                              </button>
+                              <button
+                                onClick={() => setBuilderTab('chat')}
+                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${builderTab === 'chat' ? 'border-indigo-500 text-white' : 'border-transparent text-white/50 hover:text-white/80'}`}
+                              >
+                                Chat History
+                              </button>
                             </div>
                           )}
 
-                          {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
+                          {restoredMessages.length > 0 && (!(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) || builderTab === 'chat') && (
+                            <div className="flex flex-col min-h-0 px-4 pt-4 flex-1">
+                              <div className="mb-3 flex flex-shrink-0 items-center justify-between gap-3 text-sm text-slate-300">
+                                <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
+                                <div className="text-xs text-slate-500">Messages are shown here, outside the bottom input bar.</div>
+                              </div>
+                              <div className="relative min-h-0 flex-1">
+                                <div
+                                  ref={chatListRef}
+                                  onScroll={() => {
+                                    if (!chatListRef.current) return;
+                                    const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
+                                    setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
+                                  }}
+                                  className="h-full space-y-3 overflow-y-auto scroll-smooth pr-2 pb-40 bg-transparent"
+                                >
+                                  {restoredMessages.map((message, index) => (
+                                    <div
+                                      key={index}
+                                      className={`group flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                                    >
+                                      <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
+                                        <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
+                                          {message.role === 'assistant' ? 'AI' : 'YOU'}
+                                        </div>
+                                        <div
+                                          dir={getMessageDirection(message.content)}
+                                          className={`rounded-2xl px-4 py-2.5 bg-white/[0.04] text-slate-100 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'}`}
+                                          style={{ unicodeBidi: 'plaintext' }}
+                                        >
+                                          <div className={`chat-message-text break-words whitespace-pre-line ${hasArabicText(message.content) ? 'arabic-text' : ''}`}>
+                                            {message.role === 'assistant' ? (
+                                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {message.content}
+                                              </ReactMarkdown>
+                                            ) : (
+                                              message.content
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="mt-1 flex items-center gap-2 px-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              try {
+                                                await navigator.clipboard.writeText(message.content);
+                                                const copyKey = `${index}-${message.role}`;
+                                                setCopiedMessageKey(copyKey);
+                                                window.setTimeout(() => setCopiedMessageKey((current) => (current === copyKey ? null : current)), 1200);
+                                              } catch {
+                                                // ignore clipboard errors
+                                              }
+                                            }}
+                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
+                                            aria-label="Copy message"
+                                            title="Copy message"
+                                          >
+                                            {copiedMessageKey === `${index}-${message.role}` ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.5} />}
+                                          </button>
+                                          <span className="text-[10px] text-slate-500">
+                                            {formatMessageTime(message.createdAt)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <AnimatePresence initial={false}>
+                                    {isAiTyping && (
+                                      <motion.div
+                                        key="ai-typing-indicator"
+                                        initial={{ opacity: 0, y: 4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 4 }}
+                                        transition={{ duration: 0.18, ease: 'easeOut' }}
+                                        className="flex justify-start"
+                                      >
+                                        <div className="max-w-[75%] flex flex-col items-start">
+                                          <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
+                                          <div
+                                            dir="ltr"
+                                            className="rounded-2xl rounded-tr-none border border-white/10 bg-white/10 px-3 py-2.5 text-slate-100"
+                                            style={{ unicodeBidi: 'plaintext' }}
+                                            aria-label="AI is typing"
+                                            role="status"
+                                          >
+                                            <div className="flex items-center gap-1">
+                                              <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                                              <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
+                                              <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                  <div ref={chatBottomRef} aria-hidden="true" className="h-1" />
+                                </div>
+                                {isChatScrolledUp && (
+                                  <div className="pointer-events-none absolute bottom-28 right-2 z-20">
+                                    <button
+                                      type="button"
+                                      onClick={scrollChatToBottom}
+                                      className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
+                                      aria-label="Scroll to bottom"
+                                      title="Scroll to bottom"
+                                    >
+                                      <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) && builderTab === 'demo' ? (
                             <SystemBuildView
                               schema={schemaPreview}
                               isAwaitingAiSchema={isAwaitingAiSchema}
@@ -1317,6 +1293,7 @@ function App() {
                               isComplete={status === 'success'}
                               hasError={status === 'error'}
                               onTryDemo={handleTryDemo}
+                              onRetry={handleGenerate}
                               progress={progress}
                               statusMessage={statusMessage}
                               estimatedRemainingSec={estimatedRemaining}
@@ -1335,9 +1312,7 @@ function App() {
                                 Configure your module and click Generate
                               </p>
                             </div>
-                          ) : (
-                            <div className="flex-1" />
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     )}
