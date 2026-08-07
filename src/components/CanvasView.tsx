@@ -105,7 +105,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   return (
     <div className="flex-1 flex overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
-      <div className="flex min-h-0 w-full max-w-[260px] flex-col flex-shrink-0 border-r border-white/10 bg-black/25">
+      <div className="flex min-h-0 w-36 sm:w-48 lg:w-full lg:max-w-[260px] flex-col flex-shrink-0 border-r border-white/10 bg-black/25">
         <div className="p-3 border-b border-white/10">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Files</h3>
         </div>
@@ -169,7 +169,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 transition-all duration-200 hover:bg-white/10 hover:text-white"
               >
                 <Download className="w-3.5 h-3.5" />
-                Download ZIP
+                <span className="hidden sm:inline">Download ZIP</span>
               </a>
             )}
 

@@ -10,7 +10,7 @@ import { HomePageSkeleton } from './components/Skeleton';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
-import { ArrowDown, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowDown, Copy, Check, ChevronDown, ChevronUp, MessageSquare, Network, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -173,6 +173,7 @@ function App() {
   const isAiTyping = restoredMessages.some((message) => message.role === 'user' && message.status === 'sending');
   const [copiedMessageKey, setCopiedMessageKey] = useState<string | null>(null);
   const [expandedMessageKeys, setExpandedMessageKeys] = useState<Record<string, boolean>>({});
+  const [workspaceTab, setWorkspaceTab] = useState<'chat' | 'build'>('chat');
 
   useEffect(() => {
     let mounted = true;
@@ -409,7 +410,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => setIsMobile(window.innerWidth < 900);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -467,6 +468,12 @@ function App() {
   const [schemaPreview, setSchemaPreview] = useState<SchemaPreview | null>(null);
   const [isAwaitingAiSchema, setIsAwaitingAiSchema] = useState(false);
   const [, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+
+  useEffect(() => {
+    if (status === 'generating' || status === 'success' || schemaPreview) {
+      setWorkspaceTab('build');
+    }
+  }, [status, schemaPreview]);
   const schemaSetRef = useRef(false);
   const modelsSyncedRef = useRef(false);
   const modelsRef = useRef<Model[]>([]);
@@ -1097,28 +1104,28 @@ function App() {
                         {sidebarMounted && (
                           <>
                             {isMobile ? (
-                              <div className="fixed inset-0 z-40 flex">
+                              <div className="fixed inset-0 z-[60] flex">
                                 <div
-                                  className={`absolute inset-0 bg-black transition-opacity duration-300 ${showLeftPanel ? 'opacity-60' : 'opacity-0 pointer-events-none'}`}
+                                  className={`absolute inset-0 bg-black backdrop-blur-[4px] transition-opacity duration-300 ${showLeftPanel ? 'opacity-60' : 'opacity-0 pointer-events-none'}`}
                                   onClick={() => showLeftPanel && setShowLeftPanel(false)}
                                 />
                                 <div
                                   ref={sidebarRef}
-                                  className={`relative h-full bg-[#111111]/95 border border-[rgba(255,255,255,0.08)] shadow-inner transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
-                                  style={{ width: Math.min(sidebarWidth, window.innerWidth * 0.95) }}
+                                  className={`relative flex h-full w-[min(85vw,320px)] flex-col bg-[#111111]/95 border-r border-white/10 shadow-2xl transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
                                 >
-                                  <div className="p-3 flex items-center justify-between border-b border-white/6">
-                                    <div className="text-white font-semibold">Data Models</div>
+                                  <div className="flex shrink-0 items-center justify-end border-b border-white/[0.06] px-3 py-2.5">
                                     <button
                                       type="button"
                                       ref={closeButtonRef}
                                       onClick={() => setShowLeftPanel(false)}
-                                      className="px-2 py-1 rounded bg-white/5 text-white/80"
+                                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                                      aria-label="Close sidebar"
                                     >
+                                      <X className="w-3.5 h-3.5" />
                                       Close
                                     </button>
                                   </div>
-                                  <div className="h-full overflow-auto">
+                                  <div className="flex-1 min-h-0 overflow-y-auto">
                                     <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} onCloudSync={handleCloudSync} />
                                   </div>
                                 </div>
@@ -1127,7 +1134,7 @@ function App() {
                               <div
                                 ref={sidebarRef}
                                 className={`glass-card flex flex-col flex-shrink-0 transform transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-inner' : ''} ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 pointer-events-none'}`}
-                                style={{ width: sidebarWidth, minWidth: 220 }}
+                                style={{ width: Math.min(sidebarWidth, Math.max(220, Math.round(window.innerWidth * 0.3))), minWidth: 220 }}
                               >
                                 <div className={`relative h-full flex flex-col transition-all duration-300 ease-in-out ${isDraggingState ? 'shadow-2xl' : ''}`}>
                                   <ModelSettingsPanel models={models} onModelsChange={syncSchemaPreviewFromModels} schema={schemaPreview} onSchemaReplace={setSchemaPreview} />
@@ -1157,22 +1164,66 @@ function App() {
                           </>
                         )}
 
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                          {restoredMessages.length > 0 && (
-                            <div className="px-4 py-4">
-                              <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-                                <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
-                                <div className="text-xs text-slate-500">Messages are shown here, outside the bottom input bar.</div>
-                              </div>
-                              <div
-                                ref={chatListRef}
-                                onScroll={() => {
-                                  if (!chatListRef.current) return;
-                                  const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
-                                  setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
-                                }}
-                                className="space-y-3 max-h-[60vh] overflow-y-auto scroll-smooth pr-2 pb-32 bg-transparent"
-                              >
+                        <div className="flex flex-1 flex-col overflow-hidden">
+                          <div className="flex items-center gap-1 overflow-x-auto border-b border-white/[0.06] px-3 pt-3 sm:px-4">
+                            <button
+                              type="button"
+                              onClick={() => setWorkspaceTab('chat')}
+                              className={`relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors outline-none sm:px-4 ${workspaceTab === 'chat' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              Chat
+                              {restoredMessages.length > 0 && (
+                                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-semibold text-white/70">
+                                  {restoredMessages.length}
+                                </span>
+                              )}
+                              {workspaceTab === 'chat' && (
+                                <motion.span
+                                  layoutId="workspace-tab-indicator"
+                                  className="absolute inset-x-2 -bottom-px h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
+                                />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setWorkspaceTab('build')}
+                              className={`relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors outline-none sm:px-4 ${workspaceTab === 'build' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                            >
+                              <Network className="h-4 w-4" />
+                              Schema &amp; Build
+                              {schemaPreview && (
+                                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-semibold text-white/70">
+                                  {schemaPreview.models.length}
+                                </span>
+                              )}
+                              {workspaceTab === 'build' && (
+                                <motion.span
+                                  layoutId="workspace-tab-indicator"
+                                  className="absolute inset-x-2 -bottom-px h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
+                                />
+                              )}
+                            </button>
+                          </div>
+
+                          <div className="relative flex-1 overflow-hidden">
+                            <div className={`h-full ${workspaceTab === 'chat' ? '' : 'hidden'}`}>
+                              {restoredMessages.length > 0 ? (
+                                <div className="flex h-full flex-col px-3 py-4 sm:px-8 sm:py-6">
+                                    <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
+                                    <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
+                                    <div className="hidden text-xs text-slate-500 sm:block">Messages are shown here, outside the bottom input bar.</div>
+                                  </div>
+                                  <div
+                                    ref={chatListRef}
+                                    onScroll={() => {
+                                      if (!chatListRef.current) return;
+                                      const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
+                                      setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
+                                    }}
+                                    className="flex-1 min-h-0 space-y-3 overflow-y-auto scroll-smooth pr-2 pb-72 bg-transparent"
+                                  >
                                 {restoredMessages.map((message, index) => (
                                   <div
                                     key={index}
@@ -1184,7 +1235,7 @@ function App() {
                                       const isExpanded = Boolean(expandedMessageKeys[messageKey]);
 
                                       return (
-                                        <div className="max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
+                                        <div className="max-w-[88%] sm:max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
                                           <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
                                             {message.role === 'assistant' ? 'AI' : 'YOU'}
                                           </div>
@@ -1233,7 +1284,7 @@ function App() {
                                               </button>
                                             )}
                                           </div>
-                                          <div className="mt-1 flex items-center gap-2 px-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                                          <div className="mt-1 flex items-center gap-2 px-1 transition-all duration-200 opacity-100 translate-y-0 sm:opacity-0 sm:translate-y-1 sm:group-hover:opacity-100 sm:group-hover:translate-y-0">
                                             <button
                                               type="button"
                                               onClick={async () => {
@@ -1271,7 +1322,7 @@ function App() {
                                       transition={{ duration: 0.18, ease: 'easeOut' }}
                                       className="flex justify-start"
                                     >
-                                      <div className="max-w-[75%] flex flex-col items-start">
+                                      <div className="max-w-[88%] sm:max-w-[75%] flex flex-col items-start">
                                         <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
                                         <div
                                           dir="ltr"
@@ -1291,53 +1342,57 @@ function App() {
                                   )}
                                 </AnimatePresence>
                                 <div ref={chatBottomRef} aria-hidden="true" className="h-1" />
-                              </div>
-                              {isChatScrolledUp && (
-                                <div className="mt-3 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={scrollChatToBottom}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
-                                    aria-label="Scroll to bottom"
-                                    title="Scroll to bottom"
-                                  >
-                                    <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
-                                  </button>
+                                  </div>
+                                  {isChatScrolledUp && (
+                                    <div className="mt-3 flex justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={scrollChatToBottom}
+                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
+                                        aria-label="Scroll to bottom"
+                                        title="Scroll to bottom"
+                                      >
+                                        <ArrowDown className="h-4 w-4" strokeWidth={2.4} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex h-full items-center justify-center">
+                                  <p className="text-white/30">Start a conversation to generate your module</p>
                                 </div>
                               )}
                             </div>
-                          )}
 
-                          {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
-                            <SystemBuildView
-                              schema={schemaPreview}
-                              isAwaitingAiSchema={isAwaitingAiSchema}
-                              onSchemaChange={setSchemaPreview}
-                              isGenerating={status === 'generating'}
-                              isComplete={status === 'success'}
-                              hasError={status === 'error'}
-                              onTryDemo={handleTryDemo}
-                              progress={progress}
-                              statusMessage={statusMessage}
-                              estimatedRemainingSec={estimatedRemaining}
-                              files={generatedFiles}
-                              selectedFile={selectedFile}
-                              onSelectFile={setSelectedFile}
-                              deploymentStrategy={deploymentStrategy}
-                              repositoryUrl={repositoryUrl}
-                              downloadUrl={downloadUrl}
-                              activeJobId={activeJobId}
-                              onCloudSync={handleCloudSync}
-                            />
-                          ) : restoredMessages.length === 0 ? (
-                            <div className="flex-1 flex items-center justify-center">
-                              <p className="text-white/30">
-                                Configure your module and click Generate
-                              </p>
+                            <div className={`h-full ${workspaceTab === 'build' ? '' : 'hidden'}`}>
+                              {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
+                                <SystemBuildView
+                                  schema={schemaPreview}
+                                  isAwaitingAiSchema={isAwaitingAiSchema}
+                                  onSchemaChange={setSchemaPreview}
+                                  isGenerating={status === 'generating'}
+                                  isComplete={status === 'success'}
+                                  hasError={status === 'error'}
+                                  onTryDemo={handleTryDemo}
+                                  progress={progress}
+                                  statusMessage={statusMessage}
+                                  estimatedRemainingSec={estimatedRemaining}
+                                  files={generatedFiles}
+                                  selectedFile={selectedFile}
+                                  onSelectFile={setSelectedFile}
+                                  deploymentStrategy={deploymentStrategy}
+                                  repositoryUrl={repositoryUrl}
+                                  downloadUrl={downloadUrl}
+                                  activeJobId={activeJobId}
+                                  onCloudSync={handleCloudSync}
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center">
+                                  <p className="text-white/30">Configure your module and click Generate</p>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div className="flex-1" />
-                          )}
+                          </div>
                         </div>
                       </div>
                     )}

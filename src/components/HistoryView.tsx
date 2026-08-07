@@ -161,7 +161,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
   };
 
   return (
-    <div className="w-full h-full p-6 overflow-y-auto">
+    <div className="w-full h-full p-4 sm:p-6 overflow-y-auto">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -246,7 +246,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
                     <button
                       type="button"
                       onClick={() => requestDelete(item.id)}
-                      className="p-2 text-white/20 hover:text-white/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="p-2 text-white/30 hover:text-white/60 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                       title="Delete job"
                     >
                       <Trash2 className="w-4 h-4" />

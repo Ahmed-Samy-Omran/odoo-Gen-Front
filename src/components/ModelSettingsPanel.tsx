@@ -253,17 +253,17 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 space-y-3">
         <div>
           <h3 className="text-lg font-semibold text-white/90">Data Models</h3>
           <p className="text-sm text-white/30">Define your Odoo models and fields</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {onCloudSync && (
             <button
               type="button"
               onClick={() => void handleCloudSync()}
-              className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-500/20"
+              className="inline-flex w-full items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-500/20 sm:w-auto"
             >
               {syncState === 'syncing' ? 'Syncing…' : syncState === 'synced' ? 'Synced' : syncState === 'error' ? 'Error' : 'Save to Cloud'}
             </button>
@@ -271,7 +271,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
           <button
             type="button"
             onClick={addModel}
-            className="cyber-button-primary text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_12px_30px_rgba(0,0,0,0.35)]"
+            className="cyber-button-primary w-full justify-center text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_12px_30px_rgba(0,0,0,0.35)] sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             Add Model
@@ -296,10 +296,10 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                         )}
                       </button>
                       <Box className="w-4 h-4 text-white/60" />
-                      <button type="button" onClick={() => setModelModal({ open: true, modelId: model.id, defaultName: model.name })} className="text-white/90 font-medium truncate text-left">
+                      <button type="button" onClick={() => setModelModal({ open: true, modelId: model.id, defaultName: model.name })} className="text-white/90 font-medium truncate text-left min-w-0">
                         {normalizeModelName(model.name)}
                       </button>
-                      <span className="text-xs text-white/30">({fields.length} fields)</span>
+                      <span className="shrink-0 text-xs text-white/30 whitespace-nowrap">({fields.length} fields)</span>
                     </div>
                 <button
                   type="button"
@@ -362,13 +362,13 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {field.required && <Star className="w-4 h-4 text-amber-400" />}
-                            {field.unique && <Hash className="w-4 h-4 text-sky-300" />}
-                            {field.default != null && <span className="text-xs text-white/50 px-2 py-0.5 rounded bg-white/2">{field.default}</span>}
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setFieldModal({ open: true, modelId: model.id, index, defaultName: field.name, defaultType: field.type, required: field.required, defaultValue: field.default ?? null, unique: field.unique ?? false }); }} className="p-1 text-white/40 hover:text-white">
+                            {field.required && <Star className="w-4 h-4 shrink-0 text-amber-400" />}
+                            {field.unique && <Hash className="w-4 h-4 shrink-0 text-sky-300" />}
+                            {field.default != null && <span className="max-w-[90px] truncate text-xs text-white/50 px-2 py-0.5 rounded bg-white/2">{field.default}</span>}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFieldModal({ open: true, modelId: model.id, index, defaultName: field.name, defaultType: field.type, required: field.required, defaultValue: field.default ?? null, unique: field.unique ?? false }); }} className="p-1 shrink-0 text-white/40 hover:text-white">
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button type="button" onClick={() => removeField(model.id, index)} className="p-1 text-white/30 transition-colors hover:text-white/70">
+                            <button type="button" onClick={() => removeField(model.id, index)} className="p-1 shrink-0 text-white/30 transition-colors hover:text-white/70">
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>

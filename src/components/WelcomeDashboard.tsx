@@ -30,7 +30,7 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
   ];
 
   return (
-    <div className="w-full h-full flex items-center justify-center relative">
+    <div className="w-full h-full flex items-center justify-center relative overflow-y-auto py-6">
       <div className="text-center max-w-2xl px-6 space-y-8">
         <div className="flex justify-center">
           <div className="relative">

@@ -311,7 +311,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
         <div className="px-4 py-4 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner space-y-2">
 
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 
             <div className="flex min-w-0 flex-1 items-center gap-2">
 
@@ -333,7 +333,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
 
               {isGenerating && !hasError && estimatedRemainingSec != null && estimatedRemainingSec > 0 && (
 
@@ -350,7 +350,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
                       disabled
                     >
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Preparing ZIP
+                      <span className="hidden sm:inline">Preparing ZIP</span>
                     </button>
                   ) : isComplete && downloadUrl ? (
                     <a
@@ -361,7 +361,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
                       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 transition-all duration-200 hover:bg-white/10 hover:text-white"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Download module ZIP
+                      <span className="hidden sm:inline">Download module ZIP</span>
                     </a>
                   ) : (
                     <button
@@ -370,7 +370,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
                       disabled
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Preparing ZIP
+                      <span className="hidden sm:inline">Preparing ZIP</span>
                     </button>
                   )}
                 </div>

@@ -14,7 +14,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ odooVersion, onSaveS
   }, [odooVersion]);
 
   return (
-    <div className="w-full h-full p-6 overflow-y-auto">
+    <div className="w-full h-full p-4 sm:p-6 overflow-y-auto">
       <div className="max-w-2xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-semibold text-white/90">Settings</h1>
