@@ -32,6 +32,7 @@ interface SystemBuildViewProps {
   isComplete: boolean;
   hasError?: boolean;
   onTryDemo?: () => void;
+  onRetry?: () => void;
   progress: number;
   statusMessage: string;
   estimatedRemainingSec?: number | null;
@@ -53,6 +54,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   isComplete,
   hasError = false,
   onTryDemo,
+  onRetry,
   progress,
   statusMessage,
   estimatedRemainingSec = null,
@@ -235,7 +237,7 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
 
     return (
 
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full pb-36">
 
         <div className="flex items-center gap-2 px-4 py-2 border-b border-glass-border bg-black/40">
 
@@ -423,9 +425,18 @@ export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
               <button
                 type="button"
                 onClick={onTryDemo}
-                className="mt-3 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition-colors"
+                className="mt-3 mr-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition-colors"
               >
                 Try Demo (FitZone Gym — no AI)
+              </button>
+            )}
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-3 px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/30 transition-colors"
+              >
+                Retry Generation
               </button>
             )}
 
