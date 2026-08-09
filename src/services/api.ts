@@ -465,3 +465,104 @@ export async function deleteJob(jobId: string): Promise<void> {
     throw new Error(getApiErrorMessage(errorData, `Delete failed: ${response.statusText}`));
   }
 }
+
+export interface UsageProviderStat {
+  requests: number;
+  success: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+export interface UsageModelStat extends UsageProviderStat {
+  provider?: string | null;
+}
+
+export interface UsageDailyStat {
+  date: string;
+  requests: number;
+  success: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  providers: Record<string, UsageProviderStat>;
+  models: Record<string, UsageProviderStat>;
+}
+
+export interface UsageTotals {
+  requests: number;
+  success: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  providers: Record<string, UsageProviderStat>;
+  models: Record<string, UsageProviderStat>;
+}
+
+export interface QuotaStatus {
+  model_name: string;
+  current_usage: number;
+  limit: number;
+  unit: 'Requests' | 'Tokens';
+  percent_used: number;
+}
+
+export interface ModelIntelligence {
+  model_name: string;
+  today_usage: number;
+  success_rate: number;
+  remaining_quota: number;
+  unit: 'Requests' | 'Tokens';
+  percent_used: number;
+}
+
+export interface UsageStatsResponse {
+  success: boolean;
+  days: number;
+  model?: string | null;
+  /** Quota-tracked models with today's usage for the Model Intelligence Cards. */
+  models: ModelIntelligence[];
+  /** Distinct model names seen in the window (for the filter dropdown). */
+  model_names: string[];
+  models_breakdown: Record<string, UsageModelStat>;
+  quota_status: QuotaStatus[];
+  daily: UsageDailyStat[];
+  totals: UsageTotals;
+}
+
+export async function fetchUsageStats(days = 30, model?: string | null): Promise<UsageStatsResponse> {
+  const params = new URLSearchParams({ days: String(days) });
+  if (model) params.set('model', model);
+
+  const response = await fetch(`${API_BASE_URL}/api/stats/usage?${params.toString()}`, {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Failed to fetch usage stats: ${response.statusText}`));
+  }
+
+  return safeJsonResponse<UsageStatsResponse>(response);
+}
+
+export interface ClearTestDataResponse {
+  success: boolean;
+  deleted: number;
+  provider: string;
+}
+
+export async function clearTestUsageData(provider = 'test_usage_tracking'): Promise<ClearTestDataResponse> {
+  const params = new URLSearchParams({ provider });
+  const response = await fetch(`${API_BASE_URL}/api/stats/usage/test-data?${params.toString()}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw new Error(getApiErrorMessage(errorData, `Failed to clear test data: ${response.statusText}`));
+  }
+
+  return safeJsonResponse<ClearTestDataResponse>(response);
+}

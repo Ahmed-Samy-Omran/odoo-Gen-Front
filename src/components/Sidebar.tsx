@@ -1,10 +1,10 @@
 import React from 'react';
 import AiIcon from './AiIcon';
-import { Sparkles, History, Settings, Layers, MessageCircle } from 'lucide-react';
+import { Sparkles, History, Settings, Layers, MessageCircle, Activity } from 'lucide-react';
 
 interface SidebarProps {
-  activeView: 'generator' | 'history' | 'settings';
-  onViewChange: (view: 'generator' | 'history' | 'settings') => void;
+  activeView: 'generator' | 'history' | 'settings' | 'monitor';
+  onViewChange: (view: 'generator' | 'history' | 'settings' | 'monitor') => void;
   onNewChat: () => void;
   showLogo?: boolean;
 }
@@ -13,6 +13,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, onNe
   const navItems = [
     { id: 'generator' as const, icon: Sparkles, label: 'Generator' },
     { id: 'history' as const, icon: History, label: 'History' },
+    { id: 'monitor' as const, icon: Activity, label: 'Monitor' },
     { id: 'settings' as const, icon: Settings, label: 'Settings' },
   ];
 

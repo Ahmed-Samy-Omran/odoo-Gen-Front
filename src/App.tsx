@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, Component, type ReactNode } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { GenBar } from './components/GenBar';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
+import { MonitorView } from './components/MonitorView';
 import { WelcomeDashboard } from './components/WelcomeDashboard';
 import { ParticleBackground } from './components/ParticleBackground';
 import { ToastProvider } from './components/ToastProvider';
@@ -31,7 +32,7 @@ import { buildSchemaFromPayload } from './utils/diagramBuilder';
 import { buildDemoPayload, schemaFromRawConfig, type RawModuleConfig } from './utils/demoGenerate';
 import { INITIAL_AI_MESSAGE } from './constants/chat';
 
-type ViewType = 'generator' | 'history' | 'settings';
+type ViewType = 'generator' | 'history' | 'settings' | 'monitor';
 type StatusType = 'idle' | 'generating' | 'success' | 'error';
 
 const ARABIC_CHAR_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
@@ -94,6 +95,39 @@ function formatMessageTime(value?: string): string {
 function shouldCollapseMessage(content: string): boolean {
   const lineCount = content.split(/\r?\n/).length;
   return content.length > 300 || lineCount > 5;
+}
+
+class ViewErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[MonitorView] render error:', error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
+          <div className="glass-card max-w-md p-6">
+            <h2 className="text-sm font-semibold text-rose-400">Something went wrong</h2>
+            <p className="mt-2 break-words text-xs text-white/60">{this.state.error.message}</p>
+            <button
+              type="button"
+              onClick={() => this.setState({ error: null })}
+              className="cyber-button-accent mt-4 px-4 py-2 text-sm"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function App() {
@@ -1091,6 +1125,11 @@ function App() {
               <main className="flex-1 overflow-hidden relative">
                 {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
                 {activeView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
+                {activeView === 'monitor' && (
+                  <ViewErrorBoundary>
+                    <MonitorView />
+                  </ViewErrorBoundary>
+                )}
 
                 {activeView === 'generator' && (
                   <>
