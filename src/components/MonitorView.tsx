@@ -37,9 +37,10 @@ import {
   type UsageStatsResponse,
 } from '../services/api';
 
-type RangeKey = '7d' | '30d' | 'all';
+type RangeKey = 'today' | '7d' | '30d' | 'all';
 
 const RANGE_PRESETS: Array<{ id: RangeKey; label: string; days: number }> = [
+  { id: 'today', label: 'Today', days: 0 },
   { id: '7d', label: '7d', days: 7 },
   { id: '30d', label: '30d', days: 30 },
   { id: 'all', label: 'All time', days: 3650 },
@@ -77,6 +78,13 @@ function quotaUsageLabel(entry: QuotaStatus): string {
   return `${formatCompact(entry.current_usage)} / ${formatCompact(entry.limit)} ${entry.unit}`;
 }
 
+function rangeLabel(range: RangeKey): string {
+  const preset = RANGE_PRESETS.find((p) => p.id === range);
+  if (range === 'today') return "Today's usage";
+  if (range === 'all' || !preset) return 'Usage over all time';
+  return `Usage over the last ${preset.days} days`;
+}
+
 function usageValueLabel(
   name: string,
   requests: number,
@@ -111,11 +119,34 @@ function SuccessBadge({ successRate, requests }: { successRate: number; requests
   );
 }
 
-function ModelCard({ model, color, icon: Icon, delay }: { model: ModelIntelligence; color: string; icon: LucideIcon; delay: number }) {
-  const percent = Math.max(0, model.percent_used);
+function ModelCard({
+  model,
+  color,
+  icon: Icon,
+  delay,
+  mode,
+}: {
+  model: ModelIntelligence;
+  color: string;
+  icon: LucideIcon;
+  delay: number;
+  mode: 'total' | 'today';
+}) {
+  const unit = model.unit ?? 'Tokens';
+  const isToday = mode === 'today';
+  const totalUsage = unit === 'Requests' ? (model.requests ?? 0) : (model.total_tokens ?? 0);
+  const shownUsage = isToday ? (model.today_usage ?? 0) : totalUsage;
+  const successRate = isToday ? (model.today_success_rate ?? model.success_rate) : model.success_rate;
+  const requestCount = isToday ? (model.today_requests ?? model.requests ?? 0) : (model.requests ?? 0);
+
+  const percent = Math.max(0, isToday ? (model.today_percent_used ?? model.percent_used) : model.percent_used);
   const barColor = quotaColor(percent);
-  const remaining = Math.max(0, model.remaining_quota);
+  const remaining = Math.max(
+    0,
+    isToday ? (model.today_remaining_quota ?? model.remaining_quota) : model.remaining_quota,
+  );
   const low = percent >= 90;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -139,30 +170,36 @@ function ModelCard({ model, color, icon: Icon, delay }: { model: ModelIntelligen
       </div>
 
       <div className="mt-3 text-xl font-semibold tracking-tight text-white">
-        {formatCompact(model.today_usage)}
-        <span className="ml-1.5 text-xs font-medium text-white/40">{model.unit}</span>
+        {formatCompact(shownUsage)}
+        <span className="ml-1.5 text-xs font-medium text-white/40">{unit}</span>
       </div>
 
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        <SuccessBadge successRate={model.success_rate} />
+        <SuccessBadge successRate={successRate} requests={requestCount} />
+      {isToday ? (
         <span className="truncate text-[11px] text-white/40">
           Remaining: <span className="font-semibold text-white/70">{formatCompact(remaining)}</span>
         </span>
-      </div>
+      ) : (
+        <span className="truncate text-[11px] text-white/40">
+          {formatCompact(requestCount)} requests
+        </span>
+      )}
+    </div>
 
-      <div className="mt-auto pt-3">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-          <motion.div
-            className="h-full rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(100, percent)}%` }}
-            transition={{ duration: 0.9, ease: 'easeOut', delay: delay + 0.08 }}
-            style={{ background: barColor, boxShadow: `0 0 8px ${barColor}55` }}
-          />
-        </div>
+    <div className="mt-auto pt-3">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <motion.div
+          className="h-full rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${Math.min(100, percent)}%` }}
+          transition={{ duration: 0.9, ease: 'easeOut', delay: delay + 0.08 }}
+          style={{ background: barColor, boxShadow: `0 0 8px ${barColor}55` }}
+        />
       </div>
-    </motion.div>
-  );
+    </div>
+  </motion.div>
+);
 }
 
 function formatDayLabel(value: string): string {
@@ -375,6 +412,7 @@ function DashboardSkeleton() {
 export function MonitorView() {
   const [range, setRange] = useState<RangeKey>('30d');
   const [model, setModel] = useState<string>('all');
+  const [cardMode, setCardMode] = useState<'total' | 'today'>('total');
   const [rankingMode, setRankingMode] = useState<'provider' | 'model'>('provider');
   const [chartMode, setChartMode] = useState<'provider' | 'model'>('provider');
   const [clearing, setClearing] = useState(false);
@@ -507,6 +545,14 @@ export function MonitorView() {
   }, [quotaStatus]);
 
   const modelCards = useMemo(() => {
+    const unitOf = (m: ModelIntelligence): 'Requests' | 'Tokens' => m.unit ?? 'Tokens';
+    const usageOf = (m: ModelIntelligence): number =>
+      cardMode === 'today'
+        ? m.today_usage ?? 0
+        : unitOf(m) === 'Requests'
+          ? (m.requests ?? 0)
+          : (m.total_tokens ?? 0);
+
     return (data?.models ?? [])
       .filter((m): m is ModelIntelligence => typeof m === 'object' && m !== null && typeof m.model_name === 'string')
       .map((m) => {
@@ -516,8 +562,9 @@ export function MonitorView() {
           color: modelMetaMap[m.model_name]?.color ?? providerColor(provider),
           icon: getProviderIcon(provider),
         };
-      });
-  }, [data, modelMetaMap]);
+      })
+      .sort((a, b) => usageOf(b.model) - usageOf(a.model));
+  }, [data, modelMetaMap, cardMode]);
 
   return (
     <div className="h-full w-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
@@ -616,10 +663,49 @@ export function MonitorView() {
                 className="flex flex-col gap-5"
               >
                 {modelCards.length > 0 && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {modelCards.map((mc, index) => (
-                      <ModelCard key={mc.model.model_name} model={mc.model} color={mc.color} icon={mc.icon} delay={index * 0.06} />
-                    ))}
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-sm font-semibold text-white/80">Model Intelligence</h2>
+                        <p className="text-xs text-white/30">
+                          {cardMode === 'today'
+                            ? "Today's usage per model against its daily quota"
+                            : 'Total usage per model in the selected range'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+                        <button
+                          type="button"
+                          onClick={() => setCardMode('total')}
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                            cardMode === 'total' ? 'bg-white/10 text-white shadow-glow-sm' : 'text-white/45 hover:text-white/80'
+                          }`}
+                        >
+                          Total usage
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardMode('today')}
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                            cardMode === 'today' ? 'bg-white/10 text-white shadow-glow-sm' : 'text-white/45 hover:text-white/80'
+                          }`}
+                        >
+                          Today only
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                      {modelCards.map((mc, index) => (
+                        <ModelCard
+                          key={mc.model.model_name}
+                          model={mc.model}
+                          color={mc.color}
+                          icon={mc.icon}
+                          delay={index * 0.06}
+                          mode={cardMode}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -633,7 +719,7 @@ export function MonitorView() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h2 className="text-sm font-semibold text-white/80">Free Tier Health</h2>
-                        <p className="text-xs text-white/30">Today's usage against each model's daily quota</p>
+                        <p className="text-xs text-white/30">{rangeLabel(range)} against each model's quota</p>
                       </div>
                     </div>
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

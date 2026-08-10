@@ -514,6 +514,19 @@ export interface ModelIntelligence {
   remaining_quota: number;
   unit: 'Requests' | 'Tokens';
   percent_used: number;
+  /** Requests made in the selected window (for card ranking by usage). */
+  requests?: number;
+  /** Total tokens consumed in the selected window. */
+  total_tokens?: number;
+  /** Today-only request count. */
+  today_requests?: number;
+  /** Today-only token count. */
+  today_tokens?: number;
+  /** Today-only success rate. */
+  today_success_rate?: number;
+  /** Today-only usage against the plain daily limit. */
+  today_remaining_quota?: number;
+  today_percent_used?: number;
 }
 
 export interface UsageStatsResponse {
