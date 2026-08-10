@@ -131,19 +131,8 @@ class ViewErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 function App() {
-  // Restore persisted state or use defaults
-  const [activeView, setActiveView] = useState<ViewType>(() => {
-    try {
-      const hasManualSelection = localStorage.getItem('odoo_view_persisted') === '1';
-      const stored = localStorage.getItem('odoo_active_view');
-      if (hasManualSelection && stored) {
-        return stored as ViewType;
-      }
-      return 'generator';
-    } catch {
-      return 'generator';
-    }
-  });
+  // Always open on the first page (generator); do not restore the last view
+  const [activeView, setActiveView] = useState<ViewType>('generator');
   const [status, setStatus] = useState<StatusType>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [progress, setProgress] = useState(0);
@@ -685,12 +674,6 @@ function App() {
 
   const handleViewChange = useCallback((view: ViewType) => {
     setActiveView(view);
-    try {
-      localStorage.setItem('odoo_active_view', view);
-      localStorage.setItem('odoo_view_persisted', '1');
-    } catch {
-      // ignore
-    }
   }, []);
 
   const handleSaveSettings = useCallback((odooVersion: string) => {
