@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Clock, FileCode, Trash2, Github, FileArchive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { deleteJob, API_BASE_URL } from '../services/api';
+import { deleteJob, API_BASE_URL, apiFetch } from '../services/api';
 
 interface HistoryItem {
   id: string;
@@ -46,7 +46,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/history`);
+        const response = await apiFetch(`${API_BASE_URL}/history`);
         if (!response.ok) throw new Error('Unable to load history');
         const data = (await response.json()) as HistoryApiResponse;
         const jobs = (data.jobs || []).map((job) => {

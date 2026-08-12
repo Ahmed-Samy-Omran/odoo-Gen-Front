@@ -1,16 +1,27 @@
 import React from 'react';
 import AiIcon from './AiIcon';
-import { Zap, Github, FileArchive, ArrowRight } from 'lucide-react';
+import { Zap, Github, FileArchive, ArrowRight, Coins, RefreshCw } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface WelcomeDashboardProps {
   onStartGenerating: () => void;
   onTryDemo?: () => void;
 }
 
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en').format(value);
+}
+
 export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
   onStartGenerating,
   onTryDemo,
 }) => {
+  const { user, quota } = useAuth();
+  const isGuest = user?.isGuest ?? false;
+  const unlimited = quota?.remainingTokens == null;
+
+  const quotaPercent = quota && !unlimited && quota.tokenLimit ? (quota.tokensUsedToday / quota.tokenLimit) * 100 : 0;
+  const lowQuota = !unlimited && quotaPercent >= 90;
   const features = [
     {
       icon: Zap,
@@ -41,6 +52,57 @@ export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({
             <div className="absolute inset-2 rounded-xl bg-white/5 blur-md" />
           </div>
         </div>
+
+        {quota && (
+          <div
+            className={`mx-auto max-w-md rounded-xl border p-4 text-left backdrop-blur-sm ${
+              lowQuota
+                ? 'border-rose-500/25 bg-rose-500/[0.06]'
+                : isGuest
+                  ? 'border-emerald-500/20 bg-emerald-500/[0.04]'
+                  : 'border-white/10 bg-white/[0.03]'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
+                <Coins className={`h-4 w-4 ${lowQuota ? 'text-rose-400' : 'text-white/40'}`} />
+                Today's quota
+                {isGuest && (
+                  <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                    Guest
+                  </span>
+                )}
+              </div>
+              {unlimited ? (
+                <span className="text-xs font-semibold text-white/50">Unlimited</span>
+              ) : (
+                <span className={`text-xs font-semibold ${lowQuota ? 'text-rose-300' : 'text-white/70'}`}>
+                  {formatNumber(quota.remainingTokens ?? 0)} tokens left
+                </span>
+              )}
+            </div>
+
+            {!unlimited && quota.tokenLimit ? (
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                <div
+                  className={`h-full rounded-full ${lowQuota ? 'bg-rose-400' : 'bg-emerald-400/70'}`}
+                  style={{ width: `${Math.min(100, quotaPercent)}%`, boxShadow: lowQuota ? '0 0 8px rgba(251,113,133,0.6)' : '0 0 8px rgba(52,211,153,0.5)' }}
+                />
+              </div>
+            ) : (
+              <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-white/35">
+                <RefreshCw className="h-3 w-3" />
+                Resets daily
+              </div>
+            )}
+
+            {quota.requestsUsedToday > 0 && (
+              <p className="mt-2 text-[11px] text-white/35">
+                {formatNumber(quota.requestsUsedToday)} request{quota.requestsUsedToday === 1 ? '' : 's'} used today
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-3">
           <h1 className="text-3xl font-semibold text-white/90 tracking-tight">

@@ -1,4 +1,4 @@
-export interface GeneratorPayload {
+﻿export interface GeneratorPayload {
   moduleName: string;
   description: string;
   version: string;
@@ -118,6 +118,167 @@ function resolveApiBaseUrl(): string {
 export const API_BASE_URL = resolveApiBaseUrl();
 const POLL_INTERVAL_MS = 2500;
 
+const TOKEN_KEY = 'odoo_access_token';
+
+export const AUTH_LOGOUT_EVENT = 'odoo:auth:logout';
+
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function isAuthenticated(): boolean {
+  return Boolean(getToken());
+}
+
+export interface LoginResult {
+  access_token: string;
+  token_type: string;
+  username: string;
+  expires_in: number;
+  role: 'admin' | 'user' | 'guest';
+}
+
+const ROLE_KEY = 'odoo_role';
+
+export function getRole(): 'admin' | 'user' | 'guest' | null {
+  try {
+    const role = localStorage.getItem(ROLE_KEY);
+    return role === 'admin' || role === 'user' || role === 'guest' ? role : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isAdmin(): boolean {
+  return getRole() === 'admin';
+}
+
+export async function login(username: string, password: string): Promise<LoginResult> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw apiError(response.status, errorData, `Login failed: ${response.statusText}`);
+  }
+
+  const result = await safeJsonResponse<LoginResult>(response);
+  setToken(result.access_token);
+  setRole(result.role);
+  return result;
+}
+
+/** Exchange a Supabase session access token for an app JWT (role: user). */
+export async function loginWithSupabase(accessToken: string): Promise<LoginResult> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ provider: 'supabase', access_token: accessToken }),
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw apiError(response.status, errorData, `Supabase login failed: ${response.statusText}`);
+  }
+
+  const result = await safeJsonResponse<LoginResult>(response);
+  setToken(result.access_token);
+  setRole(result.role);
+  return result;
+}
+
+function setRole(role: 'admin' | 'user' | 'guest'): void {
+  try {
+    localStorage.setItem(ROLE_KEY, role);
+  } catch {
+    // ignore
+  }
+}
+
+export function logout(): void {
+  clearToken();
+  try {
+    localStorage.removeItem(ROLE_KEY);
+  } catch {
+    // ignore
+  }
+  window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
+}
+
+/** Fetch wrapper that attaches the JWT and signs the app out on 401. */
+export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const token = getToken();
+  const headers = new Headers(init.headers);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(input, { ...init, headers });
+
+  if (response.status === 401) {
+    clearToken();
+    try {
+      localStorage.removeItem(ROLE_KEY);
+    } catch {
+      // ignore
+    }
+    window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
+  }
+  return response;
+}
+
+/** Identity + daily quota state returned by ``GET /api/auth/me``. */
+export interface CurrentUserInfo {
+  sub: string;
+  email: string | null;
+  role: 'admin' | 'user' | 'guest';
+  is_guest: boolean;
+  is_admin: boolean;
+  token_limit: number | null;
+  tokens_used_today: number;
+  requests_used_today: number;
+}
+
+export async function fetchCurrentUser(): Promise<CurrentUserInfo> {
+  const response = await apiFetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
+    throw apiError(response.status, errorData, `Failed to fetch profile: ${response.statusText}`);
+  }
+
+  return safeJsonResponse<CurrentUserInfo>(response);
+}
+
 const ZIP_RESPONSE_ERROR =
   'Backend returned a ZIP file instead of a job ID. Restart the backend (main.py) so it uses the async job API.';
 
@@ -125,6 +286,35 @@ type ApiErrorBody = { detail?: string; message?: string };
 
 function getApiErrorMessage(errorData: ApiErrorBody, fallback: string): string {
   return errorData.detail || errorData.message || fallback;
+}
+
+/** Error carrying the HTTP status so callers can react to 401/403 (quota). */
+export class ApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+function apiError(status: number, data: ApiErrorBody, fallback: string): ApiError {
+  return new ApiError(getApiErrorMessage(data, fallback), status);
+}
+
+/** Event dispatched whenever a backend 403 "quota exceeded" is received. */
+export const QUOTA_EXCEEDED_EVENT = 'odoo:quota-exceeded';
+
+export function notifyQuotaExceeded(): void {
+  window.dispatchEvent(new Event(QUOTA_EXCEEDED_EVENT));
+}
+
+/** True when the error is a 403 with a quota-related message (daily limit spent). */
+export function isQuotaExceededError(error: unknown): boolean {
+  const status = error instanceof ApiError ? error.status : undefined;
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return status === 403 && /quota/i.test(message) && /exceeded|sign up|upgrade|spent/i.test(message);
 }
 
 function sleep(ms: number) {
@@ -231,7 +421,7 @@ export async function sendChatMessage(messages: ChatMessage[], jobId?: string | 
   };
   if (options?.preferred_language) body.preferred_language = options.preferred_language;
 
-  const response = await fetch(`${API_BASE_URL}/chat/`, {
+  const response = await apiFetch(`${API_BASE_URL}/chat/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -242,7 +432,7 @@ export async function sendChatMessage(messages: ChatMessage[], jobId?: string | 
 
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Chat failed: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Chat failed: ${response.statusText}`);
   }
 
   return safeJsonResponse<ChatResponse>(response);
@@ -253,7 +443,7 @@ async function startPromptJob(prompt: string, jobId?: string, payload?: Generato
   if (jobId) body.job_id = jobId;
   body.odoo_version = (payload?.odoo_version || payload?.version || '17.0');
 
-  const response = await fetch(`${API_BASE_URL}/analyze-requirements/`, {
+  const response = await apiFetch(`${API_BASE_URL}/analyze-requirements/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -264,7 +454,7 @@ async function startPromptJob(prompt: string, jobId?: string, payload?: Generato
 
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Request failed: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Request failed: ${response.statusText}`);
   }
 
   return safeJsonResponse<JobStatus>(response);
@@ -295,7 +485,7 @@ async function startConfigJob(payload: GeneratorPayload, jobId?: string): Promis
     : toBackendPayload(payload);
   if (jobId) body.job_id = jobId;
 
-  const response = await fetch(`${API_BASE_URL}/generate-module/`, {
+  const response = await apiFetch(`${API_BASE_URL}/generate-module/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -306,19 +496,19 @@ async function startConfigJob(payload: GeneratorPayload, jobId?: string): Promis
 
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Request failed: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Request failed: ${response.statusText}`);
   }
 
   return safeJsonResponse<JobStatus>(response);
 }
 
 export async function fetchJobRestore(jobId: string): Promise<{ job_id: string; status: string; progress: number; message: string; chat_history?: ChatMessage[]; module_config?: unknown; schema_preview?: SchemaPreview | null; odoo_version?: string | null }> {
-  const response = await fetch(`${API_BASE_URL}/job/${jobId}/restore`, {
+  const response = await apiFetch(`${API_BASE_URL}/job/${jobId}/restore`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
     const errorData: ApiErrorBody = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, 'Failed to restore session'));
+    throw apiError(response.status, errorData, 'Failed to restore session');
   }
   return safeJsonResponse(response);
 }
@@ -329,7 +519,7 @@ export async function syncJobConfig(
   schemaPreview?: SchemaPreview | null,
   odooVersion?: string,
 ): Promise<{ status: string; message: string }> {
-  const response = await fetch(`${API_BASE_URL}/job/${jobId}/sync-config`, {
+  const response = await apiFetch(`${API_BASE_URL}/job/${jobId}/sync-config`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -344,30 +534,30 @@ export async function syncJobConfig(
 
   if (!response.ok) {
     const errorData: ApiErrorBody = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, 'Failed to sync changes to cloud'));
+    throw apiError(response.status, errorData, 'Failed to sync changes to cloud');
   }
 
   return safeJsonResponse<{ status: string; message: string }>(response);
 }
 
 export async function pollJob(jobId: string): Promise<JobStatus> {
-  const response = await fetch(`${API_BASE_URL}/job/${jobId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/job/${jobId}`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Polling failed: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Polling failed: ${response.statusText}`);
   }
   return safeJsonResponse<JobStatus>(response);
 }
 
 export async function fetchJobFiles(jobId: string): Promise<GeneratedFile[]> {
-  const response = await fetch(`${API_BASE_URL}/job/${jobId}/files`, {
+  const response = await apiFetch(`${API_BASE_URL}/job/${jobId}/files`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Failed to fetch files: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Failed to fetch files: ${response.statusText}`);
   }
   const data = await safeJsonResponse<{ files?: GeneratedFile[] }>(response);
   return Array.isArray(data?.files) ? data.files : [];
@@ -443,7 +633,7 @@ export async function generateModule(
 
 export async function checkHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const response = await apiFetch(`${API_BASE_URL}/health`, {
       signal: AbortSignal.timeout(5000),
       headers: { Accept: 'application/json' },
     });
@@ -456,13 +646,13 @@ export async function checkHealth(): Promise<boolean> {
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/job/${jobId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/job/${jobId}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Delete failed: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Delete failed: ${response.statusText}`);
   }
 }
 
@@ -533,6 +723,8 @@ export interface UsageStatsResponse {
   success: boolean;
   days: number;
   model?: string | null;
+  /** 'global' when an admin requested include_all=true, otherwise 'personal'. */
+  scope?: 'global' | 'personal';
   /** Quota-tracked models with today's usage for the Model Intelligence Cards. */
   models: ModelIntelligence[];
   /** Distinct model names seen in the window (for the filter dropdown). */
@@ -543,17 +735,25 @@ export interface UsageStatsResponse {
   totals: UsageTotals;
 }
 
-export async function fetchUsageStats(days = 30, model?: string | null): Promise<UsageStatsResponse> {
+export async function fetchUsageStats(
+  days = 30,
+  model?: string | null,
+  options?: { includeAll?: boolean },
+): Promise<UsageStatsResponse> {
   const params = new URLSearchParams({ days: String(days) });
   if (model) params.set('model', model);
+  // The backend only honours include_all for admin callers anyway, so a regular
+  // user can never read global usage even if the flag is passed.
+  const includeAll = options?.includeAll ?? isAdmin();
+  if (includeAll) params.set('include_all', 'true');
 
-  const response = await fetch(`${API_BASE_URL}/api/stats/usage?${params.toString()}`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/stats/usage?${params.toString()}`, {
     headers: { Accept: 'application/json' },
   });
 
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Failed to fetch usage stats: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Failed to fetch usage stats: ${response.statusText}`);
   }
 
   return safeJsonResponse<UsageStatsResponse>(response);
@@ -567,14 +767,14 @@ export interface ClearTestDataResponse {
 
 export async function clearTestUsageData(provider = 'test_usage_tracking'): Promise<ClearTestDataResponse> {
   const params = new URLSearchParams({ provider });
-  const response = await fetch(`${API_BASE_URL}/api/stats/usage/test-data?${params.toString()}`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/stats/usage/test-data?${params.toString()}`, {
     method: 'DELETE',
     headers: { Accept: 'application/json' },
   });
 
   if (!response.ok) {
     const errorData = await safeJsonResponse<ApiErrorBody>(response).catch(() => ({} as ApiErrorBody));
-    throw new Error(getApiErrorMessage(errorData, `Failed to clear test data: ${response.statusText}`));
+    throw apiError(response.status, errorData, `Failed to clear test data: ${response.statusText}`);
   }
 
   return safeJsonResponse<ClearTestDataResponse>(response);

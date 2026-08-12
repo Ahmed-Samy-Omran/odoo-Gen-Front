@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Loader2 } from 'lucide-react';
 import type { GeneratorPayload, ChatMessage } from '../services/api';
-import { sendChatMessage } from '../services/api';
+import { isQuotaExceededError, notifyQuotaExceeded, sendChatMessage } from '../services/api';
 import { buildPayloadFromJson, buildDemoPayload } from '../utils/demoGenerate';
 import { TaskProgressTracker, type TaskProgressItem, type TaskStatus } from './TaskProgressTracker';
 
@@ -181,6 +181,7 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
     } catch (err) {
       effectiveSetMessages(markSentMessages(nextMessages));
       effectiveSetError(err instanceof Error ? err.message : 'Error communicating with AI');
+      if (isQuotaExceededError(err)) notifyQuotaExceeded();
     } finally {
       effectiveSetIsChatting(false);
     }

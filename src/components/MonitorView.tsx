@@ -18,6 +18,7 @@ import {
   Brain,
   ChevronDown,
   Cloud,
+  Coins,
   Cpu,
   Globe,
   Layers,
@@ -36,6 +37,7 @@ import {
   type QuotaStatus,
   type UsageStatsResponse,
 } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 type RangeKey = 'today' | '7d' | '30d' | 'all';
 
@@ -410,6 +412,7 @@ function DashboardSkeleton() {
 }
 
 export function MonitorView() {
+  const { quota } = useAuth();
   const [range, setRange] = useState<RangeKey>('30d');
   const [model, setModel] = useState<string>('all');
   const [cardMode, setCardMode] = useState<'total' | 'today'>('total');
@@ -581,6 +584,26 @@ export function MonitorView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {quota && (
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
+                  quota.remainingTokens != null && quota.remainingTokens <= 0
+                    ? 'border-rose-500/25 bg-rose-500/10 text-rose-300'
+                    : 'border-white/10 bg-white/[0.03] text-white/60'
+                }`}
+                title="Your personal daily quota"
+              >
+                <Coins className="h-3.5 w-3.5" />
+                {quota.remainingTokens == null
+                  ? 'Unlimited tokens'
+                  : `${formatCompact(quota.remainingTokens)} tokens left`}
+                {quota.requestsUsedToday > 0 && (
+                  <span className="text-white/30">
+                    · {formatCompact(quota.requestsUsedToday)} requests
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
               {RANGE_PRESETS.map((preset) => (
                 <button
