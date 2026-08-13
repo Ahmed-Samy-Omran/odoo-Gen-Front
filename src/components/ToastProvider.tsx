@@ -7,10 +7,10 @@ export function ToastProvider() {
       toastOptions={{
         duration: 3200,
         style: {
-          background: 'rgba(10, 14, 24, 0.95)',
-          color: '#f8fafc',
-          border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 12px 35px rgba(0,0,0,0.35)',
+          background: 'rgb(var(--surface) / 0.95)',
+          color: 'rgb(var(--fg))',
+          border: '1px solid rgb(var(--fg) / 0.15)',
+          boxShadow: '0 12px 35px rgb(0 0 0 / 0.35)',
         },
         success: {
           iconTheme: {

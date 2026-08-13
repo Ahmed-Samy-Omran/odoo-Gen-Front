@@ -33,7 +33,7 @@ export const TaskProgressTracker: React.FC<TaskProgressTrackerProps> = ({
   const progressLabel = `${completedCount}/${totalCount}`;
 
   return (
-    <div className={`w-full rounded-2xl border border-white/5 bg-[#0d0d0d]/40 p-3 text-white backdrop-blur-sm ${className}`.trim()}>
+    <div className={`w-full rounded-2xl border border-glass-border bg-[rgb(var(--surface)_/_0.4)] p-3 text-fg backdrop-blur-sm ${className}`.trim()}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <p className="text-[9px] font-light uppercase tracking-[0.3em] text-slate-500">{title}</p>
@@ -59,7 +59,7 @@ export const TaskProgressTracker: React.FC<TaskProgressTrackerProps> = ({
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 420, damping: 18 }}
-                  className="text-emerald-500"
+                  className="text-accent"
                 >
                   <Check className={`${iconClassName} stroke-[2.5]`} />
                 </motion.div>

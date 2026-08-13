@@ -260,7 +260,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         ...edge,
         selected: selectedEdge?.id === edge.id,
         style: {
-          stroke: selectedEdge?.id === edge.id ? 'rgba(34, 211, 238, 0.98)' : 'rgba(120, 180, 255, 0.25)',
+          stroke: selectedEdge?.id === edge.id ? 'var(--erd-edge-active)' : 'var(--erd-edge)',
           strokeWidth: selectedEdge?.id === edge.id ? 3 : 1.8,
         },
         animated: true,
@@ -574,7 +574,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           disabled={disabled}
           title={title}
           aria-label={title}
-          className={`rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+          className={`diagram-tool-btn rounded-lg border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
         >
           {children}
         </button>
@@ -599,7 +599,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
   return (
     <div className="diagram-canvas relative" ref={wrapperRef}>
       <div className="absolute left-3 right-3 top-3 z-20 flex items-start justify-between gap-3">
-        <div className="rounded-2xl border border-white/10 bg-black/45 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
+        <div className="diagram-toolbar rounded-2xl border border-white/10 bg-black/45 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
           <div className="flex items-center gap-1.5">
             <ActionButton title="تراجع" onClick={handleUndo} disabled={history.length === 0}>
               <Undo2 className="h-4 w-4" />
@@ -631,7 +631,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
       </div>
 
       {relationDraft && (
-        <div className="absolute left-3 top-20 z-30 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
+        <div className="diagram-draft absolute left-3 top-20 z-30 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
           Click the target model to create the relation.
           <button
             type="button"
@@ -657,7 +657,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
             <div className="flex items-center gap-1.5">
               {!selectedEdge && !relationDraft && (
                 <>
-                  <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
+                  <ActionButton title="إضافة حقل" onClick={handleAddField} className="border-accent/30 bg-accent-soft text-accent hover:bg-accent-soft-strong">
                     <Plus className="h-4 w-4" />
                   </ActionButton>
                   <ActionButton title="إضافة علاقة" onClick={handleBeginRelation} className="border-sky-400/20 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20">
@@ -763,7 +763,7 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
         onMoveEnd={() => setViewportTick((value) => value + 1)}
         defaultEdgeOptions={{
           type: 'customEdge',
-          style: { stroke: 'rgba(120, 180, 255, 0.25)', strokeWidth: 1.5 },
+          style: { stroke: 'var(--erd-edge)', strokeWidth: 1.5 },
           animated: true,
         }}
         className="bg-transparent"
@@ -784,11 +784,11 @@ export const ErdDiagram: React.FC<ErdDiagramProps> = ({
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1}
-          color="rgba(255, 255, 255, 0.03)"
+          color="var(--erd-dot)"
         />
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="rgba(120, 180, 255, 0.65)" />
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--erd-edge)" />
           </marker>
         </defs>
       </ReactFlow>

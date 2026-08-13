@@ -73,7 +73,7 @@ export const CustomEdge: React.FC<any> = (props) => {
               event.stopPropagation();
               setShowPicker((value) => !value);
             }}
-            className={`rounded-md border px-2 py-1 text-[10px] font-semibold tracking-wide shadow-lg backdrop-blur transition ${
+            className={`edge-relation-chip rounded-md border px-2 py-1 text-[10px] font-semibold tracking-wide shadow-lg backdrop-blur transition ${
               selected
                 ? 'border-cyan-400/30 bg-cyan-500/20 text-cyan-50'
                 : 'border-white/10 bg-black/90 text-white/85 hover:bg-black'
@@ -84,7 +84,7 @@ export const CustomEdge: React.FC<any> = (props) => {
           </button>
 
           {showPicker && (
-            <div className="mt-2 rounded-lg border border-white/10 bg-black/95 p-1 shadow-2xl shadow-black/40">
+            <div className="edge-relation-picker mt-2 rounded-lg border border-white/10 bg-black/95 p-1 shadow-2xl shadow-black/40">
               {relationCycle.map((type) => (
                 <button
                   key={type}

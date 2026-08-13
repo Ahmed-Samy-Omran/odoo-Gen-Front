@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Clock, FileCode, Trash2, Github, FileArchive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { deleteJob, API_BASE_URL, apiFetch } from '../services/api';
+import { deleteJob, API_BASE_URL } from '../services/api';
 
 interface HistoryItem {
   id: string;
@@ -46,7 +46,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const response = await apiFetch(`${API_BASE_URL}/history`);
+        const response = await fetch(`${API_BASE_URL}/history`);
         if (!response.ok) throw new Error('Unable to load history');
         const data = (await response.json()) as HistoryApiResponse;
         const jobs = (data.jobs || []).map((job) => {
@@ -161,14 +161,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
   };
 
   return (
-    <div className="w-full h-full p-4 sm:p-6 overflow-y-auto">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="history-view w-full h-full p-4 sm:p-6 overflow-y-auto">
+      <div className="history-view__inner mx-auto space-y-6">
+        <div className="history-view__header flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-white/90">Generation History</h1>
-            <p className="text-white/30 text-sm mt-1">View your previously generated modules</p>
+            <h1 className="history-view__title text-2xl font-semibold text-white/90">Generation History</h1>
+            <p className="history-view__sub text-white/30 text-sm mt-1">View your previously generated modules</p>
           </div>
-          <div className="flex items-center gap-2 text-white/25 text-sm">
+          <div className="history-view__count flex items-center gap-2 text-white/25 text-sm">
             <Clock className="w-4 h-4" />
             <span>{history.length} modules</span>
           </div>
@@ -184,28 +184,31 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
             <p className="text-white/50">No generation history yet</p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="history-view__list grid gap-4">
             <AnimatePresence>
-              {history.map((item) => (
+              {history.map((item, rowIndex) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="glass-card-hover p-5 flex items-center gap-4 group"
+                  className="history-item glass-card-hover p-5 flex items-center gap-4 group"
                 >
                   <button
                     type="button"
                     onClick={() => onSelectJob?.(item.id)}
                     className="flex items-center gap-4 flex-1 text-left"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/15">
+                    <div className="history-item__icon w-12 h-12 rounded-lg bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/15">
                       <FileCode className="w-5 h-5 text-white/70" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-mono text-white/80 truncate">{item.moduleName}</h3>
+                      <div className="history-item__meta flex items-center gap-3">
+                        <span className="history-item__index font-mono text-white/20 text-xs" aria-hidden="true">
+                          {String(rowIndex + 1).padStart(2, '0')}
+                        </span>
+                        <h3 className="history-item__name font-mono text-white/80 truncate">{item.moduleName}</h3>
                         <span className={`module-badge ${item.status === 'success' ? 'module-badge-core' : 'module-badge-api'}`}>
                           {item.status}
                         </span>
@@ -221,7 +224,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ onSelectJob }) => {
                           </span>
                         )}
                       </div>
-                      <p className="text-white/30 text-sm mt-1">{item.message ?? formatTimeAgo(item.createdAt)}</p>
+                      <p className="history-item__time text-white/30 text-sm mt-1">{item.message ?? formatTimeAgo(item.createdAt)}</p>
                     </div>
                   </button>
 

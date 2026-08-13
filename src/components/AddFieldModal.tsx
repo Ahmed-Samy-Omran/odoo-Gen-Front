@@ -112,7 +112,7 @@ export const AddFieldModal: React.FC<Props> = ({
                 }
                 onAdd(trimmed, type || 'Char', required, defaultValue ?? null, unique);
               }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 hover:bg-emerald-500/20"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent-soft text-accent border border-accent/30 hover:bg-accent-soft-strong"
             >
               {isEdit ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {isEdit ? 'Save' : 'Add'}

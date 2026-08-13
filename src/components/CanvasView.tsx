@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { FileCode, Folder, FolderOpen, File, Loader2, Download, Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneLight, vscDarkPlus, okaidia } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTheme } from '../theme/ThemeContext';
 
 interface GeneratedFile {
   name: string;
@@ -31,6 +32,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   isLoading = false,
 }) => {
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const { theme } = useTheme();
+
+  const syntaxTheme = theme === 'paper' ? oneLight : theme === 'aurora' ? vscDarkPlus : okaidia;
 
   const getSelectedContent = (): string | null => {
     if (!Array.isArray(files) || files.length === 0 || !selectedFile) return null;
@@ -104,7 +108,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
+    <div className="flex-1 flex overflow-hidden rounded-2xl border border-glass-border bg-[rgb(var(--plate))] shadow-inner">
       <div className="flex min-h-0 w-36 sm:w-48 lg:w-full lg:max-w-[260px] flex-col flex-shrink-0 border-r border-white/10 bg-black/25">
         <div className="p-3 border-b border-white/10">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Files</h3>
@@ -188,14 +192,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
         <div className="flex-1 overflow-auto p-3 md:p-4">
           {selectedContent && selectedFileMeta ? (
-            <div className="h-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-inner">
+            <div className={`code-pane h-full overflow-hidden rounded-xl border border-white/10 ${theme === 'paper' ? 'bg-paper' : 'bg-black'} shadow-inner`}>
               <SyntaxHighlighter
                 language={getLanguage(selectedFileMeta.path)}
-                style={oneDark}
+                style={syntaxTheme}
                 customStyle={{
                   margin: 0,
                   padding: '1rem',
-                  background: '#000000',
+                  background: theme === 'paper' ? '#fbf7ef' : theme === 'aurora' ? '#0b1026' : '#101214',
                   fontSize: '0.9rem',
                   minHeight: '100%',
                   whiteSpace: 'pre-wrap',

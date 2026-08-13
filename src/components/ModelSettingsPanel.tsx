@@ -263,7 +263,7 @@ export const ModelSettingsPanel: React.FC<ModelSettingsPanelProps> = ({
             <button
               type="button"
               onClick={() => void handleCloudSync()}
-              className="inline-flex w-full items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 transition hover:bg-emerald-500/20 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-accent/30 bg-accent-soft px-3 py-2 text-sm text-accent transition hover:bg-accent-soft-strong sm:w-auto"
             >
               {syncState === 'syncing' ? 'Syncing…' : syncState === 'synced' ? 'Synced' : syncState === 'error' ? 'Error' : 'Save to Cloud'}
             </button>

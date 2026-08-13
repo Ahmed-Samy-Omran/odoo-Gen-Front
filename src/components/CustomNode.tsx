@@ -33,6 +33,7 @@ export const CustomNode: React.FC<any> = ({ id, data, selected }) => {
       className={`diagram-erd-node ${selected ? 'diagram-erd-node-selected ring-1 ring-cyan-400/30 shadow-[0_0_28px_rgba(34,211,238,0.14)]' : ''} ${
         isRevealing ? 'animate-diagram-soft-in' : ''
       }`}
+      data-kind="TABLE"
     >
       <div className="diagram-erd-node-header">
         <Table className="w-3.5 h-3.5 text-white/40" />

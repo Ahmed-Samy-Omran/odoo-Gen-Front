@@ -5,14 +5,12 @@ import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { MonitorView } from './components/MonitorView';
 import { WelcomeDashboard } from './components/WelcomeDashboard';
-import { ParticleBackground } from './components/ParticleBackground';
+import { AmbientBackdrop } from './components/AmbientBackdrop';
 import { ToastProvider } from './components/ToastProvider';
 import { HomePageSkeleton } from './components/Skeleton';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
-import { LoginView } from './components/LoginView';
-import { QuotaExceededModal } from './components/QuotaExceededModal';
 import { ArrowDown, Copy, Check, ChevronDown, ChevronUp, MessageSquare, Network, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,10 +19,7 @@ import {
   fetchJobFiles,
   fetchJobRestore,
   generateModule,
-  isQuotaExceededError,
-  notifyQuotaExceeded,
   syncJobConfig,
-  QUOTA_EXCEEDED_EVENT,
   API_BASE_URL,
   type ChatMessage,
   type ChatResponse,
@@ -33,7 +28,6 @@ import {
   type JobStatus,
   type SchemaPreview,
 } from './services/api';
-import { useAuth } from './context/AuthContext';
 import { buildSchemaFromPayload } from './utils/diagramBuilder';
 import { buildDemoPayload, schemaFromRawConfig, type RawModuleConfig } from './utils/demoGenerate';
 import { INITIAL_AI_MESSAGE } from './constants/chat';
@@ -63,8 +57,8 @@ const markdownComponents = {
   code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => (
     <code
       className={inline
-        ? 'rounded bg-white/10 px-1.5 py-0.5 font-mono text-[12px] text-slate-100'
-        : 'font-mono text-[12px] leading-6 text-slate-100 whitespace-pre-wrap'}
+        ? 'rounded bg-[rgb(var(--fg)/0.08)] px-1.5 py-0.5 font-mono text-[12px] text-[rgb(var(--fg))]'
+        : 'font-mono text-[12px] leading-6 text-[rgb(var(--fg))] whitespace-pre-wrap'}
     >
       {children}
     </code>
@@ -137,15 +131,8 @@ class ViewErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 function App() {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const isAdminUser = user?.isAdmin ?? false;
+  // Always open on the first page (generator); do not restore the last view
   const [activeView, setActiveView] = useState<ViewType>('generator');
-  const [adminMode, setAdminMode] = useState(true);
-  const [authTab, setAuthTab] = useState<'signin' | 'signup'>('signin');
-  const [quotaModalOpen, setQuotaModalOpen] = useState(false);
-  // Admin Mode gates the admin-only Monitor view; non-admins never see it.
-  const adminModeEnabled = isAdminUser && adminMode;
-  const effectiveView: ViewType = !adminModeEnabled && activeView === 'monitor' ? 'generator' : activeView;
   const [status, setStatus] = useState<StatusType>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [progress, setProgress] = useState(0);
@@ -210,13 +197,6 @@ function App() {
   const [copiedMessageKey, setCopiedMessageKey] = useState<string | null>(null);
   const [expandedMessageKeys, setExpandedMessageKeys] = useState<Record<string, boolean>>({});
   const [workspaceTab, setWorkspaceTab] = useState<'chat' | 'build'>('chat');
-
-  // Open the quota-exceeded modal whenever any request reports a 403 quota error.
-  useEffect(() => {
-    const handleQuotaExceeded = () => setQuotaModalOpen(true);
-    window.addEventListener(QUOTA_EXCEEDED_EVENT, handleQuotaExceeded);
-    return () => window.removeEventListener(QUOTA_EXCEEDED_EVENT, handleQuotaExceeded);
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -699,7 +679,7 @@ function App() {
   const handleSaveSettings = useCallback((odooVersion: string) => {
     setActiveJobConfig({ odoo_version: odooVersion || '17.0' });
     toast.success('Settings saved successfully!', {
-      style: { border: '1px solid #34d399', padding: '16px', color: '#34d399' },
+      style: { border: '1px solid rgb(var(--success))', padding: '16px', color: 'rgb(var(--success))' },
     });
   }, []);
 
@@ -994,7 +974,6 @@ function App() {
       console.error('App generation error:', error);
       setStatus('error');
       setStatusMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
-      if (isQuotaExceededError(error)) notifyQuotaExceeded();
     }
   };
 
@@ -1085,90 +1064,60 @@ function App() {
   }, [models, schemaPreview]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#050505] overflow-hidden relative">
+    <div className="app-shell">
       <ToastProvider />
-      <ParticleBackground />
-      <QuotaExceededModal
-        open={quotaModalOpen}
-        isGuest={user?.isGuest ?? false}
-        onClose={() => setQuotaModalOpen(false)}
-        onCreateAccount={() => {
-          setQuotaModalOpen(false);
-          setAuthTab('signup');
-          void signOut();
-        }}
-      />
+      <AmbientBackdrop />
+      <div className="scene-dressing" aria-hidden="true" />
 
-      {!user ? (
-        authLoading ? (
-          <div className="relative z-10 flex h-full w-full items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-              <p className="text-xs uppercase tracking-[0.25em] text-white/35">Restoring session</p>
-            </div>
-          </div>
+      <AnimatePresence mode="wait">
+        {isHomeLoading ? (
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 z-20"
+          >
+            <HomePageSkeleton />
+          </motion.div>
         ) : (
-          <LoginView initialTab={authTab} />
-        )
-      ) : (
-        <AnimatePresence mode="wait">
-          {isHomeLoading ? (
-            <motion.div
-              key="skeleton"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 z-20"
-            >
-              <HomePageSkeleton />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="app-shell"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="h-screen w-screen flex flex-col"
-            >
-              <div className="fixed top-4 left-4 z-50">
-                <button
-                  type="button"
-                  title="Toggle sidebar (Ctrl+B)"
-                  aria-label="Toggle sidebar"
-                  onClick={() => setShowLeftPanel((v) => !v)}
-                  className={`nav-icon-btn ${showLeftPanel ? 'active' : ''} shadow-lg`}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/90">
-                    <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
+          <motion.div
+            key="app-shell"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="shell-root"
+          >
+            <div className="shell-toggle">
+              <button
+                type="button"
+                title="Toggle sidebar (Ctrl+B)"
+                aria-label="Toggle sidebar"
+                onClick={() => setShowLeftPanel((v) => !v)}
+                className="nav-icon-btn"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[rgb(var(--fg))]">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="shell-frame">
+              <div className="shell-sidebar">
+                <Sidebar activeView={activeView} onViewChange={handleViewChange} onNewChat={handleNewChat} showLogo={false} />
               </div>
 
-              <div className="flex flex-1 relative z-10 overflow-hidden">
-                <Sidebar
-                  activeView={effectiveView}
-                  onViewChange={handleViewChange}
-                  onNewChat={handleNewChat}
-                  onLogout={() => void signOut()}
-                  showLogo={false}
-                  isAdmin={isAdminUser}
-                  userEmail={user?.email}
-                  isGuest={user?.isGuest}
-                  adminMode={adminModeEnabled}
-                  onToggleAdminMode={() => setAdminMode((value) => !value)}
-                />
-
-              <main className="flex-1 overflow-hidden relative">
-                {effectiveView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
-                {effectiveView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
-                {effectiveView === 'monitor' && adminModeEnabled && (
+              <main className="shell-stage">
+                {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
+                {activeView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
+                {activeView === 'monitor' && (
                   <ViewErrorBoundary>
                     <MonitorView />
                   </ViewErrorBoundary>
                 )}
 
-                {effectiveView === 'generator' && (
+                {activeView === 'generator' && (
                   <>
                     {showWelcome ? (
                       <WelcomeDashboard
@@ -1187,7 +1136,7 @@ function App() {
                                 />
                                 <div
                                   ref={sidebarRef}
-                                  className={`relative flex h-full w-[min(85vw,320px)] flex-col bg-[#111111]/95 border-r border-white/10 shadow-2xl transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
+                                  className={`relative flex h-full w-[min(85vw,320px)] flex-col bg-[rgb(var(--plate))]/95 border-r border-white/10 shadow-2xl transform transition-transform duration-300 ease-out ${showLeftPanel ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
                                 >
                                   <div className="flex shrink-0 items-center justify-end border-b border-white/[0.06] px-3 py-2.5">
                                     <button
@@ -1227,7 +1176,7 @@ function App() {
                                         document.body.style.cursor = 'col-resize';
                                       }}
                                       onDoubleClick={() => setSidebarWidth((w) => (w > 240 ? 240 : 360))}
-                                      className="flex items-center justify-center w-9 h-9 rounded-full bg-black/60 border border-white/6 cursor-col-resize hover:bg-white/5 transition-colors"
+                                      className="flex items-center justify-center w-9 h-9 rounded-full bg-black/60 border border-white/[0.06] cursor-col-resize hover:bg-white/5 transition-colors"
                                     >
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/85">
                                         <path d="M10 6h2v2h-2V6zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2z" fill="currentColor" />
@@ -1241,23 +1190,22 @@ function App() {
                         )}
 
                         <div className="flex flex-1 flex-col overflow-hidden">
-                          <div className="flex items-center gap-1 overflow-x-auto border-b border-white/[0.06] px-3 pt-3 sm:px-4">
+                          <div className="workspace-tabs overflow-x-auto">
                             <button
                               type="button"
                               onClick={() => setWorkspaceTab('chat')}
-                              className={`relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors outline-none sm:px-4 ${workspaceTab === 'chat' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                              className={`ws-tab ${workspaceTab === 'chat' ? 'active' : ''}`}
                             >
+                              <span className="ws-tab__no">01</span>
                               <MessageSquare className="h-4 w-4" />
-                              Chat
+                              <span>Chat</span>
                               {restoredMessages.length > 0 && (
-                                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-semibold text-white/70">
-                                  {restoredMessages.length}
-                                </span>
+                                <span className="ws-tab-badge">{restoredMessages.length}</span>
                               )}
                               {workspaceTab === 'chat' && (
                                 <motion.span
                                   layoutId="workspace-tab-indicator"
-                                  className="absolute inset-x-2 -bottom-px h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
+                                  className="ws-tab-indicator"
                                 />
                               )}
                             </button>
@@ -1265,19 +1213,18 @@ function App() {
                             <button
                               type="button"
                               onClick={() => setWorkspaceTab('build')}
-                              className={`relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors outline-none sm:px-4 ${workspaceTab === 'build' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                              className={`ws-tab ${workspaceTab === 'build' ? 'active' : ''}`}
                             >
+                              <span className="ws-tab__no">02</span>
                               <Network className="h-4 w-4" />
-                              Schema &amp; Build
+                              <span>Schema &amp; Build</span>
                               {schemaPreview && (
-                                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-semibold text-white/70">
-                                  {schemaPreview.models.length}
-                                </span>
+                                <span className="ws-tab-badge">{schemaPreview.models.length}</span>
                               )}
                               {workspaceTab === 'build' && (
                                 <motion.span
                                   layoutId="workspace-tab-indicator"
-                                  className="absolute inset-x-2 -bottom-px h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"
+                                  className="ws-tab-indicator"
                                 />
                               )}
                             </button>
@@ -1287,9 +1234,9 @@ function App() {
                             <div className={`h-full ${workspaceTab === 'chat' ? '' : 'hidden'}`}>
                               {restoredMessages.length > 0 ? (
                                 <div className="flex h-full flex-col px-3 py-4 sm:px-8 sm:py-6">
-                                    <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-                                    <div className="font-semibold uppercase tracking-[0.2em] text-slate-400">Chat history</div>
-                                    <div className="hidden text-xs text-slate-500 sm:block">Messages are shown here, outside the bottom input bar.</div>
+                                    <div className="chat-header mb-4 flex items-center justify-between gap-3 border-b border-fg/10 pb-3">
+                                    <div className="eyebrow">Chat history</div>
+                                    <div className="chat-header__note hidden text-xs text-fg-faint sm:block">Messages shown here, outside the bottom input bar.</div>
                                   </div>
                                   <div
                                     ref={chatListRef}
@@ -1298,12 +1245,12 @@ function App() {
                                       const { scrollTop, clientHeight, scrollHeight } = chatListRef.current;
                                       setIsChatScrolledUp(scrollTop + clientHeight < scrollHeight - 80);
                                     }}
-                                    className="flex-1 min-h-0 space-y-3 overflow-y-auto scroll-smooth pr-2 pb-72 bg-transparent"
+                                    className="chat-thread pr-2 pb-72"
                                   >
                                 {restoredMessages.map((message, index) => (
                                   <div
                                     key={index}
-                                    className={`group flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                                    className={`group msg-row ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
                                   >
                                     {(() => {
                                       const messageKey = `${message.role}-${index}-${message.createdAt ?? ''}`;
@@ -1312,13 +1259,13 @@ function App() {
 
                                       return (
                                         <div className="max-w-[88%] sm:max-w-[75%] flex flex-col" style={{ alignItems: message.role === 'assistant' ? 'flex-start' : 'flex-end' }}>
-                                          <div className={`mb-2 text-[10px] uppercase tracking-[0.2em] opacity-50 ${message.role === 'assistant' ? 'text-slate-400 text-left' : 'text-slate-400 text-right'}`}>
+                                          <div className={`msg-meta ${message.role === 'assistant' ? 'text-left' : 'text-right'}`}>
                                             {message.role === 'assistant' ? 'AI' : 'YOU'}
                                           </div>
                                           <div className="relative overflow-hidden">
                                             <div
                                               dir={getMessageDirection(message.content)}
-                                              className={`rounded-2xl px-4 py-2.5 bg-white/[0.04] text-slate-100 transition-all duration-300 ${message.role === 'assistant' ? 'rounded-tr-none' : 'rounded-tl-none'} ${hasArabicText(message.content) ? 'text-right' : 'text-left'} opacity-100 shadow-none`}
+                                              className={`msg-bubble ${message.role === 'assistant' ? 'msg-bubble--ai' : 'msg-bubble--user'} transition-all duration-300 ${hasArabicText(message.content) ? 'text-right' : 'text-left'}`}
                                               style={{ unicodeBidi: 'plaintext' }}
                                             >
                                               <div
@@ -1341,7 +1288,7 @@ function App() {
                                             </div>
 
                                             {isLongMessage && !isExpanded && (
-                                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 rounded-b-2xl bg-gradient-to-t from-[#0b0b0b] to-transparent" />
+                                              <div className="msg-fade" />
                                             )}
 
                                             {isLongMessage && (
@@ -1353,14 +1300,14 @@ function App() {
                                                     [messageKey]: !previous[messageKey],
                                                   }));
                                                 }}
-                                                className="absolute bottom-3 left-1/2 z-30 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/5 bg-white/10 px-3 py-1.5 text-xs text-white/90 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition hover:bg-white/15"
+                                                className="msg-toggle"
                                               >
                                                 <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
                                                 {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                                               </button>
                                             )}
                                           </div>
-                                          <div className="mt-1 flex items-center gap-2 px-1 transition-all duration-200 opacity-100 translate-y-0 sm:opacity-0 sm:translate-y-1 sm:group-hover:opacity-100 sm:group-hover:translate-y-0">
+                                          <div className="msg-actions">
                                             <button
                                               type="button"
                                               onClick={async () => {
@@ -1373,13 +1320,13 @@ function App() {
                                                   // ignore clipboard errors
                                                 }
                                               }}
-                                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
+                                              className="msg-action"
                                               aria-label="Copy message"
                                               title="Copy message"
                                             >
                                               {copiedMessageKey === `${index}-${message.role}` ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy className="h-3.5 w-3.5" strokeWidth={2.5} />}
                                             </button>
-                                            <span className="text-[10px] text-slate-500">
+                                            <span className="msg-time">
                                               {formatMessageTime(message.createdAt)}
                                             </span>
                                           </div>
@@ -1396,21 +1343,21 @@ function App() {
                                       animate={{ opacity: 1, y: 0 }}
                                       exit={{ opacity: 0, y: 4 }}
                                       transition={{ duration: 0.18, ease: 'easeOut' }}
-                                      className="flex justify-start"
+                                      className="msg-row justify-start"
                                     >
                                       <div className="max-w-[88%] sm:max-w-[75%] flex flex-col items-start">
-                                        <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] opacity-50 text-slate-400 text-left">AI</div>
+                                        <div className="msg-meta text-left">AI</div>
                                         <div
                                           dir="ltr"
-                                          className="rounded-2xl rounded-tr-none border border-white/10 bg-white/10 px-3 py-2.5 text-slate-100"
+                                          className="msg-bubble msg-bubble--ai"
                                           style={{ unicodeBidi: 'plaintext' }}
                                           aria-label="AI is typing"
                                           role="status"
                                         >
                                           <div className="flex items-center gap-1">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
-                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
-                                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300/80 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--fg))]/70 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--fg))]/70 animate-bounce" style={{ animationDelay: '140ms', animationDuration: '1s' }} />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--fg))]/70 animate-bounce" style={{ animationDelay: '280ms', animationDuration: '1s' }} />
                                           </div>
                                         </div>
                                       </div>
@@ -1424,7 +1371,7 @@ function App() {
                                       <button
                                         type="button"
                                         onClick={scrollChatToBottom}
-                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white shadow-lg shadow-black/30 backdrop-blur-md transition hover:bg-white/20 hover:border-white/20"
+                                        className="scroll-down"
                                         aria-label="Scroll to bottom"
                                         title="Scroll to bottom"
                                       >
@@ -1435,7 +1382,7 @@ function App() {
                                 </div>
                               ) : (
                                 <div className="flex h-full items-center justify-center">
-                                  <p className="text-white/30">Start a conversation to generate your module</p>
+                                  <p className="text-fg-faint">Start a conversation to generate your module</p>
                                 </div>
                               )}
                             </div>
@@ -1464,7 +1411,7 @@ function App() {
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center">
-                                  <p className="text-white/30">Configure your module and click Generate</p>
+                                  <p className="text-fg-faint">Configure your module and click Generate</p>
                                 </div>
                               )}
                             </div>
@@ -1494,10 +1441,9 @@ function App() {
                 isReady={isReadyToGenerate}
               />
             )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -45,7 +45,7 @@ export const DiagramZoomToolbar: React.FC<DiagramZoomToolbarProps> = ({
           disabled={disabled}
           aria-label={title}
           title={title}
-          className={`rounded-lg border bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${
+          className={`diagram-tool-btn rounded-lg border bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${
             active ? 'border-cyan-400/25 bg-cyan-500/10 text-cyan-100' : 'border-white/10'
           } ${className}`}
         >
@@ -70,7 +70,7 @@ export const DiagramZoomToolbar: React.FC<DiagramZoomToolbarProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/45 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
+    <div className="diagram-toolbar rounded-2xl border border-white/10 bg-black/45 px-2 py-2 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl">
       <div className="flex items-center gap-1.5">
         <ToolbarButton title="Zoom out" onClick={onZoomOut}>
           <ZoomOut className="w-4 h-4" />

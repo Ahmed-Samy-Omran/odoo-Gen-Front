@@ -36,7 +36,7 @@ export const EditTextModal: React.FC<Props> = ({ open, title = 'Edit', label = '
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="px-3 py-1 rounded-lg border border-white/10 text-white/60 hover:text-white">Cancel</button>
-            <button type="button" onClick={() => onSave(value.trim())} className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 hover:bg-emerald-500/20">
+            <button type="button" onClick={() => onSave(value.trim())} className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent-soft text-accent border border-accent/30 hover:bg-accent-soft-strong">
               <Check className="w-4 h-4" /> Save
             </button>
           </div>

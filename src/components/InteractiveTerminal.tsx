@@ -53,7 +53,7 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
     : jobStatus?.status === 'error'
     ? '#f87171'
     : isGenerating
-    ? '#818cf8'
+    ? 'rgb(var(--accent))'
     : '#64748b';
 
   return (
@@ -62,35 +62,38 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
       style={{ width: 'calc(100% - 2rem)', maxWidth: '780px' }}
     >
       <div
+        className="term-shell"
         style={{
-          background: 'rgba(11, 13, 20, 0.97)',
+          background: 'rgb(var(--term-bg) / 0.97)',
           backdropFilter: 'blur(32px) saturate(180%)',
           WebkitBackdropFilter: 'blur(32px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.075)',
-          borderRadius: '22px',
+          border: '1px solid rgb(var(--term-border) / 0.16)',
+          borderRadius: 'calc(var(--radius) * 1.1)',
           boxShadow: [
-            '0 0 0 1px rgba(255,255,255,0.035) inset',
-            '0 28px 80px rgba(0,0,0,0.65)',
-            '0 8px 32px rgba(0,0,0,0.45)',
+            '0 0 0 1px rgb(var(--term-border) / 0.06) inset',
+            '0 28px 80px rgb(0 0 0 / 0.5)',
+            '0 8px 32px rgb(0 0 0 / 0.3)',
           ].join(', '),
           overflow: 'hidden',
         }}
       >
         {/* ── TASK PROGRESS header ─────────────────────── */}
         <div
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.055)' }}
+          className="term-shell__divider"
+          style={{ borderBottom: '1px solid rgb(var(--term-border) / 0.1)' }}
         >
           {/* label + controls */}
           <div
             className="flex items-center justify-between px-5 pt-4 pb-3"
           >
             <span
+              className="term-shell__label"
               style={{
                 fontSize: '10px',
                 fontWeight: 700,
                 letterSpacing: '0.3em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.3)',
+                color: 'rgb(var(--term-fg) / 0.5)',
               }}
             >
               Task Progress
@@ -108,14 +111,14 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
                     transition: 'all 0.3s ease',
                   }}
                 />
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>
+                <span className="term-shell__status" style={{ fontSize: '11px', color: 'rgb(var(--term-fg) / 0.6)', fontWeight: 500 }}>
                   {isGenerating ? 'Running' : jobStatus?.status === 'done' ? 'Done' : jobStatus?.status === 'error' ? 'Error' : 'Idle'}
                 </span>
               </div>
               {/* collapse toggle */}
               <button
                 onClick={() => setExpanded(v => !v)}
-                style={{ color: 'rgba(255,255,255,0.2)', padding: '2px' }}
+                style={{ color: 'rgb(var(--term-fg) / 0.4)', padding: '2px' }}
                 className="hover:text-white/50 transition-colors"
                 aria-label={expanded ? 'Collapse' : 'Expand'}
               >
@@ -134,22 +137,23 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
                 maxHeight: '160px',
                 overflowY: 'auto',
                 scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+                scrollbarColor: 'rgb(var(--term-border) / 0.2) transparent',
               }}
             >
               {logs.length === 0 ? (
                 /* empty state */
                 <div
+                  className="term-shell__log"
                   style={{
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: 'var(--font-mono), monospace',
                     fontSize: '11.5px',
-                    color: 'rgba(255,255,255,0.2)',
+                    color: 'rgb(var(--term-fg) / 0.4)',
                     lineHeight: '1.7',
                   }}
                 >
                   {isGenerating ? (
                     <span className="flex items-center gap-2">
-                      <Loader2 size={12} className="animate-spin" style={{ color: '#818cf8' }} />
+                      <Loader2 size={12} className="animate-spin" style={{ color: 'rgb(var(--accent))' }} />
                       Waiting for server output...
                     </span>
                   ) : (
@@ -162,14 +166,14 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
                     <li
                       key={i}
                       className="flex items-start gap-2.5"
-                      style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', lineHeight: '1.6' }}
+                      style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '11px', lineHeight: '1.6' }}
                     >
                       <Check
                         size={12}
                         strokeWidth={2.5}
-                        style={{ color: '#818cf8', flexShrink: 0, marginTop: '3px' }}
+                        style={{ color: 'rgb(var(--accent))', flexShrink: 0, marginTop: '3px' }}
                       />
-                      <span style={{ color: 'rgba(255,255,255,0.6)' }}>{line}</span>
+                      <span className="term-shell__line" style={{ color: 'rgb(var(--term-fg) / 0.75)' }}>{line}</span>
                     </li>
                   ))}
                   <div ref={logsEndRef} />
@@ -190,9 +194,9 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
               placeholder="صف الموديول اللي عايزه..."
               className="flex-1 bg-transparent outline-none"
               style={{
-                color: 'rgba(255,255,255,0.85)',
+                color: 'rgb(var(--term-fg) / 0.9)',
                 fontSize: '13.5px',
-                caretColor: '#818cf8',
+                caretColor: 'rgb(var(--accent))',
               }}
             />
             {/* sending indicator dot */}
@@ -200,7 +204,7 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
               style={{
                 width: '8px', height: '8px',
                 borderRadius: '50%',
-                background: isGenerating ? '#818cf8' : 'rgba(129,140,248,0.4)',
+                background: isGenerating ? 'rgb(var(--accent))' : 'rgba(129,140,248,0.4)',
                 boxShadow: isGenerating ? '0 0 10px #818cf8' : 'none',
                 flexShrink: 0,
                 transition: 'all 0.3s ease',
@@ -218,27 +222,28 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
               <button
                 key={label}
                 onClick={label === 'DEMO' ? onTryDemo : undefined}
+                className="term-shell__pill"
                 style={{
                   padding: '4px 10px',
-                  borderRadius: '20px',
+                  borderRadius: '999px',
                   fontSize: '11px',
                   fontWeight: 600,
                   letterSpacing: '0.03em',
-                  color: 'rgba(255,255,255,0.45)',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: 'rgb(var(--term-fg) / 0.55)',
+                  background: 'rgb(var(--term-fg) / 0.05)',
+                  border: '1px solid rgb(var(--term-border) / 0.12)',
                   transition: 'all 0.2s ease',
                   cursor: 'pointer',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.09)';
-                  (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.14)';
+                  (e.currentTarget as HTMLElement).style.background = 'rgb(var(--term-fg) / 0.1)';
+                  (e.currentTarget as HTMLElement).style.color = 'rgb(var(--term-fg) / 0.9)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--term-border) / 0.22)';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
-                  (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)';
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)';
+                  (e.currentTarget as HTMLElement).style.background = 'rgb(var(--term-fg) / 0.05)';
+                  (e.currentTarget as HTMLElement).style.color = 'rgb(var(--term-fg) / 0.55)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgb(var(--term-border) / 0.12)';
                 }}
               >
                 {label}
@@ -250,24 +255,25 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
           <div className="flex items-center gap-1.5">
             {/* Manus Desktop */}
             <button
+              className="term-shell__btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                 padding: '5px 10px',
                 borderRadius: '10px',
                 fontSize: '11.5px', fontWeight: 500,
-                color: 'rgba(255,255,255,0.4)',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                color: 'rgb(var(--term-fg) / 0.55)',
+                background: 'rgb(var(--term-fg) / 0.05)',
+                border: '1px solid rgb(var(--term-border) / 0.12)',
                 transition: 'all 0.2s ease',
                 cursor: 'pointer',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)';
-                (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                (e.currentTarget as HTMLElement).style.background = 'rgb(var(--term-fg) / 0.09)';
+                (e.currentTarget as HTMLElement).style.color = 'rgb(var(--term-fg) / 0.8)';
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
-                (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.4)';
+                (e.currentTarget as HTMLElement).style.background = 'rgb(var(--term-fg) / 0.05)';
+                (e.currentTarget as HTMLElement).style.color = 'rgb(var(--term-fg) / 0.55)';
               }}
             >
               <Monitor size={13} strokeWidth={1.8} />
@@ -276,52 +282,54 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
 
             {/* Mic */}
             <button
+              className="term-shell__btn"
               style={{
                 width: '32px', height: '32px',
                 borderRadius: '10px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'rgb(var(--term-fg) / 0.5)',
                 transition: 'all 0.2s ease',
                 cursor: 'pointer',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
-                (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)';
+                (e.currentTarget as HTMLElement).style.background = 'rgb(var(--term-fg) / 0.08)';
+                (e.currentTarget as HTMLElement).style.color = 'rgb(var(--term-fg) / 0.8)';
               }}
               onMouseLeave={e => {
                 (e.currentTarget as HTMLElement).style.background = 'transparent';
-                (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.35)';
+                (e.currentTarget as HTMLElement).style.color = 'rgb(var(--term-fg) / 0.5)';
               }}
               aria-label="Voice input"
             >
               <Mic size={14} strokeWidth={1.8} />
             </button>
 
-            {/* Send / Generate — accent white circle */}
+            {/* Send / Generate — accent circle */}
             <button
               onClick={handleSend}
               disabled={isGenerating}
+              className="term-shell__send"
               style={{
                 width: '34px', height: '34px',
                 borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: isGenerating ? 'rgba(129,140,248,0.3)' : 'rgba(255,255,255,0.92)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: isGenerating ? 'rgba(255,255,255,0.4)' : '#111',
+                background: isGenerating ? 'rgb(var(--accent) / 0.3)' : 'rgb(var(--accent))',
+                border: '1px solid rgb(var(--term-border) / 0.14)',
+                color: isGenerating ? 'rgb(var(--accent-fg) / 0.5)' : 'rgb(var(--accent-fg))',
                 cursor: isGenerating ? 'not-allowed' : 'pointer',
-                boxShadow: isGenerating ? 'none' : '0 2px 10px rgba(0,0,0,0.4)',
+                boxShadow: isGenerating ? 'none' : '0 2px 12px rgb(var(--accent) / 0.35)',
                 transition: 'all 0.25s cubic-bezier(0.16,1,0.3,1)',
                 flexShrink: 0,
               }}
               onMouseEnter={e => {
                 if (!isGenerating) {
                   (e.currentTarget as HTMLElement).style.transform = 'scale(1.07) translateY(-1px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 18px rgba(0,0,0,0.45)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 18px rgb(var(--accent) / 0.45)';
                 }
               }}
               onMouseLeave={e => {
                 (e.currentTarget as HTMLElement).style.transform = '';
-                (e.currentTarget as HTMLElement).style.boxShadow = isGenerating ? 'none' : '0 2px 10px rgba(0,0,0,0.4)';
+                (e.currentTarget as HTMLElement).style.boxShadow = isGenerating ? 'none' : '0 2px 12px rgb(var(--accent) / 0.35)';
               }}
               aria-label="Send"
             >

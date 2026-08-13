@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { Send, Loader2 } from 'lucide-react';
 import type { GeneratorPayload, ChatMessage } from '../services/api';
-import { isQuotaExceededError, notifyQuotaExceeded, sendChatMessage } from '../services/api';
+import { sendChatMessage } from '../services/api';
 import { buildPayloadFromJson, buildDemoPayload } from '../utils/demoGenerate';
 import { TaskProgressTracker, type TaskProgressItem, type TaskStatus } from './TaskProgressTracker';
 
@@ -181,7 +180,6 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
     } catch (err) {
       effectiveSetMessages(markSentMessages(nextMessages));
       effectiveSetError(err instanceof Error ? err.message : 'Error communicating with AI');
-      if (isQuotaExceededError(err)) notifyQuotaExceeded();
     } finally {
       effectiveSetIsChatting(false);
     }
@@ -194,11 +192,11 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
         effectiveSetError('Please complete the conversation with AI until requirements are ready.');
         return;
       }
-      
-      const finalPrompt = effectiveRequirementsSummary.trim() 
-        ? effectiveRequirementsSummary 
+
+      const finalPrompt = effectiveRequirementsSummary.trim()
+        ? effectiveRequirementsSummary
         : effectiveMessages.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n');
-        
+
       const payload = buildDefaultPayload(finalPrompt, deploymentMode, githubRepositoryUrl);
       payload.aiPrompt = finalPrompt;
       onGenerate?.(payload);
@@ -262,168 +260,144 @@ export const GenBar: React.FC<GenBarProps> = ({ onGenerate, resetKey, repository
     focusChat();
   };
 
+  const canSend = inputMode === 'chat' ? (!effectiveIsChatting && !!inputValue.trim()) : isReady;
+
   return (
-    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-3xl -translate-x-1/2 sm:w-[calc(100%-2.5rem)]">
+    <div className="genbar-wrap">
       {effectiveError && (
         <div className="fixed bottom-full mb-4 left-1/2 -translate-x-1/2 z-[100] animate-bounce-short">
-          <div className="bg-[#18181b]/95 text-rose-400 border border-rose-500/30 backdrop-blur-md px-6 py-3 rounded-full shadow-xl flex items-center gap-3 text-sm font-medium text-center max-w-[92vw]">
-            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+          <div className="plate px-6 py-3 rounded-full shadow-xl flex items-center gap-3 text-sm font-medium text-center text-[rgb(var(--error))] max-w-[92vw]">
+            <div className="w-2 h-2 rounded-full bg-[rgb(var(--error))] animate-pulse" />
             <span>{effectiveError}</span>
           </div>
         </div>
-      )} 
+      )}
 
-      <div className="rounded-2xl bg-[#0d0d0d]/90 px-2.5 py-2.5 text-white sm:px-3 sm:py-3 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="mb-2 hidden lg:block"
-        >
+      <div className="genbar">
+        <div className="genbar-progress hidden lg:block">
           <TaskProgressTracker tasks={tasks} title="Task progress" className="w-full" />
-        </motion.div>
+        </div>
 
-        <div className="rounded-xl bg-[#0b0b0b]/80 px-3 py-2.5">
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(event) => setInputValue(event.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={effectiveIsChatting}
-              placeholder={
-                inputMode === 'json'
-                  ? 'Paste your Odoo module JSON configuration here...'
-                  : inputMode === 'demo'
-                  ? 'Demo configuration loaded — press Generate to build it.'
-                  : 'Describe the Odoo module you want to build...'
-              }
-              rows={1}
-              className="min-h-[44px] flex-1 resize-none overflow-hidden bg-transparent border-none text-[14px] leading-5 text-slate-200 outline-none placeholder:text-slate-500 focus:border-none focus:ring-0 disabled:opacity-50 sm:text-[13px]"
-            />
+        <div className="genbar-field-row">
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={effectiveIsChatting}
+            placeholder={
+              inputMode === 'json'
+                ? 'Paste your Odoo module JSON configuration here...'
+                : inputMode === 'demo'
+                ? 'Demo configuration loaded — press Generate to build it.'
+                : 'Describe the Odoo module you want to build...'
+            }
+            rows={1}
+            className="genbar-field"
+          />
+          <button
+            onClick={inputMode === 'chat' ? handleSendMessage : handleGenerate}
+            disabled={!canSend}
+            className="genbar-send"
+            aria-label={inputMode === 'chat' ? 'Send Message' : 'Generate'}
+          >
+            {effectiveIsChatting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <div className="genbar-sub">
+          {inputMode === 'demo' && (
+            <div className="w-full text-[11px] text-accent">
+              Demo module loaded. Press Generate to build it with the sample configuration.
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              setInputMode('chat');
+              focusChat();
+            }}
+            aria-pressed={inputMode === 'chat'}
+            className={`mode-chip ${inputMode === 'chat' ? 'active' : ''}`}
+          >
+            <span className="mode-chip__dot" aria-hidden="true" />
+            Chat
+          </button>
+          <button
+            onClick={() => {
+              setInputMode('json');
+              focusChat();
+            }}
+            aria-pressed={inputMode === 'json'}
+            className={`mode-chip ${inputMode === 'json' ? 'active' : ''}`}
+          >
+            <span className="mode-chip__dot" aria-hidden="true" />
+            JSON
+          </button>
+          <button
+            onClick={handleDemoMode}
+            aria-pressed={inputMode === 'demo'}
+            className={`mode-chip ${inputMode === 'demo' ? 'active' : ''}`}
+          >
+            <span className="mode-chip__dot" aria-hidden="true" />
+            Demo
+          </button>
+
+          <span className="genbar-sep" aria-hidden="true" />
+
+          <button
+            onClick={() => setDeploymentMode('github')}
+            aria-pressed={deploymentMode === 'github'}
+            className={`mode-chip ${deploymentMode === 'github' ? 'active' : ''}`}
+          >
+            <span className="mode-chip__dot" aria-hidden="true" />
+            GitHub
+          </button>
+          <button
+            onClick={() => setDeploymentMode('local_zip')}
+            aria-pressed={deploymentMode === 'local_zip'}
+            className={`mode-chip ${deploymentMode === 'local_zip' ? 'active' : ''}`}
+          >
+            <span className="mode-chip__dot" aria-hidden="true" />
+            ZIP
+          </button>
+        </div>
+
+        {inputMode === 'chat' && (
+          <div className="genbar-status mt-2">
+            <span className={`inline-flex h-2 w-2 shrink-0 rounded-full ${effectiveReadyToGenerate ? 'bg-[rgb(var(--accent))]' : 'bg-[rgb(var(--warning))] animate-pulse'}`} aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <div className="genbar-status__label">{effectiveReadyToGenerate ? 'Ready to generate' : 'Awaiting AI guidance'}</div>
+              <div className="genbar-status__hint hidden sm:block">
+                {effectiveReadyToGenerate
+                  ? 'The AI has gathered enough requirements and the module is ready to generate.'
+                  : 'Continue the chat until the AI confirms requirements are ready, or force generation.'}
+              </div>
+            </div>
             <button
-              onClick={inputMode === 'chat' ? handleSendMessage : handleGenerate}
-              disabled={inputMode === 'chat' ? (effectiveIsChatting || !inputValue.trim()) : !isReady}
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-100 transition ${
-                (inputMode === 'chat' ? (!effectiveIsChatting && inputValue.trim()) : isReady)
-                  ? 'bg-white/10 hover:bg-white/20 opacity-100'
-                  : 'bg-black/10 opacity-50 cursor-not-allowed'
-              }`}
-              aria-label={inputMode === 'chat' ? 'Send Message' : 'Generate'}
+              type="button"
+              onClick={() => handleGenerate(effectiveReadyToGenerate ? false : true)}
+              className={`genbar-status__go ui-btn px-4 py-2 ${effectiveReadyToGenerate ? 'ui-btn--accent' : 'ui-btn--ghost'}`}
             >
-              {effectiveIsChatting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {effectiveReadyToGenerate ? 'Generate Module' : 'Force Generate'}
             </button>
           </div>
+        )}
 
-          <div className="mt-2 flex flex-col gap-2">
-            {inputMode === 'demo' && (
-              <div className="text-[11px] text-emerald-300/80">
-                Demo module loaded. Press Generate to build it with the sample configuration.
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <button
-                onClick={() => {
-                  setInputMode('chat');
-                  focusChat();
-                }}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] transition ${
-                  inputMode === 'chat'
-                    ? 'bg-white/12 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]'
-                    : 'bg-white/5 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${inputMode === 'chat' ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                CHAT
-              </button>
-              <button
-                onClick={() => {
-                  setInputMode('json');
-                  focusChat();
-                }}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] transition ${
-                  inputMode === 'json'
-                    ? 'bg-white/12 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]'
-                    : 'bg-white/5 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${inputMode === 'json' ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                JSON
-              </button>
-              <button
-                onClick={handleDemoMode}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] transition ${
-                  inputMode === 'demo'
-                    ? 'bg-white/12 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]'
-                    : 'bg-white/5 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${inputMode === 'demo' ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                DEMO
-              </button>
-              <button
-                onClick={() => setDeploymentMode('github')}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] transition ${
-                  deploymentMode === 'github'
-                    ? 'bg-white/12 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]'
-                    : 'bg-white/5 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${deploymentMode === 'github' ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                GitHub
-              </button>
-              <button
-                onClick={() => setDeploymentMode('local_zip')}
-                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] transition ${
-                  deploymentMode === 'local_zip'
-                    ? 'bg-white/12 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]'
-                    : 'bg-white/5 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${deploymentMode === 'local_zip' ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                ZIP
-              </button>
-            </div>
-
-            {inputMode === 'chat' && (
-              <div className="flex flex-col gap-2 rounded-xl bg-[#0b0b0b]/80 px-3 py-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
-                    <span className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${effectiveReadyToGenerate ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                    <span className="truncate">{effectiveReadyToGenerate ? 'Ready to generate' : 'Awaiting AI guidance'}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleGenerate(effectiveReadyToGenerate ? false : true)}
-                    className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-100 transition hover:bg-white/20"
-                  >
-                    {effectiveReadyToGenerate ? 'Generate Module' : 'Force Generate'}
-                  </button>
-                </div>
-                <div className="hidden text-[12px] leading-5 text-slate-400 sm:block">
-                  {effectiveReadyToGenerate
-                    ? 'The AI has gathered enough requirements and the module is ready to generate.'
-                    : 'Continue the chat until the AI confirms requirements are ready, or force generation.'}
-                </div>
-              </div>
-            )}
-
-            {deploymentMode === 'github' && (
-              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">
-                  GitHub Repository URL
-                </label>
-                <input
-                  value={githubRepositoryUrl}
-                  onChange={(event) => updateRepositoryUrl(event.target.value)}
-                  placeholder="https://github.com/username/repo"
-                  className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-[13px] text-slate-200 outline-none placeholder:text-slate-500"
-                />
-              </div>
-            )}
+        {deploymentMode === 'github' && (
+          <div className="genbar-repo mt-2">
+            <label className="genbar-repo__label" htmlFor="genbar-github-url">
+              GitHub Repository URL
+            </label>
+            <input
+              id="genbar-github-url"
+              value={githubRepositoryUrl}
+              onChange={(event) => updateRepositoryUrl(event.target.value)}
+              placeholder="https://github.com/username/repo"
+              className="genbar-repo__input"
+            />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
