@@ -150,6 +150,53 @@ html[data-theme='aurora'] {
   --term-border: 255 255 255;
 }
 
+html[data-theme='classic'] {
+  color-scheme: dark;
+  --bg: 5 5 5;
+  --bg-soft: 12 12 12;
+  --surface: 17 17 17;
+  --surface-2: 24 24 24;
+  --fg: 240 240 240;
+  --fg-muted: 170 170 170;
+  --fg-faint: 110 110 110;
+
+  --border: 255 255 255;
+  --border-opacity: 0.1;
+  --border-strong-opacity: 0.2;
+
+  --accent: 235 235 235;
+  --accent-fg: 10 10 10;
+  --success: 34 197 94;
+  --error: 239 68 68;
+  --warning: 245 158 11;
+  --info: 96 165 250;
+
+  --radius: 16px;
+  --shadow-opacity: 0.55;
+  --code-bg: 8 8 8;
+
+  --plate: 17 17 17;
+  --plate-soft: 24 24 24;
+  --plate-fg: 240 240 240;
+  --plate-border: 255 255 255;
+  --plate-border-opacity: 0.1;
+
+  --font-sans: 'Inter', 'Tajawal', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Inter', 'Tajawal', system-ui, sans-serif;
+
+  --mouse-glow: radial-gradient(circle, rgb(255 255 255 / 0.05) 0%, transparent 62%);
+  --ambient-blob-a: rgb(255 255 255 / 0.04);
+  --ambient-blob-b: rgb(148 163 184 / 0.06);
+  --grain-opacity: 0.05;
+  --erd-edge: rgb(255 255 255 / 0.3);
+  --erd-edge-active: rgb(255 255 255 / 0.9);
+  --erd-dot: rgb(255 255 255 / 0.12);
+  --term-bg: 10 10 10;
+  --term-fg: 240 240 240;
+  --term-border: 255 255 255;
+}
+
 @layer base {
   * {
     scrollbar-width: thin;
@@ -415,6 +462,33 @@ html[data-theme='aurora'] .ambient__blob-b {
   html[data-theme='aurora'] .ambient__blob-b {
     animation: none;
   }
+}
+
+/* Classic — the original design: white dot matrix + soft top glow */
+html[data-theme='classic'] .ambient__grid {
+  opacity: 1;
+  background-image: radial-gradient(circle, rgb(var(--fg) / 0.15) 1px, transparent 1.6px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 100% 70% at 50% 30%, #000 25%, transparent 82%);
+  mask-image: radial-gradient(ellipse 100% 70% at 50% 30%, #000 25%, transparent 82%);
+}
+
+html[data-theme='classic'] .ambient__blob-a {
+  opacity: 1;
+  top: -200px;
+  right: -140px;
+  width: 640px;
+  height: 640px;
+  background: var(--ambient-blob-a);
+}
+
+html[data-theme='classic'] .ambient__blob-b {
+  opacity: 1;
+  bottom: -220px;
+  left: -160px;
+  width: 560px;
+  height: 560px;
+  background: var(--ambient-blob-b);
 }
 
 @layer components {

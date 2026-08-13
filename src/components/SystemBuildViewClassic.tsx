@@ -13,8 +13,6 @@ import { CanvasView } from './CanvasView';
 import { generateErdFromSchema } from '../utils/diagramBuilder';
 
 import type { GeneratedFile, SchemaPreview } from '../services/api';
-import { useTheme } from '../theme/ThemeContext';
-import { SystemBuildView as SystemBuildViewClassic } from './SystemBuildViewClassic';
 const schemaFingerprint = (schema: SchemaPreview | null): string => {
   if (!schema) return '';
   return `${schema.module_name ?? ''}|${schema.models?.length ?? 0}|${schema.use_cases?.length ?? 0}`;
@@ -49,7 +47,7 @@ interface SystemBuildViewProps {
   onCloudSync?: () => Promise<void>;
 }
 
-export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
+export const SystemBuildView: React.FC<SystemBuildViewProps> = ({
   schema,
   isAwaitingAiSchema = false,
   isGenerating,
@@ -313,7 +311,7 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
 
         {/* Progress header */}
 
-        <div className="px-4 py-4 rounded-2xl border border-glass-border bg-[rgb(var(--plate))] shadow-inner space-y-2">
+        <div className="px-4 py-4 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner space-y-2">
 
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 
@@ -396,7 +394,7 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
 
                   ? 'bg-red-500/60 w-full'
 
-                  : 'bg-gradient-to-r from-accent/60 to-accent'
+                  : 'bg-gradient-to-r from-white/20 to-white/50'
 
               }`}
 
@@ -421,13 +419,13 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
             <p className="text-red-300/70 text-xs leading-relaxed">{statusMessage}</p>
 
             <p className="text-white/30 text-xs mt-2">
-              Tip: Click <strong className="text-accent">Try Demo</strong> below — works without AI.
+              Tip: Click <strong className="text-emerald-400/80">Try Demo</strong> below — works without AI.
             </p>
             {onTryDemo && (
               <button
                 type="button"
                 onClick={onTryDemo}
-                className="mt-3 mr-2 px-4 py-2 rounded-lg bg-accent-soft border border-accent/30 text-accent text-xs font-semibold hover:bg-accent-soft-strong transition-colors"
+                className="mt-3 mr-2 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition-colors"
               >
                 Try Demo (FitZone Gym — no AI)
               </button>
@@ -449,7 +447,7 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
 
 
         {showViewTabs && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-glass-border bg-[rgb(var(--plate))] shadow-inner">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
             <button
               onClick={() => setViewTab('diagrams')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${viewTab === 'diagrams' ? 'bg-white/10 text-white/90' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
@@ -469,7 +467,7 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
 
         {/* Diagram tabs */}
 
-        <div className="flex items-center gap-1 px-4 py-2 rounded-2xl border border-glass-border bg-[rgb(var(--plate))] shadow-inner">
+        <div className="flex items-center gap-1 px-4 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#111111] shadow-inner">
 
           <button
 
@@ -535,7 +533,7 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
         <div className="flex-1 overflow-hidden relative">
           {isGeneratingFiles && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-              <div className="rounded-3xl border border-white/10 bg-[rgb(var(--plate))]/95 px-6 py-5 text-center shadow-xl">
+              <div className="rounded-3xl border border-white/10 bg-[#111111]/95 px-6 py-5 text-center shadow-xl">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
@@ -670,13 +668,4 @@ export const SystemBuildViewThemed: React.FC<SystemBuildViewProps> = ({
 
 };
 
-export const SystemBuildView: React.FC<SystemBuildViewProps> = (props) => {
-  const { theme } = useTheme();
-
-  if (theme === 'classic') {
-    return <SystemBuildViewClassic {...props} />;
-  }
-
-  return <SystemBuildViewThemed {...props} />;
-};
 

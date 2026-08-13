@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Save, Info, Key, Database } from 'lucide-react';
-import { useTheme } from '../theme/ThemeContext';
-import { SettingsView as SettingsViewClassic } from './SettingsViewClassic';
 
 interface SettingsViewProps {
   odooVersion: string;
   onSaveSettings: (version: string) => void;
 }
 
-export const SettingsViewThemed: React.FC<SettingsViewProps> = ({ odooVersion, onSaveSettings }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ odooVersion, onSaveSettings }) => {
   const [selectedVersion, setSelectedVersion] = useState(odooVersion);
 
   useEffect(() => {
@@ -16,17 +14,17 @@ export const SettingsViewThemed: React.FC<SettingsViewProps> = ({ odooVersion, o
   }, [odooVersion]);
 
   return (
-    <div className="settings-view w-full h-full p-4 sm:p-6 overflow-y-auto">
-      <div className="settings-view__inner mx-auto space-y-8">
-        <div className="settings-view__header">
-          <h1 className="settings-view__title text-2xl font-semibold text-white/90">Settings</h1>
-          <p className="settings-view__sub text-white/30 text-sm mt-1">Configure your generator preferences</p>
+    <div className="w-full h-full p-4 sm:p-6 overflow-y-auto">
+      <div className="max-w-2xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-white/90">Settings</h1>
+          <p className="text-white/30 text-sm mt-1">Configure your generator preferences</p>
         </div>
 
-        <div className="settings-view__grid space-y-6">
-          <div className="settings-card glass-card p-6 space-y-5">
-            <div className="settings-card__head flex items-center gap-3 pb-4 border-b border-glass-border">
-              <div className="settings-card__icon w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center">
+        <div className="space-y-6">
+          <div className="glass-card p-6 space-y-5">
+            <div className="flex items-center gap-3 pb-4 border-b border-glass-border">
+              <div className="w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center">
                 <Database className="w-5 h-5 text-white/70" />
               </div>
               <div>
@@ -51,9 +49,9 @@ export const SettingsViewThemed: React.FC<SettingsViewProps> = ({ odooVersion, o
             </div>
           </div>
 
-          <div className="settings-card glass-card p-6 space-y-5">
-            <div className="settings-card__head flex items-center gap-3 pb-4 border-b border-glass-border">
-              <div className="settings-card__icon w-10 h-10 rounded-lg bg-white/6 flex items-center justify-center">
+          <div className="glass-card p-6 space-y-5">
+            <div className="flex items-center gap-3 pb-4 border-b border-glass-border">
+              <div className="w-10 h-10 rounded-lg bg-white/6 flex items-center justify-center">
                 <Key className="w-5 h-5 text-white/60" />
               </div>
               <div>
@@ -73,9 +71,9 @@ export const SettingsViewThemed: React.FC<SettingsViewProps> = ({ odooVersion, o
             </div>
           </div>
 
-          <div className="settings-card glass-card p-6 space-y-5">
-            <div className="settings-card__head flex items-center gap-3 pb-4 border-b border-glass-border">
-              <div className="settings-card__icon w-10 h-10 rounded-lg bg-white/6 flex items-center justify-center">
+          <div className="glass-card p-6 space-y-5">
+            <div className="flex items-center gap-3 pb-4 border-b border-glass-border">
+              <div className="w-10 h-10 rounded-lg bg-white/6 flex items-center justify-center">
                 <Database className="w-5 h-5 text-white/60" />
               </div>
               <div>
@@ -99,7 +97,7 @@ export const SettingsViewThemed: React.FC<SettingsViewProps> = ({ odooVersion, o
           </div>
         </div>
 
-        <div className="settings-view__footer flex justify-end">
+        <div className="flex justify-end">
           <button
             type="button"
             className="cyber-button-primary gap-2"
@@ -112,14 +110,4 @@ export const SettingsViewThemed: React.FC<SettingsViewProps> = ({ odooVersion, o
       </div>
     </div>
   );
-};
-
-export const SettingsView: React.FC<SettingsViewProps> = ({ odooVersion, onSaveSettings }) => {
-  const { theme } = useTheme();
-
-  if (theme === 'classic') {
-    return <SettingsViewClassic odooVersion={odooVersion} onSaveSettings={onSaveSettings} />;
-  }
-
-  return <SettingsViewThemed odooVersion={odooVersion} onSaveSettings={onSaveSettings} />;
 };

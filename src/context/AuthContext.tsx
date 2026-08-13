@@ -103,6 +103,16 @@ function profileToAuthUser(profile: CurrentUserInfo): AuthUser {
   };
 }
 
+const SKIP_AUTH = import.meta.env.VITE_SKIP_AUTH === 'true';
+
+const SKIP_AUTH_USER: AuthUser = {
+  id: 'skip-auth',
+  email: 'dev@local',
+  role: 'admin',
+  isGuest: false,
+  isAdmin: true,
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,6 +166,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const bootstrap = async () => {
+      if (SKIP_AUTH) {
+        setUser(SKIP_AUTH_USER);
+        if (!cancelled) setLoading(false);
+        return;
+      }
       if (supabase) {
         try {
           await applySupabaseSession();
@@ -246,6 +261,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySupabaseSession]);
 
   const signOut = useCallback(async () => {
+    if (SKIP_AUTH) {
+      setUser(SKIP_AUTH_USER);
+      setQuota(null);
+      return;
+    }
     try {
       await supabase?.auth.signOut();
     } catch {
@@ -260,6 +280,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // AUTH_LOGOUT_EVENT (see apiFetch) - react by dropping the local session.
   useEffect(() => {
     const handleLogoutEvent = () => {
+      if (SKIP_AUTH) {
+        setUser(SKIP_AUTH_USER);
+        return;
+      }
       setUser(null);
       setQuota(null);
     };

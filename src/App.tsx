@@ -11,6 +11,8 @@ import { HomePageSkeleton } from './components/Skeleton';
 import { toast } from 'react-hot-toast';
 import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
+import { LoginView } from './components/LoginView';
+import { QuotaExceededModal } from './components/QuotaExceededModal';
 import { ArrowDown, Copy, Check, ChevronDown, ChevronUp, MessageSquare, Network, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,7 +21,10 @@ import {
   fetchJobFiles,
   fetchJobRestore,
   generateModule,
+  isQuotaExceededError,
+  notifyQuotaExceeded,
   syncJobConfig,
+  QUOTA_EXCEEDED_EVENT,
   API_BASE_URL,
   type ChatMessage,
   type ChatResponse,
@@ -28,6 +33,7 @@ import {
   type JobStatus,
   type SchemaPreview,
 } from './services/api';
+import { useAuth } from './context/AuthContext';
 import { buildSchemaFromPayload } from './utils/diagramBuilder';
 import { buildDemoPayload, schemaFromRawConfig, type RawModuleConfig } from './utils/demoGenerate';
 import { INITIAL_AI_MESSAGE } from './constants/chat';
@@ -131,14 +137,21 @@ class ViewErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 function App() {
-  // Always open on the first page (generator); do not restore the last view
+  const { user, loading: authLoading, signOut } = useAuth();
+  const isAdminUser = user?.isAdmin ?? false;
   const [activeView, setActiveView] = useState<ViewType>('generator');
+  const [adminMode, setAdminMode] = useState(true);
+  const [authTab, setAuthTab] = useState<'signin' | 'signup'>('signin');
+  const [quotaModalOpen, setQuotaModalOpen] = useState(false);
+  // Admin Mode gates the admin-only Monitor view; non-admins never see it.
+  const adminModeEnabled = isAdminUser && adminMode;
+  const effectiveView: ViewType = !adminModeEnabled && activeView === 'monitor' ? 'generator' : activeView;
   const [status, setStatus] = useState<StatusType>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [estimatedRemaining, setEstimatedRemaining] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [isHomeLoading, setIsHomeLoading] = useState(true);
+  const [isHomeLoading, setIsHomeLoading] = useState(false);
   const [chatAutoScroll] = useState(true);
   const [isChatScrolledUp, setIsChatScrolledUp] = useState(false);
   const chatListRef = useRef<HTMLDivElement | null>(null);
@@ -197,6 +210,13 @@ function App() {
   const [copiedMessageKey, setCopiedMessageKey] = useState<string | null>(null);
   const [expandedMessageKeys, setExpandedMessageKeys] = useState<Record<string, boolean>>({});
   const [workspaceTab, setWorkspaceTab] = useState<'chat' | 'build'>('chat');
+
+  // Open the quota-exceeded modal whenever any request reports a 403 quota error.
+  useEffect(() => {
+    const handleQuotaExceeded = () => setQuotaModalOpen(true);
+    window.addEventListener(QUOTA_EXCEEDED_EVENT, handleQuotaExceeded);
+    return () => window.removeEventListener(QUOTA_EXCEEDED_EVENT, handleQuotaExceeded);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -974,6 +994,7 @@ function App() {
       console.error('App generation error:', error);
       setStatus('error');
       setStatusMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
+      if (isQuotaExceededError(error)) notifyQuotaExceeded();
     }
   };
 
@@ -1064,60 +1085,88 @@ function App() {
   }, [models, schemaPreview]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell flex-col">
       <ToastProvider />
       <AmbientBackdrop />
       <div className="scene-dressing" aria-hidden="true" />
+      <QuotaExceededModal
+        open={quotaModalOpen}
+        isGuest={user?.isGuest ?? false}
+        onClose={() => setQuotaModalOpen(false)}
+        onCreateAccount={() => {
+          setQuotaModalOpen(false);
+          setAuthTab('signup');
+          void signOut();
+        }}
+      />
 
-      <AnimatePresence mode="wait">
-        {isHomeLoading ? (
-          <motion.div
-            key="skeleton"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 z-20"
-          >
-            <HomePageSkeleton />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="app-shell"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="shell-root"
-          >
-            <div className="shell-toggle">
-              <button
-                type="button"
-                title="Toggle sidebar (Ctrl+B)"
-                aria-label="Toggle sidebar"
-                onClick={() => setShowLeftPanel((v) => !v)}
-                className="nav-icon-btn"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[rgb(var(--fg))]">
-                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+      {!user ? (
+        authLoading ? (
+          <div className="relative z-10 flex h-full w-full items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+              <p className="text-xs uppercase tracking-[0.25em] text-white/35">Restoring session</p>
             </div>
-
-            <div className="shell-frame">
-              <div className="shell-sidebar">
-                <Sidebar activeView={activeView} onViewChange={handleViewChange} onNewChat={handleNewChat} showLogo={false} />
+          </div>
+        ) : (
+          <LoginView initialTab={authTab} />
+        )
+      ) : (
+        <AnimatePresence mode="wait">
+          {isHomeLoading ? (
+            <motion.div
+              key="skeleton"
+              initial={false}
+              className="absolute inset-0 z-20"
+            >
+              <HomePageSkeleton />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="app-shell"
+              initial={false}
+              className="shell-root"
+            >
+              <div className="shell-toggle">
+                <button
+                  type="button"
+                  title="Toggle sidebar (Ctrl+B)"
+                  aria-label="Toggle sidebar"
+                  onClick={() => setShowLeftPanel((v) => !v)}
+                  className="nav-icon-btn"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[rgb(var(--fg))]">
+                    <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
               </div>
 
-              <main className="shell-stage">
-                {activeView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
-                {activeView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
-                {activeView === 'monitor' && (
-                  <ViewErrorBoundary>
+              <div className="shell-frame">
+                <div className="shell-sidebar">
+                  <Sidebar
+                    activeView={effectiveView}
+                    onViewChange={handleViewChange}
+                    onNewChat={handleNewChat}
+                    onLogout={() => void signOut()}
+                    showLogo={false}
+                    isAdmin={isAdminUser}
+                    userEmail={user?.email}
+                    isGuest={user?.isGuest}
+                    adminMode={adminModeEnabled}
+                    onToggleAdminMode={() => setAdminMode((value) => !value)}
+                  />
+                </div>
+
+                <main className="shell-stage">
+                  {effectiveView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
+                  {effectiveView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
+                  {effectiveView === 'monitor' && adminModeEnabled && (
+                    <ViewErrorBoundary>
                     <MonitorView />
                   </ViewErrorBoundary>
                 )}
 
-                {activeView === 'generator' && (
+                {effectiveView === 'generator' && (
                   <>
                     {showWelcome ? (
                       <WelcomeDashboard
@@ -1441,9 +1490,10 @@ function App() {
                 isReady={isReadyToGenerate}
               />
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

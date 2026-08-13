@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -13,6 +13,7 @@
       rel="stylesheet"
     />
     <style>
+      html[data-theme='classic'] { color-scheme: dark; }
       html[data-theme='carbon'] { color-scheme: dark; }
       html[data-theme='paper'] { color-scheme: light; }
       html[data-theme='aurora'] { color-scheme: dark; }
@@ -23,10 +24,10 @@
       (function () {
         try {
           var t = localStorage.getItem('odoo_theme');
-          if (t !== 'paper' && t !== 'aurora') t = 'carbon';
+          if (t !== 'classic' && t !== 'carbon' && t !== 'paper' && t !== 'aurora') t = 'classic';
           document.documentElement.dataset.theme = t;
         } catch (e) {
-          document.documentElement.dataset.theme = 'carbon';
+          document.documentElement.dataset.theme = 'classic';
         }
       })();
     </script>
@@ -34,3 +35,4 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+

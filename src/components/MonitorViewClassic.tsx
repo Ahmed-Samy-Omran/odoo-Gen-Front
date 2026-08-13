@@ -18,6 +18,7 @@ import {
   Brain,
   ChevronDown,
   Cloud,
+  Coins,
   Cpu,
   Globe,
   Layers,
@@ -36,8 +37,7 @@ import {
   type QuotaStatus,
   type UsageStatsResponse,
 } from '../services/api';
-import { useTheme } from '../theme/ThemeContext';
-import { MonitorView as MonitorViewClassic } from './MonitorViewClassic';
+import { useAuth } from '../context/AuthContext';
 
 type RangeKey = 'today' | '7d' | '30d' | 'all';
 
@@ -110,7 +110,7 @@ function SuccessBadge({ successRate, requests }: { successRate: number; requests
   const pct = Math.round(Number(successRate) || 0);
   const tone =
     pct >= 90
-      ? 'border-accent/30 bg-accent-soft text-accent'
+      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
       : pct >= 70
         ? 'border-amber-500/20 bg-amber-500/10 text-amber-400'
         : 'border-rose-500/20 bg-rose-500/10 text-rose-400';
@@ -278,7 +278,7 @@ function ChartTooltip(props: {
   const row = payload[0]?.payload;
   const dayModels = (row?.models ?? []).slice(0, 6);
   return (
-    <div className="max-w-xs rounded-xl border border-white/10 bg-[rgb(var(--plate)_/_0.95)] px-3 py-2 shadow-2xl backdrop-blur-md">
+    <div className="max-w-xs rounded-xl border border-white/10 bg-[#0d0d0d]/95 px-3 py-2 shadow-2xl backdrop-blur-md">
       <div className="mb-1.5 text-xs font-medium text-white/60">{label}</div>
       <div className="flex flex-col gap-1">
         {payload.map((entry, index) => (
@@ -327,7 +327,7 @@ function ModelPieTooltip(props: {
   if (!active || !payload || payload.length === 0) return null;
   const entry = payload[0];
   return (
-    <div className="rounded-xl border border-white/10 bg-[rgb(var(--plate)_/_0.95)] px-3 py-2 shadow-2xl backdrop-blur-md">
+    <div className="rounded-xl border border-white/10 bg-[#0d0d0d]/95 px-3 py-2 shadow-2xl backdrop-blur-md">
       <div className="flex items-center gap-1.5 text-xs font-medium text-white/80">
         <span className="h-2 w-2 rounded-full" style={{ background: entry.payload?.color }} />
         {entry.name}
@@ -411,7 +411,8 @@ function DashboardSkeleton() {
   );
 }
 
-export function MonitorViewThemed() {
+export function MonitorView() {
+  const { quota } = useAuth();
   const [range, setRange] = useState<RangeKey>('30d');
   const [model, setModel] = useState<string>('all');
   const [cardMode, setCardMode] = useState<'total' | 'today'>('total');
@@ -569,20 +570,40 @@ export function MonitorViewThemed() {
   }, [data, modelMetaMap, cardMode]);
 
   return (
-    <div className="monitor-view h-full w-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+    <div className="h-full w-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-5">
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="monitor-view__header flex flex-wrap items-start justify-between gap-3"
+          className="flex flex-wrap items-start justify-between gap-3"
         >
           <div>
-            <h1 className="monitor-view__title text-xl font-semibold tracking-tight text-white">API Monitor</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-white">API Monitor</h1>
             <p className="mt-0.5 text-sm text-white/35">Provider usage, tokens and success across the gateway</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {quota && (
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
+                  quota.remainingTokens != null && quota.remainingTokens <= 0
+                    ? 'border-rose-500/25 bg-rose-500/10 text-rose-300'
+                    : 'border-white/10 bg-white/[0.03] text-white/60'
+                }`}
+                title="Your personal daily quota"
+              >
+                <Coins className="h-3.5 w-3.5" />
+                {quota.remainingTokens == null
+                  ? 'Unlimited tokens'
+                  : `${formatCompact(quota.remainingTokens)} tokens left`}
+                {quota.requestsUsedToday > 0 && (
+                  <span className="text-white/30">
+                    · {formatCompact(quota.requestsUsedToday)} requests
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
               {RANGE_PRESETS.map((preset) => (
                 <button
@@ -834,23 +855,23 @@ export function MonitorViewThemed() {
                               </filter>
                             ))}
                           </defs>
-                          <CartesianGrid stroke="rgb(var(--fg) / 0.08)" vertical={false} />
+                          <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                           <XAxis
                             dataKey="date"
-                            tick={{ fill: 'rgb(var(--fg) / 0.5)', fontSize: 11 }}
-                            axisLine={{ stroke: 'rgb(var(--fg) / 0.15)' }}
+                            tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+                            axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
                             tickLine={false}
                             minTickGap={24}
                           />
                           <YAxis
-                            tick={{ fill: 'rgb(var(--fg) / 0.5)', fontSize: 11 }}
+                            tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
                             axisLine={false}
                             tickLine={false}
                             width={52}
                             tickFormatter={(value: number) => formatCompact(value)}
                           />
                           <Tooltip
-                            cursor={{ stroke: 'rgb(var(--fg) / 0.2)', strokeDasharray: '3 3' }}
+                            cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeDasharray: '3 3' }}
                             content={<ChartTooltip showDayModels={chartMode === 'provider'} />}
                           />
                           {(chartMode === 'provider' ? providers : modelBreakdown).map((item, index) => (
@@ -1039,14 +1060,4 @@ export function MonitorViewThemed() {
       </div>
     </div>
   );
-}
-
-export function MonitorView() {
-  const { theme } = useTheme();
-
-  if (theme === 'classic') {
-    return <MonitorViewClassic />;
-  }
-
-  return <MonitorViewThemed />;
 }

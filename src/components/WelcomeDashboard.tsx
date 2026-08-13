@@ -1,6 +1,7 @@
 import React from 'react';
 import { Github, FileArchive, ArrowRight, Rocket, Play } from 'lucide-react';
 import { useTheme } from '../theme/ThemeContext';
+import { WelcomeDashboard as WelcomeDashboardClassic } from './WelcomeDashboardClassic';
 
 interface WelcomeDashboardProps {
   onStartGenerating: () => void;
@@ -9,6 +10,10 @@ interface WelcomeDashboardProps {
 
 export const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onStartGenerating, onTryDemo }) => {
   const { theme } = useTheme();
+
+  if (theme === 'classic') {
+    return <WelcomeDashboardClassic onStartGenerating={onStartGenerating} onTryDemo={onTryDemo} />;
+  }
 
   if (theme === 'paper') {
     return (
