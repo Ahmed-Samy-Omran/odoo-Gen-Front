@@ -56,6 +56,228 @@
   overflow: hidden;
 }
 
+/* ---------- themed page transitions ---------- */
+.page-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+.page-stage__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  will-change: transform, opacity, clip-path;
+}
+.page-wipe,
+.page-flash,
+.page-bolt-layer,
+.page-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* Carbon — lightning strike */
+.page-flash--carbon {
+  background: rgb(var(--accent));
+  mix-blend-mode: screen;
+}
+.page-bolt-layer {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  transform-origin: 50% 0%;
+  color: rgb(var(--accent));
+}
+.page-bolt {
+  width: 42%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 10px rgb(var(--accent))) drop-shadow(0 0 22px rgb(var(--accent) / 0.7));
+}
+.page-bolt__core {
+  stroke: rgb(var(--accent));
+  stroke-width: 2.4;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+.page-bolt__glow {
+  stroke: rgb(255 255 255 / 0.85);
+  stroke-width: 0.8;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+.page-bolt__branch {
+  stroke: rgb(var(--accent));
+  stroke-width: 1.4;
+  stroke-linecap: square;
+}
+
+/* Paper — book leaf shade */
+.page-wipe--paper {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--fg) / 0.16),
+    rgb(var(--fg) / 0.04) 28%,
+    transparent 58%
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Aurora — water drop + ripples */
+.page-fx--aurora {
+  overflow: hidden;
+}
+.page-drop {
+  position: absolute;
+  left: 50%;
+  top: -10%;
+  width: 11px;
+  height: 16px;
+  border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%;
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.85), rgb(var(--info)) 55%, rgb(var(--accent)));
+  box-shadow: 0 0 12px rgb(var(--info) / 0.7);
+  animation: auroraDrop 0.34s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+}
+.page-splash {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(var(--info) / 0.55);
+  transform: translate(-50%, -50%) scale(0);
+  animation: auroraSplash 0.42s 0.3s ease-out forwards;
+}
+.page-ripple {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid rgb(var(--info) / 0.75);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  box-shadow: 0 0 18px rgb(var(--accent) / 0.25);
+}
+.page-ripple--1 {
+  animation: auroraRipple 0.78s 0.3s ease-out forwards;
+}
+.page-ripple--2 {
+  border-color: rgb(var(--accent) / 0.55);
+  animation: auroraRipple 0.9s 0.38s ease-out forwards;
+}
+.page-ripple--3 {
+  border-color: rgb(var(--info) / 0.4);
+  animation: auroraRipple 1.05s 0.46s ease-out forwards;
+}
+
+@keyframes auroraDrop {
+  0% {
+    top: -8%;
+    transform: translateX(-50%) scale(1);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  78% {
+    top: 42%;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    top: 42%;
+    transform: translate(-50%, -50%) scale(2.8);
+    opacity: 0;
+  }
+}
+@keyframes auroraSplash {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.85;
+  }
+  45% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+  }
+}
+@keyframes auroraRipple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(46);
+    opacity: 0;
+  }
+}
+
+.page-dock {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+.themed-tab-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.themed-tab-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+html[data-theme='paper'] .page-stage,
+html[data-theme='paper'] .themed-tab-stage {
+  perspective: 2100px;
+}
+html[data-theme='paper'] .page-stage__body,
+html[data-theme='paper'] .themed-tab-panel {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  box-shadow: -18px 0 36px rgb(32 26 19 / 0.1);
+}
+html[data-theme='carbon'] .page-stage__body {
+  transform-origin: 50% 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-wipe,
+  .page-flash,
+  .page-bolt-layer,
+  .page-fx {
+    display: none;
+  }
+  .page-stage__body {
+    will-change: auto;
+  }
+  .page-drop,
+  .page-splash,
+  .page-ripple {
+    animation: none;
+  }
+}
+
 /* ---------- signature scene dressing per theme ---------- */
 .scene-dressing {
   position: fixed;

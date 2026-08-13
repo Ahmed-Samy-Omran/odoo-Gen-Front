@@ -13,6 +13,7 @@ import { ModelSettingsPanel } from './components/ModelSettingsPanel';
 import { SystemBuildView } from './components/SystemBuildView';
 import { LoginView } from './components/LoginView';
 import { QuotaExceededModal } from './components/QuotaExceededModal';
+import { DockStage, ThemedTabPanels, ViewStage } from './components/ViewStage';
 import { ArrowDown, Copy, Check, ChevronDown, ChevronUp, MessageSquare, Network, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -151,6 +152,7 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [estimatedRemaining, setEstimatedRemaining] = useState<number | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const stageKey = effectiveView === 'generator' ? (showWelcome ? 'welcome' : 'workspace') : effectiveView;
   const [isHomeLoading, setIsHomeLoading] = useState(false);
   const [chatAutoScroll] = useState(true);
   const [isChatScrolledUp, setIsChatScrolledUp] = useState(false);
@@ -1158,6 +1160,7 @@ function App() {
                 </div>
 
                 <main className="shell-stage">
+                  <ViewStage stageKey={stageKey}>
                   {effectiveView === 'history' && <HistoryView onSelectJob={handleSelectHistoryJob} />}
                   {effectiveView === 'settings' && <SettingsView odooVersion={activeJobConfig.odoo_version || '17.0'} onSaveSettings={handleSaveSettings} />}
                   {effectiveView === 'monitor' && adminModeEnabled && (
@@ -1279,8 +1282,10 @@ function App() {
                             </button>
                           </div>
 
-                          <div className="relative flex-1 overflow-hidden">
-                            <div className={`h-full ${workspaceTab === 'chat' ? '' : 'hidden'}`}>
+                          <ThemedTabPanels
+                            active={workspaceTab}
+                            chat={(
+                            <div className="h-full">
                               {restoredMessages.length > 0 ? (
                                 <div className="flex h-full flex-col px-3 py-4 sm:px-8 sm:py-6">
                                     <div className="chat-header mb-4 flex items-center justify-between gap-3 border-b border-fg/10 pb-3">
@@ -1435,8 +1440,9 @@ function App() {
                                 </div>
                               )}
                             </div>
-
-                            <div className={`h-full ${workspaceTab === 'build' ? '' : 'hidden'}`}>
+                            )}
+                            build={(
+                            <div className="h-full">
                               {(status === 'generating' || status === 'success' || status === 'error' || schemaPreview) ? (
                                 <SystemBuildView
                                   schema={schemaPreview}
@@ -1464,16 +1470,18 @@ function App() {
                                 </div>
                               )}
                             </div>
-                          </div>
+                            )}
+                          />
                         </div>
                       </div>
                     )}
                   </>
                 )}
+                  </ViewStage>
               </main>
             </div>
 
-            {activeView === 'generator' && !showWelcome && (
+            <DockStage show={activeView === 'generator' && !showWelcome}>
               <GenBar
                 onGenerate={handleGenerate}
                 onTryDemo={handleTryDemo}
@@ -1489,7 +1497,7 @@ function App() {
                 onRepositoryUrlChange={setRepositoryUrl}
                 isReady={isReadyToGenerate}
               />
-            )}
+            </DockStage>
             </motion.div>
           )}
         </AnimatePresence>
