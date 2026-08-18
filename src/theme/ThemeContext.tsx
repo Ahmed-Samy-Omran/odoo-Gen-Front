@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-export type ThemeId = 'classic' | 'carbon' | 'paper' | 'aurora';
+export type ThemeId = 'classic' | 'carbon' | 'paper' | 'aurora' | 'premium' | 'minimalist';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -33,6 +33,18 @@ export const THEMES: ThemeMeta[] = [
     label: 'Aurora',
     tagline: 'Deep nebula',
     swatch: ['#06080f', '#8164ff', '#38bdf8'],
+  },
+  {
+    id: 'premium',
+    label: 'Premium',
+    tagline: 'SaaS glassmorphism',
+    swatch: ['#080a1a', '#6366f1', '#06b6d4'],
+  },
+  {
+    id: 'minimalist',
+    label: 'Minimalist',
+    tagline: 'Executive calm',
+    swatch: ['#14161e', '#64748b', '#e2e8f0'],
   },
 ];
 

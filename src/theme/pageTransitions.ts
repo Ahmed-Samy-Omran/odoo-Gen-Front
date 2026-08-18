@@ -21,6 +21,8 @@ const EASE_CLASSIC = [0.22, 1, 0.36, 1] as const;
 const EASE_CARBON = [0.77, 0, 0.175, 1] as const;
 const EASE_PAPER = [0.33, 0.86, 0.2, 1] as const;
 const EASE_AURORA = [0.16, 1, 0.3, 1] as const;
+const EASE_PREMIUM = [0.22, 0.9, 0.32, 1] as const;
+const EASE_MINIMALIST = [0.4, 0, 0.2, 1] as const;
 
 const STAGE_ORDER: Record<string, number> = {
   welcome: 0,
@@ -88,7 +90,7 @@ function offsetForSide(side: StageSide): { x: string; y: string } {
 }
 
 export function getPresenceMode(theme: ThemeId): 'wait' | 'sync' {
-  return theme === 'aurora' ? 'sync' : 'wait';
+  return theme === 'aurora' || theme === 'premium' ? 'sync' : 'wait';
 }
 
 export function getPageTransition(theme: ThemeId, reduced: boolean): Transition {
@@ -101,6 +103,10 @@ export function getPageTransition(theme: ThemeId, reduced: boolean): Transition 
       return { duration: 0.64, ease: EASE_PAPER };
     case 'aurora':
       return { duration: 0.72, ease: EASE_AURORA };
+    case 'premium':
+      return { duration: 0.68, ease: EASE_PREMIUM };
+    case 'minimalist':
+      return { duration: 0.52, ease: EASE_MINIMALIST };
     default:
       return { duration: 0.46, ease: EASE_CLASSIC };
   }
@@ -177,6 +183,45 @@ export function getPageVariants(theme: ThemeId, reduced: boolean): Variants {
         exit: {
           opacity: 0.35,
           transition: { duration: 0.7, ease: EASE_AURORA },
+        },
+      };
+    case 'premium':
+      return {
+        initial: {
+          opacity: 0,
+          scale: 0.96,
+          filter: 'blur(8px)',
+        },
+        enter: {
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          transition: { delay: 0.12, duration: 0.56, ease: EASE_PREMIUM },
+          transitionEnd: { filter: 'none' },
+        },
+        exit: {
+          opacity: 0,
+          scale: 1.02,
+          filter: 'blur(4px)',
+          transition: { duration: 0.32, ease: EASE_PREMIUM },
+        },
+      };
+    case 'minimalist':
+      return {
+        initial: {
+          opacity: 0,
+          y: 8,
+        },
+        enter: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.44, ease: EASE_MINIMALIST },
+          transitionEnd: { transform: 'none' },
+        },
+        exit: {
+          opacity: 0,
+          y: -4,
+          transition: { duration: 0.24, ease: EASE_MINIMALIST },
         },
       };
     default:
@@ -314,6 +359,41 @@ export function getTabVariants(theme: ThemeId, reduced: boolean): Variants {
           transitionEnd: { visibility: 'hidden' },
         },
       };
+    case 'premium':
+      return {
+        show: {
+          opacity: 1,
+          scale: 1,
+          filter: 'blur(0px)',
+          visibility: 'visible',
+          transition: { duration: 0.4, ease: EASE_PREMIUM },
+          transitionEnd: { filter: 'none' },
+        },
+        hide: (custom: StageCustom = { enter: DEFAULT_MOTION, exit: DEFAULT_MOTION, direction: 1 }) => ({
+          opacity: 0,
+          scale: 0.97,
+          filter: 'blur(6px)',
+          x: custom.direction > 0 ? -16 : 16,
+          transition: { duration: 0.26, ease: EASE_PREMIUM },
+          transitionEnd: { visibility: 'hidden' },
+        }),
+      };
+    case 'minimalist':
+      return {
+        show: {
+          opacity: 1,
+          y: 0,
+          visibility: 'visible',
+          transition: { duration: 0.36, ease: EASE_MINIMALIST },
+          transitionEnd: { transform: 'none' },
+        },
+        hide: (custom: StageCustom = { enter: DEFAULT_MOTION, exit: DEFAULT_MOTION, direction: 1 }) => ({
+          opacity: 0,
+          y: custom.direction > 0 ? 10 : -10,
+          transition: { duration: 0.22, ease: EASE_MINIMALIST },
+          transitionEnd: { visibility: 'hidden' },
+        }),
+      };
     default:
       return {
         show: {
@@ -361,6 +441,18 @@ export function getDockVariants(theme: ThemeId, reduced: boolean): Variants {
         initial: { opacity: 0, y: 18, scale: 0.98 },
         enter: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.44, ease: EASE_AURORA, delay: 0.28 } },
         exit: { opacity: 0, y: 12, scale: 0.99, transition: { duration: 0.22, ease: EASE_AURORA } },
+      };
+    case 'premium':
+      return {
+        initial: { opacity: 0, y: 14, scale: 0.97, filter: 'blur(6px)' },
+        enter: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', transition: { duration: 0.48, ease: EASE_PREMIUM, delay: 0.18 } },
+        exit: { opacity: 0, y: 10, scale: 0.98, filter: 'blur(4px)', transition: { duration: 0.24, ease: EASE_PREMIUM } },
+      };
+    case 'minimalist':
+      return {
+        initial: { opacity: 0, y: 10 },
+        enter: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_MINIMALIST, delay: 0.12 } },
+        exit: { opacity: 0, y: 8, transition: { duration: 0.2, ease: EASE_MINIMALIST } },
       };
     default:
       return {

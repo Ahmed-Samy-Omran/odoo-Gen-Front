@@ -168,6 +168,254 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   }
 
+  if (theme === 'premium') {
+    return (
+      <nav
+        className="rail"
+        aria-label="Primary"
+        style={{
+          background: 'rgb(var(--surface) / 0.5)',
+          backdropFilter: 'blur(24px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+          borderRight: '1px solid rgb(var(--accent) / 0.1)',
+          boxShadow: '4px 0 24px rgb(0 0 0 / 0.3), inset -1px 0 0 rgb(255 255 255 / 0.03)',
+        }}
+      >
+        {showLogo && (
+          <motion.div
+            className="rail-logo"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: [0.22, 0.9, 0.32, 1] }}
+            style={{
+              background: 'linear-gradient(135deg, rgb(var(--accent)), rgb(var(--info)))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 700,
+              textShadow: 'none',
+              filter: 'drop-shadow(0 0 8px rgb(var(--accent) / 0.3))',
+            }}
+          >
+            OG
+          </motion.div>
+        )}
+
+        <div className="rail-nav">
+          {navItems.map(({ id, icon: Icon, label }, index) => (
+            <motion.button
+              key={id}
+              type="button"
+              onClick={() => onViewChange(id)}
+              aria-current={activeView === id ? 'page' : undefined}
+              className={`rail-nav-btn ${activeView === id ? 'active' : ''}`}
+              title={label}
+              aria-label={label}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              style={activeView === id ? {
+                background: 'rgb(var(--accent) / 0.15)',
+                boxShadow: '0 0 16px rgb(var(--accent) / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.06)',
+                border: '1px solid rgb(var(--accent) / 0.3)',
+              } : undefined}
+            >
+              {id === 'generator' ? (
+                <AiIcon className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              )}
+              <span className="rail-nav-index" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              {activeView === id && (
+                <motion.div
+                  layoutId="premium-nav-indicator"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                  style={{
+                    background: 'linear-gradient(180deg, rgb(var(--accent)), rgb(var(--info)))',
+                    boxShadow: '0 0 10px rgb(var(--accent) / 0.5)',
+                  }}
+                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                />
+              )}
+            </motion.button>
+          ))}
+        </div>
+
+        <div className="rail-foot">
+          <motion.button
+            type="button"
+            onClick={onNewChat}
+            className="rail-nav-btn"
+            title="New Chat"
+            aria-label="New Chat"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          >
+            <MessageCircle className="h-5 w-5" aria-hidden="true" />
+          </motion.button>
+
+          <div className="relative">
+            <motion.button
+              type="button"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className="rail-nav-btn"
+              title={displayName}
+              aria-label={`Account: ${displayName}`}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            >
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold"
+                style={{
+                  background: 'linear-gradient(135deg, rgb(var(--accent) / 0.3), rgb(var(--info) / 0.2))',
+                  border: '1px solid rgb(var(--accent) / 0.25)',
+                  boxShadow: '0 0 12px rgb(var(--accent) / 0.15)',
+                }}
+              >
+                {initial}
+              </span>
+            </motion.button>
+            {accountMenu}
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={() => {
+              setUserMenuOpen(false);
+              onLogout?.();
+            }}
+            className="rail-nav-btn"
+            title="Log out"
+            aria-label="Log out"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          >
+            <LogOut className="h-5 w-5" />
+          </motion.button>
+
+          <div className="rail-sep" />
+
+          <div className="rail-status" title="Online" aria-label="Online" />
+
+          <div className="mt-1">
+            <ThemeSwitcher compact vertical />
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  if (theme === 'minimalist') {
+    return (
+      <nav
+        className="rail"
+        aria-label="Primary"
+        style={{
+          background: 'rgb(var(--bg-soft) / 0.8)',
+          borderRight: '1px solid rgb(var(--border) / 0.06)',
+          boxShadow: '1px 0 0 rgb(0 0 0 / 0.04)',
+        }}
+      >
+        {showLogo && (
+          <div
+            className="rail-logo"
+            style={{
+              background: 'rgb(var(--surface))',
+              border: '1px solid rgb(var(--border) / var(--border-opacity))',
+              boxShadow: '0 1px 3px rgb(0 0 0 / 0.06)',
+              fontWeight: 600,
+              fontSize: '12px',
+              letterSpacing: '0.04em',
+            }}
+          >
+            OG
+          </div>
+        )}
+
+        <div className="rail-nav">
+          {navItems.map(({ id, icon: Icon, label }, index) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onViewChange(id)}
+              aria-current={activeView === id ? 'page' : undefined}
+              className={`rail-nav-btn ${activeView === id ? 'active' : ''}`}
+              title={label}
+              aria-label={label}
+            >
+              {id === 'generator' ? (
+                <AiIcon className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              )}
+              <span className="rail-nav-index" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="rail-foot">
+          <button
+            type="button"
+            onClick={onNewChat}
+            className="rail-nav-btn"
+            title="New Chat"
+            aria-label="New Chat"
+          >
+            <MessageCircle className="h-5 w-5" aria-hidden="true" />
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className="rail-nav-btn"
+              title={displayName}
+              aria-label={`Account: ${displayName}`}
+            >
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded-lg text-[11px] font-semibold"
+                style={{
+                  background: 'rgb(var(--accent) / 0.1)',
+                  color: 'rgb(var(--accent))',
+                }}
+              >
+                {initial}
+              </span>
+            </button>
+            {accountMenu}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setUserMenuOpen(false);
+              onLogout?.();
+            }}
+            className="rail-nav-btn"
+            title="Log out"
+            aria-label="Log out"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
+
+          <div className="rail-sep" />
+
+          <div className="rail-status" title="Online" aria-label="Online" />
+
+          <div className="mt-1">
+            <ThemeSwitcher compact vertical />
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="rail" aria-label="Primary">
       {showLogo && <div className="rail-logo">OG</div>}

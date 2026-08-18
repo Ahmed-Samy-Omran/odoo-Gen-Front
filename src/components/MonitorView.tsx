@@ -1041,11 +1041,59 @@ export function MonitorViewThemed() {
   );
 }
 
+function MonitorViewPremium() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+      transition={{ duration: 0.56, ease: [0.22, 0.9, 0.32, 1] }}
+      className="relative h-full"
+    >
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-30"
+          style={{ background: 'radial-gradient(circle, rgb(99 102 241 / 0.15) 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, rgb(6 182 212 / 0.12) 0%, transparent 70%)' }} />
+      </div>
+      <div className="relative z-10 h-full premium-glass rounded-2xl overflow-hidden">
+        <MonitorViewThemed />
+      </div>
+    </motion.div>
+  );
+}
+
+function MonitorViewMinimalist() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.44, ease: [0.4, 0, 0.2, 1] }}
+      className="relative h-full"
+    >
+      <div className="relative z-10 h-full rounded-xl overflow-hidden" style={{
+        background: 'rgb(var(--surface) / 0.5)',
+        border: '1px solid rgb(var(--border) / var(--border-opacity))',
+        boxShadow: '0 1px 3px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.04)',
+      }}>
+        <MonitorViewThemed />
+      </div>
+    </motion.div>
+  );
+}
+
 export function MonitorView() {
   const { theme } = useTheme();
 
   if (theme === 'classic') {
     return <MonitorViewClassic />;
+  }
+
+  if (theme === 'premium') {
+    return <MonitorViewPremium />;
+  }
+
+  if (theme === 'minimalist') {
+    return <MonitorViewMinimalist />;
   }
 
   return <MonitorViewThemed />;
