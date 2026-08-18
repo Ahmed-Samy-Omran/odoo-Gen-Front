@@ -103,12 +103,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ initialTab = 'signin' }) =
     setError('');
     setSupabaseLoading(true);
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin },
       });
-      if (oauthError) throw oauthError;
+      if (oauthError) {
+        console.error('[Auth] Google OAuth error:', oauthError);
+        throw oauthError;
+      }
+      console.log('[Auth] Google OAuth redirect initiated:', data);
     } catch (err) {
+      console.error('[Auth] Google sign-in failed:', err);
       setSupabaseLoading(false);
       setError(err instanceof Error ? err.message : 'Could not start Google sign-in');
     }

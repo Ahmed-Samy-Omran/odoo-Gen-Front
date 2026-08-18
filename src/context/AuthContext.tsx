@@ -164,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Restore a persisted session on first load and react to Supabase auth events.
   useEffect(() => {
     let cancelled = false;
+    let bootstrapped = false;
 
     const bootstrap = async () => {
       if (SKIP_AUTH) {
@@ -175,34 +176,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await applySupabaseSession();
         } catch {
-          // Exchange failed (e.g. backend offline) - keep the stored app token if any.
           applyStoredToken();
         }
       } else {
         applyStoredToken();
       }
       if (!cancelled) setLoading(false);
+      bootstrapped = true;
     };
 
     void bootstrap();
 
     if (supabase) {
-      const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) {
-          void (async () => {
-            if (busyRef.current) return;
-            busyRef.current = true;
-            try {
-              const result = await loginWithSupabase(session.access_token);
-              setUser(roleToAuthUser(result));
-              await refreshProfile();
-            } catch {
-              // Ignore transient exchange errors; the app token stays valid.
-            } finally {
-              busyRef.current = false;
-            }
-          })();
-        }
+      const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!session) return;
+        void (async () => {
+          if (busyRef.current) return;
+          if (!bootstrapped) return;
+          busyRef.current = true;
+          try {
+            const result = await loginWithSupabase(session.access_token);
+            setUser(roleToAuthUser(result));
+            await refreshProfile();
+          } catch (err) {
+            console.error('Auth state exchange failed:', err);
+          } finally {
+            busyRef.current = false;
+          }
+        })();
       });
       return () => {
         cancelled = true;
@@ -255,8 +256,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInAsGuest = useCallback(async () => {
     if (!supabase) throw new Error('Guest access requires Supabase to be configured.');
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) throw new Error(error.message);
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error('[Auth] Guest sign-in error:', error);
+      throw new Error(error.message);
+    }
+    console.log('[Auth] Guest sign-in success:', data);
     await applySupabaseSession();
   }, [applySupabaseSession]);
 
