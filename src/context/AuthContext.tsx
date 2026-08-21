@@ -47,10 +47,8 @@ interface AuthContextValue {
   quota: QuotaInfo | null;
   /** Re-fetch the profile + quota from ``GET /api/auth/me``. */
   refreshProfile: () => Promise<void>;
-  /** Supabase email/password sign in (falls back to local admin login). */
+  /** Email/password sign in (tries Supabase first, falls back to local admin). */
   signIn: (email: string, password: string) => Promise<void>;
-  /** Local admin login via ``POST /api/auth/login`` (bypasses Supabase). */
-  signInAsAdmin: (username: string, password: string) => Promise<void>;
   /** Supabase email/password sign up. */
   signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   /** Anonymous guest session via ``supabase.auth.signInAnonymously()``. */
@@ -188,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void bootstrap();
 
     if (supabase) {
-      const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!session) return;
         void (async () => {
           if (busyRef.current) return;
@@ -219,9 +217,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       if (supabase) {
+        // Try Supabase first
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw new Error(error.message);
-        await applySupabaseSession();
+        if (!error) {
+          await applySupabaseSession();
+          return;
+        }
+        // Supabase failed - fall back to local admin login
+        const result = await login(email.trim(), password);
+        setUser(roleToAuthUser(result));
+        await refreshProfile();
         return;
       }
       const result = await login(email.trim(), password);
@@ -229,15 +234,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refreshProfile();
     },
     [applySupabaseSession, refreshProfile],
-  );
-
-  const signInAsAdmin = useCallback(
-    async (username: string, password: string) => {
-      const result = await login(username.trim(), password);
-      setUser(roleToAuthUser(result));
-      await refreshProfile();
-    },
-    [refreshProfile],
   );
 
   const signUp = useCallback(
@@ -303,12 +299,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       quota,
       refreshProfile,
       signIn,
-      signInAsAdmin,
       signUp,
       signInAsGuest,
       signOut,
     }),
-    [user, loading, quota, refreshProfile, signIn, signInAsAdmin, signUp, signInAsGuest, signOut],
+    [user, loading, quota, refreshProfile, signIn, signUp, signInAsGuest, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
