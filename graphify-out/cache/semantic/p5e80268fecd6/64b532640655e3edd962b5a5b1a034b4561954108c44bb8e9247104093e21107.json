@@ -1,0 +1,1 @@
+{"nodes": [{"id": "lag_fix_summary_md", "label": "Relation Click Lag Fix", "file_type": "document", "source_file": "LAG_FIX_SUMMARY.md", "rationale": "Documents a performance optimization in the ERD diagram using React's useTransition hook."}], "edges": [], "hyperedges": []}
