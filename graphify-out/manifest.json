@@ -1,0 +1,806 @@
+{
+  ".opencode/opencode.json": {
+    "mtime": 1787251353.2072964,
+    "seen": 1787251682.1320968,
+    "ast_hash": "f2ae21510d07365eb2bce8159272c7a0",
+    "semantic_hash": "f2ae21510d07365eb2bce8159272c7a0"
+  },
+  ".opencode/plugins/graphify.js": {
+    "mtime": 1787251353.2062993,
+    "seen": 1787251682.1320968,
+    "ast_hash": "b33d000860642c6f4907a877e0387a21",
+    "semantic_hash": "b33d000860642c6f4907a877e0387a21"
+  },
+  "Odoo-Generation-/api_client.py": {
+    "mtime": 1786393163.6652167,
+    "seen": 1787251682.1320968,
+    "ast_hash": "3bbc3dc523e265b91d630cce07823f00",
+    "semantic_hash": "3bbc3dc523e265b91d630cce07823f00"
+  },
+  "Odoo-Generation-/app/__init__.py": {
+    "mtime": 1783964775.4199786,
+    "seen": 1787251682.1320968,
+    "ast_hash": "dd3ba3d0cd2b3981226a1b8a6e965782",
+    "semantic_hash": "dd3ba3d0cd2b3981226a1b8a6e965782"
+  },
+  "Odoo-Generation-/app/generators/OdooModuleGenerator.py": {
+    "mtime": 1786025867.9630718,
+    "seen": 1787251682.1320968,
+    "ast_hash": "2c40ab4d6a15f93b30df0f30209e339a",
+    "semantic_hash": "2c40ab4d6a15f93b30df0f30209e339a"
+  },
+  "Odoo-Generation-/app/generators/__init__.py": {
+    "mtime": 1783964775.424693,
+    "seen": 1787251682.1320968,
+    "ast_hash": "dd3ba3d0cd2b3981226a1b8a6e965782",
+    "semantic_hash": "dd3ba3d0cd2b3981226a1b8a6e965782"
+  },
+  "Odoo-Generation-/app/models/__init__.py": {
+    "mtime": 1783964775.4360898,
+    "seen": 1787251682.1320968,
+    "ast_hash": "e67b35852f285ad156351912e38094d1",
+    "semantic_hash": "e67b35852f285ad156351912e38094d1"
+  },
+  "Odoo-Generation-/app/models/schemas.py": {
+    "mtime": 1786647021.4930036,
+    "seen": 1787251682.1320968,
+    "ast_hash": "7c6eb3fa07d1694ae565b1dac165ae8d",
+    "semantic_hash": "7c6eb3fa07d1694ae565b1dac165ae8d"
+  },
+  "Odoo-Generation-/app/services/__init__.py": {
+    "mtime": 1783964775.4563036,
+    "seen": 1787251682.1320968,
+    "ast_hash": "80b65d04e7f257ceb3ce15da5f5aecc7",
+    "semantic_hash": "80b65d04e7f257ceb3ce15da5f5aecc7"
+  },
+  "Odoo-Generation-/app/services/ai_service.py": {
+    "mtime": 1786563443.3737833,
+    "seen": 1787251682.1320968,
+    "ast_hash": "cc3441e6019bd083f5e5f56832dcc3eb",
+    "semantic_hash": "cc3441e6019bd083f5e5f56832dcc3eb"
+  },
+  "Odoo-Generation-/app/services/auth_service.py": {
+    "mtime": 1786647021.4980903,
+    "seen": 1787251682.1320968,
+    "ast_hash": "b706e8fd45475e0998313e8ddf78ff26",
+    "semantic_hash": "b706e8fd45475e0998313e8ddf78ff26"
+  },
+  "Odoo-Generation-/app/services/cache_service.py": {
+    "mtime": 1785705775.2665699,
+    "seen": 1787251682.1320968,
+    "ast_hash": "e4877a8f04894bff48f2084f88a01135",
+    "semantic_hash": "e4877a8f04894bff48f2084f88a01135"
+  },
+  "Odoo-Generation-/app/services/component_registry_service.py": {
+    "mtime": 1785879312.5067165,
+    "seen": 1787251682.1320968,
+    "ast_hash": "dc7467871d78e8f0c29c9ba199dfd91a",
+    "semantic_hash": "dc7467871d78e8f0c29c9ba199dfd91a"
+  },
+  "Odoo-Generation-/app/services/git_deploy_service.py": {
+    "mtime": 1785349432.7896671,
+    "seen": 1787251682.1320968,
+    "ast_hash": "b7def478504a1dacec6c326711acea67",
+    "semantic_hash": "b7def478504a1dacec6c326711acea67"
+  },
+  "Odoo-Generation-/app/services/learning_loop_service.py": {
+    "mtime": 1785960561.499812,
+    "seen": 1787251682.1320968,
+    "ast_hash": "598a8cf70e992a3f92e533011a504124",
+    "semantic_hash": "598a8cf70e992a3f92e533011a504124"
+  },
+  "Odoo-Generation-/app/services/rag_service.py": {
+    "mtime": 1785886237.534775,
+    "seen": 1787251682.1320968,
+    "ast_hash": "a5bd5a69c4cf96599b4928315209dda5",
+    "semantic_hash": "a5bd5a69c4cf96599b4928315209dda5"
+  },
+  "Odoo-Generation-/app/services/supabase_service.py": {
+    "mtime": 1787000491.1933105,
+    "seen": 1787251682.1320968,
+    "ast_hash": "b4d0b5657c8c94353244acdc61e896c8",
+    "semantic_hash": "b4d0b5657c8c94353244acdc61e896c8"
+  },
+  "Odoo-Generation-/app/services/zip_handler.py": {
+    "mtime": 1783964775.466128,
+    "seen": 1787251682.1320968,
+    "ast_hash": "124476181511ad3d5d49ce471be5f698",
+    "semantic_hash": "124476181511ad3d5d49ce471be5f698"
+  },
+  "Odoo-Generation-/attachments/OdooModuleGenerator__generate_docs_excerpt.py": {
+    "mtime": 1785947550.6274207,
+    "seen": 1787251682.1320968,
+    "ast_hash": "ffcc12ba82487bb68c082e9bd1607ad0",
+    "semantic_hash": "ffcc12ba82487bb68c082e9bd1607ad0"
+  },
+  "Odoo-Generation-/attachments/component_registry_get_component_dir_excerpt.py": {
+    "mtime": 1785947567.549927,
+    "seen": 1787251682.1320968,
+    "ast_hash": "24eb6dd1beaf2812b77f90a84cdaa880",
+    "semantic_hash": "24eb6dd1beaf2812b77f90a84cdaa880"
+  },
+  "Odoo-Generation-/backfill_usage.py": {
+    "mtime": 1786365364.2211282,
+    "seen": 1787251682.1320968,
+    "ast_hash": "bf89c266ab552cfb1659469bde6be00e",
+    "semantic_hash": "bf89c266ab552cfb1659469bde6be00e"
+  },
+  "Odoo-Generation-/download_hospital_zip.ps1": {
+    "mtime": 1785947140.9199548,
+    "seen": 1787251682.1320968,
+    "ast_hash": "ccd79060be81a6a793e097a5b17b0cda",
+    "semantic_hash": "ccd79060be81a6a793e097a5b17b0cda"
+  },
+  "Odoo-Generation-/download_hospital_zip.py": {
+    "mtime": 1785947021.0243487,
+    "seen": 1787251682.1320968,
+    "ast_hash": "85e8b40d6fa1b6fdb68d7781b07e9027",
+    "semantic_hash": "85e8b40d6fa1b6fdb68d7781b07e9027"
+  },
+  "Odoo-Generation-/generate_and_download.py": {
+    "mtime": 1786393220.951393,
+    "seen": 1787251682.1320968,
+    "ast_hash": "53193b6837cce0a931993c98b0935e95",
+    "semantic_hash": "53193b6837cce0a931993c98b0935e95"
+  },
+  "Odoo-Generation-/generated_modules_test/repro/repro_mod/__init__.py": {
+    "mtime": 1784746765.4230094,
+    "seen": 1787251682.1320968,
+    "ast_hash": "c77acf499c1e610dd92b6a8e6b41a04c",
+    "semantic_hash": "c77acf499c1e610dd92b6a8e6b41a04c"
+  },
+  "Odoo-Generation-/generated_modules_test/repro/repro_mod/__manifest__.py": {
+    "mtime": 1784746765.287371,
+    "seen": 1787251682.1320968,
+    "ast_hash": "e82f637692b4275171a9a2124995592c",
+    "semantic_hash": "e82f637692b4275171a9a2124995592c"
+  },
+  "Odoo-Generation-/generated_modules_test/repro/repro_mod/models/__init__.py": {
+    "mtime": 1784746765.4260006,
+    "seen": 1787251682.1320968,
+    "ast_hash": "35baa20b588f493b52d7591eef6e0587",
+    "semantic_hash": "35baa20b588f493b52d7591eef6e0587"
+  },
+  "Odoo-Generation-/generated_modules_test/repro/repro_mod/models/product.py": {
+    "mtime": 1784746765.3131394,
+    "seen": 1787251682.1320968,
+    "ast_hash": "6a72f024e80bd17d8b604d20a43540b2",
+    "semantic_hash": "6a72f024e80bd17d8b604d20a43540b2"
+  },
+  "Odoo-Generation-/generated_modules_test/test_inheritance_module/__init__.py": {
+    "mtime": 1783964776.677271,
+    "seen": 1787251682.1320968,
+    "ast_hash": "c77acf499c1e610dd92b6a8e6b41a04c",
+    "semantic_hash": "c77acf499c1e610dd92b6a8e6b41a04c"
+  },
+  "Odoo-Generation-/generated_modules_test/test_inheritance_module/__manifest__.py": {
+    "mtime": 1783964776.678159,
+    "seen": 1787251682.1320968,
+    "ast_hash": "ede0a21c5086ff45864a2c227ab3f2e2",
+    "semantic_hash": "ede0a21c5086ff45864a2c227ab3f2e2"
+  },
+  "Odoo-Generation-/generated_modules_test/test_inheritance_module/models/__init__.py": {
+    "mtime": 1783964776.6821473,
+    "seen": 1787251682.132484,
+    "ast_hash": "2cf78cfa5a8ed25bd2fda59761aef189",
+    "semantic_hash": "2cf78cfa5a8ed25bd2fda59761aef189"
+  },
+  "Odoo-Generation-/generated_modules_test/test_inheritance_module/models/res_partner.py": {
+    "mtime": 1783964776.6841416,
+    "seen": 1787251682.132484,
+    "ast_hash": "7208820fbaa288ca251050e4acd12505",
+    "semantic_hash": "7208820fbaa288ca251050e4acd12505"
+  },
+  "Odoo-Generation-/generated_modules_test/test_inheritance_module/models/test_new_model.py": {
+    "mtime": 1783964776.6851397,
+    "seen": 1787251682.132484,
+    "ast_hash": "02be337a1f2cfb45d4c0a9b73a4f7747",
+    "semantic_hash": "02be337a1f2cfb45d4c0a9b73a4f7747"
+  },
+  "Odoo-Generation-/history.json": {
+    "mtime": 1784480564.343449,
+    "seen": 1787251682.132484,
+    "ast_hash": "df98f2741448f7ca7b2322faf84ba5ec",
+    "semantic_hash": "df98f2741448f7ca7b2322faf84ba5ec"
+  },
+  "Odoo-Generation-/inspect_hospital_zip.py": {
+    "mtime": 1785947374.481605,
+    "seen": 1787251682.132484,
+    "ast_hash": "633b0112cbe2f91073153835ab030bb2",
+    "semantic_hash": "633b0112cbe2f91073153835ab030bb2"
+  },
+  "Odoo-Generation-/knowledge_registry/auth_component/metadata.json": {
+    "mtime": 1785869983.8196576,
+    "seen": 1787251682.132484,
+    "ast_hash": "5f9853c569b93ad7836367fa34c29221",
+    "semantic_hash": "5f9853c569b93ad7836367fa34c29221"
+  },
+  "Odoo-Generation-/knowledge_registry/hospital_management/v1.0/metadata.json": {
+    "mtime": 1785876163.0255728,
+    "seen": 1787251682.132484,
+    "ast_hash": "f6b1a18b8d77f8481c8da4e3a777c9a4",
+    "semantic_hash": "f6b1a18b8d77f8481c8da4e3a777c9a4"
+  },
+  "Odoo-Generation-/knowledge_registry/learning_log.json": {
+    "mtime": 1786026789.1862056,
+    "seen": 1787251682.132484,
+    "ast_hash": "f73fcfc435fd9a680a9622c813ce03ab",
+    "semantic_hash": "f73fcfc435fd9a680a9622c813ce03ab"
+  },
+  "Odoo-Generation-/main.py": {
+    "mtime": 1786647021.5039725,
+    "seen": 1787251682.132484,
+    "ast_hash": "c0aeaa08973af36839940e8d76ecb198",
+    "semantic_hash": "c0aeaa08973af36839940e8d76ecb198"
+  },
+  "Odoo-Generation-/poll_job.py": {
+    "mtime": 1786393186.438325,
+    "seen": 1787251682.132484,
+    "ast_hash": "68fab8022bc90151e51107848747bdaa",
+    "semantic_hash": "68fab8022bc90151e51107848747bdaa"
+  },
+  "Odoo-Generation-/poll_job2.py": {
+    "mtime": 1786393202.8980794,
+    "seen": 1787251682.132484,
+    "ast_hash": "2f22fec2954c6fc00b0da45105b5d24a",
+    "semantic_hash": "2f22fec2954c6fc00b0da45105b5d24a"
+  },
+  "Odoo-Generation-/rag_indexer.py": {
+    "mtime": 1783964776.7031138,
+    "seen": 1787251682.132484,
+    "ast_hash": "a2b9ce95175e630c8640299163088d32",
+    "semantic_hash": "a2b9ce95175e630c8640299163088d32"
+  },
+  "Odoo-Generation-/refresh.ps1": {
+    "mtime": 1784131236.722244,
+    "seen": 1787251682.132484,
+    "ast_hash": "17e79fc1711dd5127daaaf331f7544cb",
+    "semantic_hash": "17e79fc1711dd5127daaaf331f7544cb"
+  },
+  "Odoo-Generation-/restart_backend.ps1": {
+    "mtime": 1785948644.2760868,
+    "seen": 1787251682.132484,
+    "ast_hash": "1a5a2bdb00e67c7d14b677cbe9824b8c",
+    "semantic_hash": "1a5a2bdb00e67c7d14b677cbe9824b8c"
+  },
+  "Odoo-Generation-/run_demo.py": {
+    "mtime": 1786393258.6072457,
+    "seen": 1787251682.132484,
+    "ast_hash": "fc4b7c22ace16502bd291cb19928a93c",
+    "semantic_hash": "fc4b7c22ace16502bd291cb19928a93c"
+  },
+  "Odoo-Generation-/scripts/clear_supabase_history.py": {
+    "mtime": 1784479747.7790208,
+    "seen": 1787251682.132484,
+    "ast_hash": "8e772d367b310991f21c6cc9a65900af",
+    "semantic_hash": "8e772d367b310991f21c6cc9a65900af"
+  },
+  "Odoo-Generation-/temp_verify_request.py": {
+    "mtime": 1786393279.8430996,
+    "seen": 1787251682.132484,
+    "ast_hash": "4a44f1e5f5393935b6f8820bd970c10a",
+    "semantic_hash": "4a44f1e5f5393935b6f8820bd970c10a"
+  },
+  "Odoo-Generation-/test_ai_connection.py": {
+    "mtime": 1785885268.4129522,
+    "seen": 1787251682.132484,
+    "ast_hash": "b9e0d54e6fae94f69bfe37b2a38957b1",
+    "semantic_hash": "b9e0d54e6fae94f69bfe37b2a38957b1"
+  },
+  "Odoo-Generation-/test_all_providers.py": {
+    "mtime": 1783964776.7213666,
+    "seen": 1787251682.132484,
+    "ast_hash": "90238bdf0e43d3eaa83125aafbb370db",
+    "semantic_hash": "90238bdf0e43d3eaa83125aafbb370db"
+  },
+  "Odoo-Generation-/test_usage_tracking.py": {
+    "mtime": 1786280918.6578662,
+    "seen": 1787251682.132484,
+    "ast_hash": "ff42cdab4df5f47b892dd0788bf6b98e",
+    "semantic_hash": "ff42cdab4df5f47b892dd0788bf6b98e"
+  },
+  "Odoo-Generation-/tests/test_ai_orchestrator.py": {
+    "mtime": 1785877728.654513,
+    "seen": 1787251682.132484,
+    "ast_hash": "12b02b5360b519463b895914bb1c5188",
+    "semantic_hash": "12b02b5360b519463b895914bb1c5188"
+  },
+  "Odoo-Generation-/tests/test_ai_service_registry.py": {
+    "mtime": 1785877203.9159937,
+    "seen": 1787251682.132484,
+    "ast_hash": "127ae161d266ce6268e91fdf6a4af15b",
+    "semantic_hash": "127ae161d266ce6268e91fdf6a4af15b"
+  },
+  "Odoo-Generation-/tests/test_cloud_sync.py": {
+    "mtime": 1786563803.0404882,
+    "seen": 1787251682.132484,
+    "ast_hash": "7ac85b1270de799f806e3844d1b7cbda",
+    "semantic_hash": "7ac85b1270de799f806e3844d1b7cbda"
+  },
+  "Odoo-Generation-/tests/test_component_registry.py": {
+    "mtime": 1785876254.379218,
+    "seen": 1787251682.132484,
+    "ast_hash": "e233d5f19e8fa2dcd069828b56770b79",
+    "semantic_hash": "e233d5f19e8fa2dcd069828b56770b79"
+  },
+  "Odoo-Generation-/tests/test_generation_errors.py": {
+    "mtime": 1785265018.8331654,
+    "seen": 1787251682.132484,
+    "ast_hash": "c16638ae9c2053f7e6d1de1cfe991934",
+    "semantic_hash": "c16638ae9c2053f7e6d1de1cfe991934"
+  },
+  "Odoo-Generation-/tests/test_generator_component_docs_security.py": {
+    "mtime": 1785879534.3858442,
+    "seen": 1787251682.132484,
+    "ast_hash": "fb7066133dc8f6a8b46dae837ab184bc",
+    "semantic_hash": "fb7066133dc8f6a8b46dae837ab184bc"
+  },
+  "Odoo-Generation-/tests/test_learning_loop_service.py": {
+    "mtime": 1785951982.1604633,
+    "seen": 1787251682.132484,
+    "ast_hash": "77b54c3603574e0a6e37b330ce98a5b8",
+    "semantic_hash": "77b54c3603574e0a6e37b330ce98a5b8"
+  },
+  "Odoo-Generation-/tests/test_rag_service.py": {
+    "mtime": 1783964776.7230172,
+    "seen": 1787251682.132484,
+    "ast_hash": "6033f7ceb1976c04918fa393e8c35785",
+    "semantic_hash": "6033f7ceb1976c04918fa393e8c35785"
+  },
+  "Odoo-Generation-/tests/test_sync_job_config.py": {
+    "mtime": 1786393344.4721854,
+    "seen": 1787251682.132484,
+    "ast_hash": "853da4225e037a9df1dfa8e693f8d66f",
+    "semantic_hash": "853da4225e037a9df1dfa8e693f8d66f"
+  },
+  "Odoo-Generation-/tmp_check.py": {
+    "mtime": 1786393301.1216943,
+    "seen": 1787251682.132484,
+    "ast_hash": "de9f02e7a080dc75759a656efe0936b7",
+    "semantic_hash": "de9f02e7a080dc75759a656efe0936b7"
+  },
+  "Odoo-Generation-/tmp_repro.py": {
+    "mtime": 1784746576.5511322,
+    "seen": 1787251682.132484,
+    "ast_hash": "3ea1b0be2217b0d9b91cf05e28255341",
+    "semantic_hash": "3ea1b0be2217b0d9b91cf05e28255341"
+  },
+  "Odoo-Generation-/verify_redis.py": {
+    "mtime": 1785703175.6874871,
+    "seen": 1787251682.132484,
+    "ast_hash": "74ff233349a31432f90c33f03d17b130",
+    "semantic_hash": "74ff233349a31432f90c33f03d17b130"
+  },
+  "diagnose_restore.py": {
+    "mtime": 1784899360.6079376,
+    "seen": 1787251682.132484,
+    "ast_hash": "2669820d8c17e59f59b6e481e1caa735",
+    "semantic_hash": "2669820d8c17e59f59b6e481e1caa735"
+  },
+  "odoo-Gen-Front/eslint.config.js": {
+    "mtime": 1783964817.3359356,
+    "seen": 1787251682.132484,
+    "ast_hash": "16ca6c2b1c8a8b0dcb20e69bed8b2f14",
+    "semantic_hash": "16ca6c2b1c8a8b0dcb20e69bed8b2f14"
+  },
+  "odoo-Gen-Front/old_GenBar.tsx": {
+    "mtime": 1785432298.181074,
+    "seen": 1787251682.132484,
+    "ast_hash": "8ad1f2f63f7fec5bd77dff5c0c3dd750",
+    "semantic_hash": "8ad1f2f63f7fec5bd77dff5c0c3dd750"
+  },
+  "odoo-Gen-Front/package.json": {
+    "mtime": 1786395205.4267988,
+    "seen": 1787251682.132484,
+    "ast_hash": "5115c92baa2f1e6956b8cc7579ba4d48",
+    "semantic_hash": "5115c92baa2f1e6956b8cc7579ba4d48"
+  },
+  "odoo-Gen-Front/postcss.config.js": {
+    "mtime": 1783964817.4288268,
+    "seen": 1787251682.132484,
+    "ast_hash": "5b84f4567208c7c747079c0477373231",
+    "semantic_hash": "5b84f4567208c7c747079c0477373231"
+  },
+  "odoo-Gen-Front/refresh.ps1": {
+    "mtime": 1784134184.113137,
+    "seen": 1787251682.132484,
+    "ast_hash": "be8ea17ce5efe491fe7d00a65b7e8a98",
+    "semantic_hash": "be8ea17ce5efe491fe7d00a65b7e8a98"
+  },
+  "odoo-Gen-Front/scripts/update-packages.ps1": {
+    "mtime": 1784134184.1231406,
+    "seen": 1787251682.132484,
+    "ast_hash": "870b4ce6c3c1250d90eb8120dad4f13e",
+    "semantic_hash": "870b4ce6c3c1250d90eb8120dad4f13e"
+  },
+  "odoo-Gen-Front/src/App.tsx": {
+    "mtime": 1786646921.1543655,
+    "seen": 1787251682.132484,
+    "ast_hash": "0200f87f9950eb6c91770d64d337b9f8",
+    "semantic_hash": "0200f87f9950eb6c91770d64d337b9f8"
+  },
+  "odoo-Gen-Front/src/components/AddFieldModal.tsx": {
+    "mtime": 1786646921.1593513,
+    "seen": 1787251682.132484,
+    "ast_hash": "ec186c8990fd1f3a66902d4fa0f7608c",
+    "semantic_hash": "ec186c8990fd1f3a66902d4fa0f7608c"
+  },
+  "odoo-Gen-Front/src/components/AiIcon.tsx": {
+    "mtime": 1784134184.1311219,
+    "seen": 1787251682.132484,
+    "ast_hash": "824d349e241f7f75944801cd2cad4077",
+    "semantic_hash": "824d349e241f7f75944801cd2cad4077"
+  },
+  "odoo-Gen-Front/src/components/AmbientBackdrop.tsx": {
+    "mtime": 1786646921.1634302,
+    "seen": 1787251682.132484,
+    "ast_hash": "22450f8610238637e5e39cdc32c30cbd",
+    "semantic_hash": "22450f8610238637e5e39cdc32c30cbd"
+  },
+  "odoo-Gen-Front/src/components/CanvasView.tsx": {
+    "mtime": 1786646921.167338,
+    "seen": 1787251682.132484,
+    "ast_hash": "4af8feed5a777399eef4279a46b0bfec",
+    "semantic_hash": "4af8feed5a777399eef4279a46b0bfec"
+  },
+  "odoo-Gen-Front/src/components/ConfirmModal.tsx": {
+    "mtime": 1785181521.62037,
+    "seen": 1787251682.132484,
+    "ast_hash": "803f0eef130244fb80cbe4d8ca0503bd",
+    "semantic_hash": "803f0eef130244fb80cbe4d8ca0503bd"
+  },
+  "odoo-Gen-Front/src/components/CustomEdge.tsx": {
+    "mtime": 1786646921.172318,
+    "seen": 1787251682.132484,
+    "ast_hash": "b5458b740202f681cf6102638a2f22fe",
+    "semantic_hash": "b5458b740202f681cf6102638a2f22fe"
+  },
+  "odoo-Gen-Front/src/components/CustomNode.tsx": {
+    "mtime": 1786646921.1758058,
+    "seen": 1787251682.132484,
+    "ast_hash": "e0b1e406212696fdfaf36630f931404b",
+    "semantic_hash": "e0b1e406212696fdfaf36630f931404b"
+  },
+  "odoo-Gen-Front/src/components/DiagramZoomToolbar.tsx": {
+    "mtime": 1786646921.1793802,
+    "seen": 1787251682.132484,
+    "ast_hash": "7273ce0ffce749dae0efc490786a7217",
+    "semantic_hash": "7273ce0ffce749dae0efc490786a7217"
+  },
+  "odoo-Gen-Front/src/components/EditTextModal.tsx": {
+    "mtime": 1786646921.1833167,
+    "seen": 1787251682.132484,
+    "ast_hash": "8b6f8a027a925ece637cf8406994305c",
+    "semantic_hash": "8b6f8a027a925ece637cf8406994305c"
+  },
+  "odoo-Gen-Front/src/components/ErdDiagram.tsx": {
+    "mtime": 1786646921.189273,
+    "seen": 1787251682.132484,
+    "ast_hash": "cd0563e36656426020fec92bce57c202",
+    "semantic_hash": "cd0563e36656426020fec92bce57c202"
+  },
+  "odoo-Gen-Front/src/components/ErdEditorPanel.tsx": {
+    "mtime": 1786646921.1932664,
+    "seen": 1787251682.132484,
+    "ast_hash": "257f5063083a1eb852ededa862130d08",
+    "semantic_hash": "257f5063083a1eb852ededa862130d08"
+  },
+  "odoo-Gen-Front/src/components/GenBar.tsx": {
+    "mtime": 1786646921.1992664,
+    "seen": 1787251682.132484,
+    "ast_hash": "6ce20344ab634a383e3ad83254b6fbeb",
+    "semantic_hash": "6ce20344ab634a383e3ad83254b6fbeb"
+  },
+  "odoo-Gen-Front/src/components/GenBarClassic.tsx": {
+    "mtime": 1786646921.2032373,
+    "seen": 1787251682.132484,
+    "ast_hash": "20f7658004db60b72904df177526aef8",
+    "semantic_hash": "20f7658004db60b72904df177526aef8"
+  },
+  "odoo-Gen-Front/src/components/HistoryView.tsx": {
+    "mtime": 1786646921.2082233,
+    "seen": 1787251682.132484,
+    "ast_hash": "25d2bcf30650d647ba3da2127b98ff9f",
+    "semantic_hash": "25d2bcf30650d647ba3da2127b98ff9f"
+  },
+  "odoo-Gen-Front/src/components/HistoryViewClassic.tsx": {
+    "mtime": 1786646921.2132106,
+    "seen": 1787251682.132484,
+    "ast_hash": "774996ec74896eca27b2a05792209efc",
+    "semantic_hash": "774996ec74896eca27b2a05792209efc"
+  },
+  "odoo-Gen-Front/src/components/InspectorPanel.tsx": {
+    "mtime": 1785172366.553188,
+    "seen": 1787251682.132484,
+    "ast_hash": "3baad6acb1a8f711149addd1a1b40885",
+    "semantic_hash": "3baad6acb1a8f711149addd1a1b40885"
+  },
+  "odoo-Gen-Front/src/components/InteractiveTerminal.tsx": {
+    "mtime": 1786646921.2181978,
+    "seen": 1787251682.132484,
+    "ast_hash": "1f561b3569d6fac6504c2a694f66b290",
+    "semantic_hash": "1f561b3569d6fac6504c2a694f66b290"
+  },
+  "odoo-Gen-Front/src/components/LoadingOverlay.tsx": {
+    "mtime": 1786646921.2241821,
+    "seen": 1787251682.132484,
+    "ast_hash": "5f6f561390d924e502737e40510dfbf9",
+    "semantic_hash": "5f6f561390d924e502737e40510dfbf9"
+  },
+  "odoo-Gen-Front/src/components/LoginView.tsx": {
+    "mtime": 1787001104.3305974,
+    "seen": 1787251682.132484,
+    "ast_hash": "392ff55be75914d43d0d1cd0deaf5161",
+    "semantic_hash": "392ff55be75914d43d0d1cd0deaf5161"
+  },
+  "odoo-Gen-Front/src/components/ModelSettingsPanel.tsx": {
+    "mtime": 1786646921.2291658,
+    "seen": 1787251682.132484,
+    "ast_hash": "52252e431dafd2026a5da41f89f00a5a",
+    "semantic_hash": "52252e431dafd2026a5da41f89f00a5a"
+  },
+  "odoo-Gen-Front/src/components/MonitorView.tsx": {
+    "mtime": 1787077321.2499733,
+    "seen": 1787251682.132484,
+    "ast_hash": "e05a69e2a804fd3ee32be7e04db8df26",
+    "semantic_hash": "e05a69e2a804fd3ee32be7e04db8df26"
+  },
+  "odoo-Gen-Front/src/components/MonitorViewClassic.tsx": {
+    "mtime": 1786646921.24114,
+    "seen": 1787251682.132484,
+    "ast_hash": "c497c1ae84c65eb9760c9aef53c2c9a1",
+    "semantic_hash": "c497c1ae84c65eb9760c9aef53c2c9a1"
+  },
+  "odoo-Gen-Front/src/components/ParticleBackground.tsx": {
+    "mtime": 1784134184.1588094,
+    "seen": 1787251682.132484,
+    "ast_hash": "84d3884392b6180c73d6b627ec87b176",
+    "semantic_hash": "84d3884392b6180c73d6b627ec87b176"
+  },
+  "odoo-Gen-Front/src/components/QuotaExceededModal.tsx": {
+    "mtime": 1786564737.8811083,
+    "seen": 1787251682.132484,
+    "ast_hash": "d0ed198ba69dc0f4bfcc0ebaee2908e5",
+    "semantic_hash": "d0ed198ba69dc0f4bfcc0ebaee2908e5"
+  },
+  "odoo-Gen-Front/src/components/SettingsView.tsx": {
+    "mtime": 1786646921.2461202,
+    "seen": 1787251682.132484,
+    "ast_hash": "25e891523d52f011e625a78b2d1a14fe",
+    "semantic_hash": "25e891523d52f011e625a78b2d1a14fe"
+  },
+  "odoo-Gen-Front/src/components/SettingsViewClassic.tsx": {
+    "mtime": 1786646921.2491171,
+    "seen": 1787251682.132484,
+    "ast_hash": "b438513fe7deb31b6b02a92e349c3855",
+    "semantic_hash": "b438513fe7deb31b6b02a92e349c3855"
+  },
+  "odoo-Gen-Front/src/components/Sidebar.tsx": {
+    "mtime": 1787077895.407049,
+    "seen": 1787251682.132484,
+    "ast_hash": "e74b5d9d4c9cd0ae3cf845fa44853784",
+    "semantic_hash": "e74b5d9d4c9cd0ae3cf845fa44853784"
+  },
+  "odoo-Gen-Front/src/components/Skeleton.tsx": {
+    "mtime": 1786646921.258088,
+    "seen": 1787251682.132484,
+    "ast_hash": "fed2431bcde8ff295962460276a00438",
+    "semantic_hash": "fed2431bcde8ff295962460276a00438"
+  },
+  "odoo-Gen-Front/src/components/SystemBuildView.tsx": {
+    "mtime": 1786646921.2637994,
+    "seen": 1787251682.132484,
+    "ast_hash": "1134cef44ca4fc563d3b55b2bacd013b",
+    "semantic_hash": "1134cef44ca4fc563d3b55b2bacd013b"
+  },
+  "odoo-Gen-Front/src/components/SystemBuildViewClassic.tsx": {
+    "mtime": 1786646921.2676413,
+    "seen": 1787251682.132484,
+    "ast_hash": "bffee455e83b988e5ffab03e9c786f0d",
+    "semantic_hash": "bffee455e83b988e5ffab03e9c786f0d"
+  },
+  "odoo-Gen-Front/src/components/TaskProgressTracker.tsx": {
+    "mtime": 1786646921.2720933,
+    "seen": 1787251682.132484,
+    "ast_hash": "e7beffd3289892337d4bd1b8d34c42ff",
+    "semantic_hash": "e7beffd3289892337d4bd1b8d34c42ff"
+  },
+  "odoo-Gen-Front/src/components/ToastProvider.tsx": {
+    "mtime": 1786646921.2763584,
+    "seen": 1787251682.132484,
+    "ast_hash": "4bb2b05fcb91b04006fdae64e31f9ddc",
+    "semantic_hash": "4bb2b05fcb91b04006fdae64e31f9ddc"
+  },
+  "odoo-Gen-Front/src/components/UseCaseDiagram.tsx": {
+    "mtime": 1785172366.5702114,
+    "seen": 1787251682.132484,
+    "ast_hash": "b093c47ca5c2ce73ff4af89ca14d02af",
+    "semantic_hash": "b093c47ca5c2ce73ff4af89ca14d02af"
+  },
+  "odoo-Gen-Front/src/components/ViewStage.tsx": {
+    "mtime": 1786646921.2803562,
+    "seen": 1787251682.132484,
+    "ast_hash": "f773c8267224123f492c1b3b83b7e452",
+    "semantic_hash": "f773c8267224123f492c1b3b83b7e452"
+  },
+  "odoo-Gen-Front/src/components/WelcomeDashboard.tsx": {
+    "mtime": 1786646921.2843444,
+    "seen": 1787251682.132484,
+    "ast_hash": "22a3e901370b2f86e664c9ef1c79e015",
+    "semantic_hash": "22a3e901370b2f86e664c9ef1c79e015"
+  },
+  "odoo-Gen-Front/src/components/WelcomeDashboardClassic.tsx": {
+    "mtime": 1786646921.2893329,
+    "seen": 1787251682.132484,
+    "ast_hash": "ba4438182cc3fb1dba779f6aafb76d9c",
+    "semantic_hash": "ba4438182cc3fb1dba779f6aafb76d9c"
+  },
+  "odoo-Gen-Front/src/constants/chat.ts": {
+    "mtime": 1785692185.2899766,
+    "seen": 1787251682.132484,
+    "ast_hash": "f6446efb3475ffe8e9b645d45808f852",
+    "semantic_hash": "f6446efb3475ffe8e9b645d45808f852"
+  },
+  "odoo-Gen-Front/src/context/AuthContext.tsx": {
+    "mtime": 1787001118.0972884,
+    "seen": 1787251682.132484,
+    "ast_hash": "490873a093ed86583ad2e937b4e79495",
+    "semantic_hash": "490873a093ed86583ad2e937b4e79495"
+  },
+  "odoo-Gen-Front/src/data/demoModuleConfig.ts": {
+    "mtime": 1784134184.169778,
+    "seen": 1787251682.132484,
+    "ast_hash": "f1c40ea29b07e956cf9af66ea8a94f1d",
+    "semantic_hash": "f1c40ea29b07e956cf9af66ea8a94f1d"
+  },
+  "odoo-Gen-Front/src/main.tsx": {
+    "mtime": 1786646921.318257,
+    "seen": 1787251682.132484,
+    "ast_hash": "bbfe8ac1eaf48b667d57bdf44d06adc7",
+    "semantic_hash": "bbfe8ac1eaf48b667d57bdf44d06adc7"
+  },
+  "odoo-Gen-Front/src/services/api.ts": {
+    "mtime": 1786565101.6934917,
+    "seen": 1787251682.132484,
+    "ast_hash": "00736d38d367b3d0f5fff55b4a0c8f70",
+    "semantic_hash": "00736d38d367b3d0f5fff55b4a0c8f70"
+  },
+  "odoo-Gen-Front/src/services/supabaseClient.ts": {
+    "mtime": 1786395219.1985347,
+    "seen": 1787251682.132484,
+    "ast_hash": "67444d5da93b319d0c8cd11d63190b70",
+    "semantic_hash": "67444d5da93b319d0c8cd11d63190b70"
+  },
+  "odoo-Gen-Front/src/theme/ThemeContext.tsx": {
+    "mtime": 1787073714.143034,
+    "seen": 1787251682.132484,
+    "ast_hash": "3afc4f6156eac43e51596258bb02adcc",
+    "semantic_hash": "3afc4f6156eac43e51596258bb02adcc"
+  },
+  "odoo-Gen-Front/src/theme/ThemeSwitcher.tsx": {
+    "mtime": 1786646921.3274412,
+    "seen": 1787251682.132484,
+    "ast_hash": "55dc94bcb875917717b50e4d4e07a9c8",
+    "semantic_hash": "55dc94bcb875917717b50e4d4e07a9c8"
+  },
+  "odoo-Gen-Front/src/theme/pageTransitions.ts": {
+    "mtime": 1787074672.9694803,
+    "seen": 1787251682.132484,
+    "ast_hash": "32b85a0ccbb319632103842338c9d1d2",
+    "semantic_hash": "32b85a0ccbb319632103842338c9d1d2"
+  },
+  "odoo-Gen-Front/src/types/react-syntax-highlighter.d.ts": {
+    "mtime": 1785172815.5367577,
+    "seen": 1787251682.132484,
+    "ast_hash": "d2e729de10601b2fde0e4ccd4b37b8f9",
+    "semantic_hash": "d2e729de10601b2fde0e4ccd4b37b8f9"
+  },
+  "odoo-Gen-Front/src/utils/demoGenerate.ts": {
+    "mtime": 1784134184.1773674,
+    "seen": 1787251682.132484,
+    "ast_hash": "ca183dbf21d0c11cbf529f3c40e34963",
+    "semantic_hash": "ca183dbf21d0c11cbf529f3c40e34963"
+  },
+  "odoo-Gen-Front/src/utils/diagramBuilder.ts": {
+    "mtime": 1784745410.0057096,
+    "seen": 1787251682.132484,
+    "ast_hash": "7f1544239c71f7cd0048df2eccd8abcc",
+    "semantic_hash": "7f1544239c71f7cd0048df2eccd8abcc"
+  },
+  "odoo-Gen-Front/src/utils/promptValidation.ts": {
+    "mtime": 1784134184.1803603,
+    "seen": 1787251682.132484,
+    "ast_hash": "38468a5c1ec6ad46fdc84d933914edfc",
+    "semantic_hash": "38468a5c1ec6ad46fdc84d933914edfc"
+  },
+  "odoo-Gen-Front/src/vite-env.d.ts": {
+    "mtime": 1784706510.5456822,
+    "seen": 1787251682.132484,
+    "ast_hash": "8f68c27c3fc38817b2726b20e2d4f1ee",
+    "semantic_hash": "8f68c27c3fc38817b2726b20e2d4f1ee"
+  },
+  "odoo-Gen-Front/tailwind.config.js": {
+    "mtime": 1786646921.3332188,
+    "seen": 1787251682.132484,
+    "ast_hash": "50f13465b61cd12740171527406096db",
+    "semantic_hash": "50f13465b61cd12740171527406096db"
+  },
+  "odoo-Gen-Front/tsconfig.app.json": {
+    "mtime": 1783964817.4948094,
+    "seen": 1787251682.132484,
+    "ast_hash": "32b1ccb5e123d519f96029df0bdc7848",
+    "semantic_hash": "32b1ccb5e123d519f96029df0bdc7848"
+  },
+  "odoo-Gen-Front/tsconfig.json": {
+    "mtime": 1783964817.4992168,
+    "seen": 1787251682.132484,
+    "ast_hash": "ff3e7b6750bd66840790b1d1707c5772",
+    "semantic_hash": "ff3e7b6750bd66840790b1d1707c5772"
+  },
+  "odoo-Gen-Front/tsconfig.node.json": {
+    "mtime": 1783964817.5007906,
+    "seen": 1787251682.132484,
+    "ast_hash": "281e378713152cccc7860c818db55849",
+    "semantic_hash": "281e378713152cccc7860c818db55849"
+  },
+  "odoo-Gen-Front/untracked_file_backup/main.tsx": {
+    "mtime": 1784703055.57715,
+    "seen": 1787251682.132484,
+    "ast_hash": "6317c0572b4cab95ab836cc33ec87616",
+    "semantic_hash": "6317c0572b4cab95ab836cc33ec87616"
+  },
+  "odoo-Gen-Front/untracked_file_backup/vite-env.d.ts": {
+    "mtime": 1784703055.57715,
+    "seen": 1787251682.132484,
+    "ast_hash": "8f68c27c3fc38817b2726b20e2d4f1ee",
+    "semantic_hash": "8f68c27c3fc38817b2726b20e2d4f1ee"
+  },
+  "odoo-Gen-Front/vercel.json": {
+    "mtime": 1784926364.5615964,
+    "seen": 1787251682.132484,
+    "ast_hash": "0db7ccb3aff36e97aa469126e9e17f99",
+    "semantic_hash": "0db7ccb3aff36e97aa469126e9e17f99"
+  },
+  "odoo-Gen-Front/vite.config.ts": {
+    "mtime": 1784137259.2784472,
+    "seen": 1787251682.132484,
+    "ast_hash": "e0a2d13111c0d8bbb1075d54d3322de3",
+    "semantic_hash": "e0a2d13111c0d8bbb1075d54d3322de3"
+  },
+  "scripts/remove_fitzone_jobs.py": {
+    "mtime": 1785086450.271093,
+    "seen": 1787251682.132484,
+    "ast_hash": "409476a30f4f0803760b42f175d4063d",
+    "semantic_hash": "409476a30f4f0803760b42f175d4063d"
+  },
+  "AGENTS.md": {
+    "mtime": 1787251353.2025635,
+    "seen": 1787251682.132484,
+    "ast_hash": "21ceb6533048be51308e69e7b74a35cf",
+    "semantic_hash": "21ceb6533048be51308e69e7b74a35cf"
+  },
+  "LAG_FIX_SUMMARY.md": {
+    "mtime": 1784831759.7307045,
+    "seen": 1787251682.132484,
+    "ast_hash": "fb26fa38e5e2a1e061626f81c8b25c91",
+    "semantic_hash": "fb26fa38e5e2a1e061626f81c8b25c91"
+  },
+  "Odoo-Generation-/ARCHITECTURE_KNOWLEDGE_PLATFORM.md": {
+    "mtime": 1785953982.6100929,
+    "seen": 1787251682.132484,
+    "ast_hash": "24a570ea0e8ce74562a3c88e9116899e",
+    "semantic_hash": "24a570ea0e8ce74562a3c88e9116899e"
+  },
+  "Odoo-Generation-/ENGINEERING_STANDARDS.md": {
+    "mtime": 1785960467.5281606,
+    "seen": 1787251682.132484,
+    "ast_hash": "228e0416dc8c2956642cb769e0666baf",
+    "semantic_hash": "228e0416dc8c2956642cb769e0666baf"
+  },
+  "Odoo-Generation-/docs/NN_DEVELOPMENT_PLAN.md": {
+    "mtime": 1786566007.3386674,
+    "seen": 1787251682.1329908,
+    "ast_hash": "84370e26fbe09bd468b7f5ff2a15596f",
+    "semantic_hash": "84370e26fbe09bd468b7f5ff2a15596f"
+  }
+}

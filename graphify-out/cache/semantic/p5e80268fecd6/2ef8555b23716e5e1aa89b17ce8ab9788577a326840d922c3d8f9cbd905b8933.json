@@ -1,0 +1,1 @@
+{"nodes": [{"id": "nn_development_plan_md", "label": "Neural Network Development Plan", "file_type": "document", "source_file": "Odoo-Generation-/docs/NN_DEVELOPMENT_PLAN.md", "rationale": "Roadmap for integrating machine learning (Quality Scorer, Semantic Matching) into the backend."}], "edges": [], "hyperedges": []}
